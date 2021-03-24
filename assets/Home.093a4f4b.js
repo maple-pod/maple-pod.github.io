@@ -1,0 +1,1 @@
+import{d as o,o as l,c as e,F as n,b as s}from"./vendor.8f40eb02.js";var a=o({setup:()=>({hello:"Hello"})});const r=s("img",{alt:"MaplePod logo",src:"/assets/logo.51cdce85.png"},null,-1),t=s("p",null,"Coming Soon",-1);a.render=function(o,s,a,u,c,d){return l(),e(n,null,[r,t],64)};export default a;
