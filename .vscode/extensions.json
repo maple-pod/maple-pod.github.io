@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "johnsoncodehk.volar",
+    "antfu.iconify",
+    "dbaeumer.vscode-eslint",
+    "stylelint.vscode-stylelint",
+    "editorconfig.editorconfig",
+    "voorjaar.windicss-intellisense",
+    "formulahendry.auto-complete-tag",
+    "coenraads.bracket-pair-colorizer",
+    "naumovs.color-highlight"
+  ]
+}
