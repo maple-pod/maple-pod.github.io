@@ -1,8 +1,10 @@
 dependencies:
   '@vueuse/core': 4.4.1_vue@3.0.7
+  howler: 2.2.1
   vue: 3.0.7
 devDependencies:
   '@amatlash/vite-plugin-stylelint': 1.1.1_vite@2.1.2
+  '@types/howler': 2.2.1
   '@types/node': 14.14.35
   '@typescript-eslint/eslint-plugin': 4.19.0_f26dcf5ec38a04241b14c26bc931244e
   '@typescript-eslint/parser': 4.19.0_eslint@7.22.0+typescript@4.2.3
@@ -298,6 +300,10 @@ packages:
       postcss-syntax: '>=0.36.2'
     resolution:
       integrity: sha512-2kGbqUVJUGE8dM+bMzXG/PYUWKkjLIkRLWNh39OaADkiabDRdw8ATFCgbMz5xdIcvwspPAluSL7uY+ZiTWdWmQ==
+  /@types/howler/2.2.1:
+    dev: true
+    resolution:
+      integrity: sha512-1MiSldngr+eAO4lDPtjzl4Nf2GmRh8VDHIpNBIkyd25L22JExVlI6w3fjSM7+FNc1e1WZAPNq7/flkw685byfg==
   /@types/json-schema/7.0.7:
     dev: true
     resolution:
@@ -1937,6 +1943,10 @@ packages:
       node: '>=10'
     resolution:
       integrity: sha512-eT7NrxAsppPRQEBSwKSosReE+v8OzABwEScQYk5d4uxaEPlzxTIku7LINXtBGalthkLhJnq5lBI89PfK43zAKg==
+  /howler/2.2.1:
+    dev: false
+    resolution:
+      integrity: sha512-0iIXvuBO/81CcrQ/HSSweYmbT50fT2mIc9XMFb+kxIfk2pW/iKzDbX1n3fZmDXMEIpYvyyfrB+gXwPYSDqUxIQ==
   /html-encoding-sniffer/2.0.1:
     dependencies:
       whatwg-encoding: 1.0.5
@@ -4342,6 +4352,7 @@ packages:
       integrity: sha512-V50KMwwzqJV0NpZIZFwfOD5/lyny3WlSzRiXgA0G7VUnRlqttta1L6UQIHzd6EuBY/cHGfwTIck7w1yH6Q5zUw==
 specifiers:
   '@amatlash/vite-plugin-stylelint': ^1.1.1
+  '@types/howler': ^2.2.1
   '@types/node': ^14.14.35
   '@typescript-eslint/eslint-plugin': ^4.19.0
   '@typescript-eslint/parser': ^4.19.0
@@ -4356,6 +4367,7 @@ specifiers:
   eslint-plugin-node: '11'
   eslint-plugin-promise: '4'
   eslint-plugin-vue: ^7.8.0
+  howler: ^2.2.1
   postcss: ^8.2.8
   sass: ^1.32.8
   stylelint: ^13.12.0
