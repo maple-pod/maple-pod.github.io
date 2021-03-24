@@ -2,6 +2,7 @@ dependencies:
   '@vueuse/core': 4.4.1_vue@3.0.7
   vue: 3.0.7
 devDependencies:
+  '@amatlash/vite-plugin-stylelint': 1.1.1_vite@2.1.2
   '@types/node': 14.14.35
   '@typescript-eslint/eslint-plugin': 4.19.0_f26dcf5ec38a04241b14c26bc931244e
   '@typescript-eslint/parser': 4.19.0_eslint@7.22.0+typescript@4.2.3
@@ -29,6 +30,17 @@ devDependencies:
   windicss: 2.5.4
 lockfileVersion: 5.2
 packages:
+  /@amatlash/vite-plugin-stylelint/1.1.1_vite@2.1.2:
+    dependencies:
+      '@rollup/pluginutils': 4.1.0
+      stylelint: 13.12.0
+      vite: 2.1.2
+    dev: true
+    peerDependencies:
+      rollup: ^2.38.5
+      vite: ^2.0.0-beta.67
+    resolution:
+      integrity: sha512-VqWNWvuwi5FEctU8ug5h1hoPW/Rv/PvkyALslamLgJgQm848kg9MIL+pBK3dEpG6+bPK5FSWbfVdtisVnM3Gyg==
   /@babel/code-frame/7.12.11:
     dependencies:
       '@babel/highlight': 7.13.10
@@ -252,6 +264,17 @@ packages:
       node: '>= 8'
     resolution:
       integrity: sha512-8Broas6vTtW4GIXTAHDoE32hnN2M5ykgCpWGbuXHQ15vEMqr23pB76e/GZcYsZCHALv50ktd24qhEyKr6wBtow==
+  /@rollup/pluginutils/4.1.0:
+    dependencies:
+      estree-walker: 2.0.2
+      picomatch: 2.2.2
+    dev: true
+    engines:
+      node: '>= 8.0.0'
+    peerDependencies:
+      rollup: ^1.20.0||^2.0.0
+    resolution:
+      integrity: sha512-TrBhfJkFxA+ER+ew2U2/fHbebhLT/l/2pRk0hfj9KusXUuRXd2v0R58AfaZK9VXDQ4TogOSEmICVrQAA3zFnHQ==
   /@stylelint/postcss-css-in-js/0.37.2_4fe96148bf77e6cee792ae366c9083f9:
     dependencies:
       '@babel/core': 7.13.10
@@ -4318,6 +4341,7 @@ packages:
     resolution:
       integrity: sha512-V50KMwwzqJV0NpZIZFwfOD5/lyny3WlSzRiXgA0G7VUnRlqttta1L6UQIHzd6EuBY/cHGfwTIck7w1yH6Q5zUw==
 specifiers:
+  '@amatlash/vite-plugin-stylelint': ^1.1.1
   '@types/node': ^14.14.35
   '@typescript-eslint/eslint-plugin': ^4.19.0
   '@typescript-eslint/parser': ^4.19.0
