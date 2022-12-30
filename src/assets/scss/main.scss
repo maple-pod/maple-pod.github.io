@@ -1,0 +1,12 @@
+button:focus {
+  outline: none;
+}
+
+.box-shadow {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+}
+
+.flip-x {
+  --tw-scale-x: -1;
+  --tw-scale-y: 1;
+}

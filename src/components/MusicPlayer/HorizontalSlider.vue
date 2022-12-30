@@ -1,40 +1,41 @@
 <template>
-  <input v-model="value" :style="{ '--progress': `${100 * value / max}%` }" ref="slider" type="range" :min="min" :max="max" class="horizontal-slider">
+  <input
+    v-model="value"
+    :style="`--progress: ${100 * value / max}%;`"
+    ref="slider"
+    type="range"
+    :min="min"
+    :max="max"
+    class="horizontal-slider"
+  />
 </template>
 
-<script lang="ts">
-import { computed, defineComponent } from 'vue'
+<script setup lang="ts">
+import { computed, defineEmit, defineProps } from 'vue'
 
-export default defineComponent({
-  name: 'HorizontalSlider',
-  props: {
-    min: {
-      type: Number,
-      required: true
-    },
-    max: {
-      type: Number,
-      required: true
-    },
-    modelValue: {
-      type: Number,
-      required: true
-    }
+const props = defineProps({
+  min: {
+    type: Number,
+    required: true
   },
-  emits: ['update:modelValue'],
-  setup (props, { emit }) {
-    const value = computed<number>({
-      get () {
-        return props.modelValue
-      },
-      set (newVal) {
-        emit('update:modelValue', +newVal)
-      }
-    })
+  max: {
+    type: Number,
+    required: true
+  },
+  modelValue: {
+    type: Number,
+    required: true
+  }
+})
 
-    return {
-      value
-    }
+const emit = defineEmit(['update:modelValue'])
+
+const value = computed<number>({
+  get () {
+    return props.modelValue
+  },
+  set (newVal) {
+    emit('update:modelValue', +newVal)
   }
 })
 </script>
@@ -42,6 +43,7 @@ export default defineComponent({
 <style lang="scss">
 .horizontal-slider {
   @apply bg-secondary;
+  @apply rounded-2xl;
 
   position: relative;
   appearance: none;
@@ -52,8 +54,9 @@ export default defineComponent({
 
   &::after {
     @apply bg-primary;
+    @apply rounded-2xl;
 
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -67,13 +70,14 @@ export default defineComponent({
 
     @apply bg-white;
 
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     left: var(--progress);
     width: $size;
     height: $size;
     border-radius: 50%;
+    box-shadow: 0 0 0.1rem #000;
     cursor: pointer;
     transform: translate(-50%, -50%);
     z-index: 2;

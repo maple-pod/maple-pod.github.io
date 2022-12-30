@@ -44,5 +44,20 @@
 			""
 		],
 		"description": "Create new Vue file template"
+	},
+	"New Vue File Template (TS setup)": {
+		"scope": "vue",
+		"prefix": "vue3setupTs",
+		"body": [
+			"<template>",
+			"  <h1>{{ hello }}</h1>",
+			"</template>",
+			"",
+			"<script setup lang=\"ts\">",
+			"const hello = 'hello'",
+			"</script>",
+			""
+		],
+		"description": "Create new Vue file template"
 	}
 }

@@ -3,6 +3,8 @@ import { defineConfig } from 'vite'
 import Vue from '@vitejs/plugin-vue'
 import WindiCSS from 'vite-plugin-windicss'
 import Stylelint from '@amatlash/vite-plugin-stylelint'
+import Components from 'vite-plugin-components'
+import Icons, { ViteIconsResolver } from 'vite-plugin-icons'
 import { ViteSSGOptions } from 'vite-ssg'
 
 const ssgOptions: ViteSSGOptions = {
@@ -25,6 +27,12 @@ export default defineConfig({
   plugins: [
     Vue(),
     WindiCSS(),
+    Icons(),
+    Components({
+      customComponentResolvers: ViteIconsResolver({
+        componentPrefix: 'icon'
+      })
+    }),
     Stylelint({
       exclude: /(node_modules)|(windi\.css)/
     })

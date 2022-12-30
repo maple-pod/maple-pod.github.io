@@ -1,31 +1,90 @@
 <template>
   <RouterView></RouterView>
-  <ClientOnly>
-    <ThemeHandler></ThemeHandler>
-  </ClientOnly>
+  <MusicPlayer v-if="song"></MusicPlayer>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
-import { useHead } from '@vueuse/head'
-import ThemeHandler from '@/components/ThemeHandler.vue'
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useMusicPlayer, useSong } from '@/modules/music-player'
+import { setupModules } from '@/modules'
+import MusicPlayer from '@/components/MusicPlayer/index.vue'
 
-export default defineComponent({
-  name: 'App',
-  components: {
-    ThemeHandler
-  },
-  setup () {
-    useHead({
-      title: '即將開放 | Maple Pod',
-      meta: [
-        {
-          name: 'description',
-          content: '方便、好用的楓之谷音樂播放 App'
-        }
-      ]
-    })
-  }
+setupModules()
+const { loadSong } = useMusicPlayer()
+const { song } = useSong()
+
+onMounted(async () => {
+  await loadSong({
+    description: 'Evan tutorial',
+    filename: 'DragonDream',
+    mark: 'DragonDream',
+    metadata: {
+      albumArtist: 'Wizet',
+      artist: 'StudioEIM',
+      title: 'Dragon Dream',
+      year: '2009'
+    },
+    source: {
+      client: 'KMST',
+      date: '2009-11-19',
+      structure: 'Bgm00',
+      version: '1.2.267'
+    },
+    youtube: 'mM_27SaY7tE',
+    maps: [
+      {
+        id: '100030301',
+        street: '潘姆之路',
+        map: '茂密的森林'
+      },
+      {
+        id: '900010000',
+        street: '夢中',
+        map: '夢見的森林入口'
+      },
+      {
+        id: '900010100',
+        street: '夢中',
+        map: '夢見的路'
+      },
+      {
+        id: '900010200',
+        street: '夢中',
+        map: '夢現的森林'
+      },
+      {
+        id: '900020200',
+        street: '隱密之地',
+        map: '遺失的森林入口'
+      },
+      {
+        id: '900020210',
+        street: '隱密之地',
+        map: '遺失的路'
+      },
+      {
+        id: '900020220',
+        street: '隱密之地',
+        map: '遺失的森林'
+      },
+      {
+        id: '900090100',
+        street: '動畫',
+        map: '新手村0'
+      },
+      {
+        id: '900090101',
+        street: '動畫',
+        map: '新手村1'
+      },
+      {
+        id: '900090103',
+        street: '動畫',
+        map: '轉職'
+      }
+    ],
+    downloadable: true
+  })
 })
 </script>
 

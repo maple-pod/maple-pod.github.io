@@ -18,6 +18,7 @@ module.exports = {
     '@typescript-eslint'
   ],
   rules: {
-    'vue/no-multiple-template-root': 0
+    'vue/no-multiple-template-root': 0,
+    'no-unused-vars': 'off'
   }
 }
