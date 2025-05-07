@@ -1,0 +1,46 @@
+{
+	"name": "maple-pod",
+	"type": "module",
+	"version": "0.0.0",
+	"private": true,
+	"packageManager": "pnpm@10.10.0",
+	"scripts": {
+		"dev": "vite",
+		"build": "run-p type-check \"build-only {@}\" --",
+		"preview": "vite preview",
+		"build-only": "vite build",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"type-check": "vue-tsc --build"
+	},
+	"dependencies": {
+		"modern-normalize": "^3.0.1",
+		"pinia": "^3.0.2",
+		"vue": "^3.5.13",
+		"vue-router": "^4.5.1"
+	},
+	"devDependencies": {
+		"@deviltea/eslint-config": "^4.0.0",
+		"@deviltea/tsconfig": "^0.0.7",
+		"@pikacss/plugin-icons": "^0.0.16",
+		"@pikacss/vite-plugin-pikacss": "^0.0.16",
+		"@tsconfig/node22": "^22.0.1",
+		"@types/node": "^22.14.0",
+		"@vitejs/plugin-vue": "^5.2.3",
+		"@vue/tsconfig": "^0.7.0",
+		"eslint": "^9.26.0",
+		"lint-staged": "^15.5.2",
+		"npm-run-all2": "^7.0.2",
+		"simple-git-hooks": "^2.13.0",
+		"typescript": "~5.8.0",
+		"vite": "^6.2.4",
+		"vite-plugin-vue-devtools": "^7.7.2",
+		"vue-tsc": "^2.2.8"
+	},
+	"simple-git-hooks": {
+		"pre-commit": "pnpm lint-staged"
+	},
+	"lint-staged": {
+		"*": "eslint --fix"
+	}
+}
