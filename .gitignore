@@ -207,3 +207,7 @@ dist
 # pikacss auto generated files
 pika.gen.ts
 pika.dev.css
+
+# auto generated files
+auto-imports.d.ts
+components.d.ts
