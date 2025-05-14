@@ -95,7 +95,7 @@ const {
 				'display': 'contents',
 
 				'@docpip': ['theme', {
-					display: 'flex !important',
+					display: 'flex',
 					justifyContent: 'center',
 					alignItems: 'center',
 					width: '100%',
@@ -296,7 +296,7 @@ const {
 					'display': 'contents',
 
 					'@docpip': ['card', {
-						display: 'block !important',
+						display: 'block',
 						transform: 'scale(0.8)',
 					}],
 				})"
