@@ -13,6 +13,8 @@ function createAudioRef(options: UseAudioOptions = {}) {
 	audio.value.muted = muted
 	audio.value.volume = volume
 	audio.value.preload = 'auto'
+
+	// Custom event to notify when the audio.loop property is updated
 	Object.defineProperty(audio, 'loop', {
 		set(value) {
 			// emit an event 'loopupdate' to notify the change
@@ -44,17 +46,14 @@ export function useAudio(options: UseAudioOptions = {}) {
 	})
 
 	const duration = computed(() => audioStatus.value.duration)
-
 	const currentTime = computed({
 		get: () => audioStatus.value.currentTime,
 		set: value => audio.value.currentTime = value,
 	})
-
 	const volume = computed({
 		get: () => audioStatus.value.volume,
 		set: value => audio.value.volume = value,
 	})
-
 	const muted = computed({
 		get: () => audioStatus.value.muted,
 		set: value => audio.value.muted = value,
@@ -63,7 +62,6 @@ export function useAudio(options: UseAudioOptions = {}) {
 		get: () => audioStatus.value.loop,
 		set: value => audio.value.loop = value,
 	})
-
 	const isPaused = computed(() => audioStatus.value.isPaused)
 	const isWaiting = computed(() => audioStatus.value.isWaiting)
 	const canPlay = computed(() => audioStatus.value.canPlay)
@@ -115,6 +113,7 @@ export function useAudio(options: UseAudioOptions = {}) {
 	})
 
 	tryOnScopeDispose(() => {
+		audio.value.autoplay = false
 		audio.value.pause()
 		audio.value.src = ''
 	})
