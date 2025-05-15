@@ -1,8 +1,6 @@
 import type { MusicData } from '@/types/MusicData'
 import type { Playlist, PlaylistId, SaveablePlaylistId } from '@/types/Playlist'
 import type { SavedPreferences } from '@/types/SavedPreferences'
-import type { HowlOptions } from 'howler'
-import { Howl } from 'howler'
 
 function createAllPlaylist(data: Map<string, MusicData>): Playlist {
 	return { id: 'all', title: 'All', list: Array.from(data.keys()) }
@@ -13,34 +11,11 @@ function createLikedPlaylist(): Playlist {
 }
 
 export const useMusicPlayerStore = defineStore('musicPlayer', () => {
-	const loadedHowl = shallowRef<Howl | null>(null)
+	const audioLogic = useAudio()
 
 	// #region Preferences
-	const [muteState, pressMute] = useToggle(false)
-
-	const volume = ref(1)
-	watch(
-		volume,
-		() => {
-			if (loadedHowl.value == null)
-				return
-			loadedHowl.value.volume(volume.value)
-		},
-	)
-	watch(
-		muteState,
-		() => {
-			if (loadedHowl.value == null)
-				return
-			if (muteState.value === true) {
-				loadedHowl.value.mute(true)
-			}
-			else {
-				loadedHowl.value.mute(false)
-				loadedHowl.value.volume(volume.value)
-			}
-		},
-	)
+	const [muteState, pressMute] = [audioLogic.muted, (bool?: boolean) => audioLogic.muted.value = bool ?? !audioLogic.muted.value]
+	const volume = audioLogic.volume
 
 	const [randomState, pressRandom] = useToggle(false)
 
@@ -54,16 +29,13 @@ export const useMusicPlayerStore = defineStore('musicPlayer', () => {
 		repeatState.value = state
 	}
 	watch(repeatState, (newState) => {
-		if (loadedHowl.value == null)
-			return
-
 		switch (newState) {
 			case 'off':
 			case 'repeat':
-				loadedHowl.value.loop(false)
+				audioLogic.loop.value = false
 				break
 			case 'repeat-1':
-				loadedHowl.value.loop(true)
+				audioLogic.loop.value = true
 				break
 		}
 	})
@@ -90,52 +62,19 @@ export const useMusicPlayerStore = defineStore('musicPlayer', () => {
 	// #endregion
 
 	// #region Music
-	const isPlaying = ref(false)
-	const isLoading = ref(false)
-	const duration = ref(0)
-	const _current = ref(0)
-	const current = computed({
-		get: () => _current.value,
-		set: (value) => {
-			_current.value = value
+	const isPaused = audioLogic.isPaused
+	const duration = audioLogic.duration
+	const current = audioLogic.currentTime
 
-			if (loadedHowl.value == null)
-				return
-
-			loadedHowl.value.seek(value)
-		},
-	})
-	useRafFn(() => {
-		if (loadedHowl.value == null)
-			return
-
-		_current.value = loadedHowl.value.seek()
-	})
-
-	function pressPlay(state?: boolean) {
-		if (loadedHowl.value == null)
-			return
-
-		const method = state == null
-			? isPlaying.value
-				? 'pause'
-				: 'play'
-			: state
+	function pressPlay(bool?: boolean) {
+		const method = bool == null
+			? isPaused.value
 				? 'play'
 				: 'pause'
-		loadedHowl.value[method]()
-	}
-
-	function resetMusic() {
-		if (loadedHowl.value != null) {
-			loadedHowl.value.unload()
-			loadedHowl.value = null
-		}
-
-		isPlaying.value = false
-		isLoading.value = false
-		current.value = 0
-		duration.value = 0
+			: bool
+				? 'play'
+				: 'pause'
+		audioLogic[method]()
 	}
 	// #endregion
 
@@ -209,6 +148,14 @@ export const useMusicPlayerStore = defineStore('musicPlayer', () => {
 	function pressNext() {
 		_pressNext()
 	}
+	useEventListener(
+		audioLogic.audio,
+		'ended',
+		() => {
+			if (repeatState.value === 'repeat')
+				pressNext()
+		},
+	)
 
 	function pressMusicItem({ source, playlistId }: { source: string, playlistId: PlaylistId }) {
 		const musicData = getMusicData(source)
@@ -237,68 +184,36 @@ export const useMusicPlayerStore = defineStore('musicPlayer', () => {
 		currentMusicSource.value = source
 	}
 
-	const callbacks: Omit<HowlOptions, 'src'> = {
-		onplay: () => isPlaying.value = true,
-		onpause: () => isPlaying.value = false,
-		onend: () => {
-			isPlaying.value = false
-			if (repeatState.value === 'repeat')
-				pressNext()
-		},
-		onstop: () => isPlaying.value = false,
-	}
-	const loadHowl = useDebounceFn(async () => {
-		const source = currentMusicSource.value
-		const musicData = getMusicData(source)
-		if (musicData == null)
-			return
-
-		const howl = await new Promise<Howl | null>((resolve) => {
-			try {
-				const instance = new Howl({
-					src: musicData.source,
-					html5: true,
-					volume: volume.value,
-					mute: muteState.value,
-					loop: repeatState.value === 'repeat-1',
-					autoplay: false,
-					...callbacks,
-					onload: () => resolve(instance),
-					onloaderror: (id, err) => {
-						console.error('Error loading music:', id, err)
-						resolve(null)
-					},
-				})
-			}
-			catch (err) {
-				console.error('Error creating Howl instance:', err)
-				resolve(null)
-			}
-		})
-
-		if (howl == null || currentMusicSource.value !== source) {
-			howl?.unload()
-			return
-		}
-
-		loadedHowl.value = howl
-		duration.value = howl.duration()
-		howl.play()
-	}, 500)
 	watch(
 		currentMusicSource,
 		async () => {
-			resetMusic()
-			loadHowl()
+			audioLogic.load(currentMusicSource.value)
 		},
+		{ immediate: true },
 	)
 	// #endregion
 
 	if ('mediaSession' in navigator) {
 		watch(
-			isPlaying,
+			currentMusic,
+			(music) => {
+				if (music == null)
+					return
+
+				navigator.mediaSession.metadata = new MediaMetadata({
+					title: music.title,
+					artist: 'Maple Story',
+					artwork: [
+						{ src: music.cover, sizes: '512x512', type: 'image/png' },
+					],
+				})
+			},
+			{ immediate: true },
+		)
+		watch(
+			isPaused,
 			(bool) => {
-				navigator.mediaSession.playbackState = bool ? 'playing' : 'paused'
+				navigator.mediaSession.playbackState = bool ? 'paused' : 'playing'
 			},
 			{ immediate: true },
 		)
@@ -325,9 +240,9 @@ export const useMusicPlayerStore = defineStore('musicPlayer', () => {
 		toggleMusicLike,
 		currentMusicSource,
 		currentMusic,
-		loadedHowl,
-		isPlaying,
-		isLoading,
+
+		canPlay: audioLogic.canPlay,
+		isPaused,
 		duration,
 		current,
 		volume,

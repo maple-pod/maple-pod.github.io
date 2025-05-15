@@ -4,10 +4,10 @@ import { useDocumentPictureInPicture } from '@/composables/useDocumentPictureInP
 const musicPlayerStore = useMusicPlayerStore()
 const {
 	currentMusic,
-	loadedHowl,
+	canPlay,
 	duration,
 	current,
-	isPlaying,
+	isPaused,
 	randomState,
 	repeatState,
 	volume,
@@ -150,10 +150,10 @@ const {
 						@click="pressPlay()"
 					>
 						<div
-							:data-state="isPlaying"
+							:data-is-paused="isPaused"
 							:class="pika({
-								'$[data-state=true]': ['i-f7:pause-fill'],
-								'$[data-state=false]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
+								'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
+								'$[data-is-paused=false]': ['i-f7:pause-fill'],
 							})"
 						/>
 					</button>
@@ -202,7 +202,7 @@ const {
 				>
 					<div
 						:style="{
-							'--visibility': loadedHowl == null ? 'hidden' : 'visible',
+							'--visibility': canPlay ? 'visible' : 'hidden',
 						}"
 						:class="pika({
 							display: 'flex',
@@ -238,7 +238,7 @@ const {
 						v-model="current"
 						:max="duration"
 						:step="0.1"
-						:disabled="loadedHowl == null"
+						:disabled="canPlay === false"
 						aria-label="Playing Progress"
 					/>
 				</div>
@@ -405,11 +405,12 @@ const {
 							>
 								<div
 									:class="pika({
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-										width: '100%',
-										height: '100%',
+										'display': 'flex',
+										'alignItems': 'center',
+										'justifyContent': 'center',
+										'width': '100%',
+										'height': '100%',
+										'[data-music-loaded=true] $': { display: 'none' },
 									})"
 								>
 									<div :class="pika('i-f7:music-note', { fontSize: '56px', color: 'var(--color-gray-3)' })" />

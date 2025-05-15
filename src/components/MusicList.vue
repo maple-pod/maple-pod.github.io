@@ -8,7 +8,7 @@ const list = toRef(props, 'list')
 const appStore = useAppStore()
 const { getMusicData } = appStore
 const musicPlayerStore = useMusicPlayerStore()
-const { currentMusic, isPlaying } = storeToRefs(musicPlayerStore)
+const { currentMusic, isPaused } = storeToRefs(musicPlayerStore)
 const { pressMusicItem, isMusicLiked, toggleMusicLike } = musicPlayerStore
 
 const items = computed(() => list.value.map(getMusicData).filter(data => data != null))
@@ -64,7 +64,7 @@ const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
 					<div
 						:key="index"
 						:data-is-current-music="item.source === currentMusic?.source"
-						:data-is-playing="isPlaying"
+						:data-is-paused="isPaused"
 						:class="pika({
 							'position': 'relative',
 							'width': '100%',
@@ -172,8 +172,8 @@ const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
 								'height': '24px',
 								'fontSize': '24px',
 								'transition': 'opacity 0.1s',
-								'[data-is-current-music=true][data-is-playing=true] > $': ['i-svg-spinners:bars-scale-middle', { opacity: '1' }],
-								'[data-is-current-music=true][data-is-playing=false] > $, [data-is-current-music=false]:hover > $': ['i-f7:play-fill', { opacity: '1', color: 'var(--color-primary-1)' }],
+								'[data-is-current-music=true][data-is-paused=false] > $': ['i-svg-spinners:bars-scale-middle', { opacity: '1' }],
+								'[data-is-current-music=true][data-is-paused=true] > $, [data-is-current-music=false]:hover > $': ['i-f7:play-fill', { opacity: '1', color: 'var(--color-primary-1)' }],
 							})"
 						/>
 					</div>
