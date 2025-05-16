@@ -72,6 +72,8 @@ export function useAudioQueue(options: UseAudioQueueOptions = {}) {
 		{ flush: 'sync' },
 	)
 
+	const hasReachedEnd = computed(() => toPlayQueue.value.length === 0 && tempQueue.value.length === 0)
+
 	function goNext() {
 		if (current.value != null && current.value.type === 'regular')
 			playedQueue.value.push(current.value)
@@ -145,6 +147,7 @@ export function useAudioQueue(options: UseAudioQueueOptions = {}) {
 		toggleRandom,
 		currentAudioSrc,
 		displayQueue,
+		hasReachedEnd,
 		initQueue,
 		goNext,
 		goPrevious,

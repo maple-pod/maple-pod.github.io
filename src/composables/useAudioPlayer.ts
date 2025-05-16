@@ -118,8 +118,12 @@ export function useAudioPlayer() {
 	}
 
 	useEventListener(audio, 'ended', () => {
-		if (repeated.value === 'repeat')
+		if (
+			(repeated.value === 'off' && audioQueueLogic.hasReachedEnd.value === false)
+			|| (repeated.value === 'repeat')
+		) {
 			goNext()
+		}
 	})
 
 	const displayQueue = audioQueueLogic.displayQueue
