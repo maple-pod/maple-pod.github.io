@@ -170,10 +170,11 @@ whenever(
 					>
 						<div
 							:class="pika({
+								flex: '1 1 0',
+								minWidth: '0',
 								display: 'flex',
 								alignItems: 'center',
 								gap: '16px',
-								marginRight: 'auto',
 							})"
 						>
 							<div
@@ -218,8 +219,19 @@ whenever(
 								})"
 								loading="lazy"
 							>
-							<div>
-								<div>{{ item.title }}</div>
+
+							<div
+								:class="pika({
+									flex: '1 1 0',
+									minWidth: '0',
+									display: 'flex',
+									whiteSpace: 'nowrap',
+									textOverflow: 'ellipsis',
+									overflow: 'hidden',
+								})"
+								:title="currentMusic?.title"
+							>
+								<UiMarquee>{{ item.title }}</UiMarquee>
 							</div>
 						</div>
 

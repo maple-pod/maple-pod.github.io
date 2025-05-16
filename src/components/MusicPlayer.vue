@@ -378,6 +378,8 @@ async function handleShowMusicInPlaylist() {
 						>
 							<div
 								:class="pika({
+									flex: '1 1 0',
+									minWidth: '0',
 									display: 'flex',
 									alignItems: 'center',
 									gap: '8px',
@@ -400,10 +402,11 @@ async function handleShowMusicInPlaylist() {
 								</button>
 								<div
 									:class="pika({
+										flex: '1 1 0',
+										minWidth: '0',
 										display: 'flex',
 										alignItems: 'center',
 										gap: '4px',
-										maxWidth: '250px',
 										fontSize: '24px',
 										fontWeight: '200',
 										whiteSpace: 'nowrap',
@@ -420,7 +423,7 @@ async function handleShowMusicInPlaylist() {
 									</UiMarquee>
 								</div>
 							</div>
-							<div :class="pika({ display: 'flex', alignItems: 'center', gap: '0px', marginLeft: 'auto' })">
+							<div :class="pika({ display: 'flex', alignItems: 'center', gap: '0px', flexShrink: '0' })">
 								<button
 									:class="pika('icon-btn', {
 										'--size': '36px',

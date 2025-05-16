@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const el = useTemplateRef('el')
 
+const SPEED = 8
+
 const isOverflow = ref(false)
 const marqueeDistance = ref(0)
 function checkOverflow() {
@@ -25,11 +27,12 @@ useResizeObserver(el, checkOverflow, { box: 'border-box' })
 		<span
 			:style="{
 				'--marquee-distance': isOverflow ? `${marqueeDistance}px` : '0',
+				'--marquee-duration': isOverflow ? `${(marqueeDistance / SPEED)}s` : '0',
 			}"
 			:class="{
 				[pika({
 					display: 'inline-block',
-					animation: '5s marquee linear infinite alternate',
+					animation: `var(--marquee-duration) marquee linear infinite alternate`,
 				})]: isOverflow,
 			}"
 		>
