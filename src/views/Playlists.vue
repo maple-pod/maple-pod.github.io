@@ -43,7 +43,7 @@ function goToPlaylist(playlistId: string) {
 		>
 			<div
 				:class="pika({
-					fontSize: '48px',
+					fontSize: '36px',
 					fontWeight: '100',
 				})"
 			>

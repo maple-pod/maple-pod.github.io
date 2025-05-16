@@ -57,17 +57,17 @@ function goBackToPlaylists() {
 			})"
 		>
 			<button
-				:style="{
-					'--size': '48px',
-				}"
-				:class="pika('icon-btn', { marginRight: '12px' })"
+				:class="pika('icon-btn', {
+					'--size': '36px',
+					'marginRight': '12px',
+				})"
 				@click="goBackToPlaylists()"
 			>
 				<div :class="pika('i-f7:chevron-left')" />
 			</button>
 			<div
 				:class="pika({
-					fontSize: '48px',
+					fontSize: '36px',
 					fontWeight: '100',
 				})"
 			>
@@ -168,10 +168,8 @@ function goBackToPlaylists() {
 
 						<button
 							:data-liked="isMusicLiked(item.source)"
-							:style="{
-								'--size': '36px',
-							}"
 							:class="pika('icon-btn', {
+								'--size': '36px',
 								'opacity': '0',
 								'transition': 'opacity 0.1s',
 

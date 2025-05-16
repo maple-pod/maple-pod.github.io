@@ -36,10 +36,7 @@ const { toggleDark } = appStore
 			})"
 		>
 			<button
-				:style="{
-					'--size': '36px',
-				}"
-				:class="pika('icon-btn')"
+				:class="pika('icon-btn', { '--size': '36px' })"
 				@click="toggleDark()"
 			>
 				<div

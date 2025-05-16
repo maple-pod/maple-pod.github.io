@@ -73,10 +73,8 @@ const {
 				<button
 					v-if="isSupported"
 					data-toggle="true"
-					:style="{
-						'--size': '48px',
-					}"
 					:class="pika('icon-btn-toggle', {
+						'--size': '48px',
 						'@docpip': {
 							display: 'none',
 						},
@@ -152,10 +150,7 @@ const {
 						/>
 					</button>
 					<button
-						:style="{
-							'--size': '48px',
-						}"
-						:class="pika('circle-icon-btn')"
+						:class="pika('circle-icon-btn', { '--size': '48px' })"
 						:disabled="currentMusic == null"
 						@click="togglePlay()"
 					>
@@ -168,10 +163,7 @@ const {
 						/>
 					</button>
 					<button
-						:style="{
-							'--size': '32px',
-						}"
-						:class="pika('icon-btn')"
+						:class="pika('icon-btn', { '--size': '32px' })"
 						:disabled="currentMusic == null"
 						@click="goNext()"
 					>
@@ -182,10 +174,7 @@ const {
 					<button
 						:data-state="repeated"
 						:data-toggle="repeated !== 'off'"
-						:style="{
-							'--size': '32px',
-						}"
-						:class="pika('icon-btn-toggle')"
+						:class="pika('icon-btn-toggle', { '--size': '32px' })"
 						:disabled="currentMusic == null"
 						@click="toggleRepeated()"
 					>
@@ -211,14 +200,15 @@ const {
 					})"
 				>
 					<div
-						:style="{
-							'--visibility': canPlay ? 'visible' : 'hidden',
-						}"
+						:data-can-play="canPlay"
 						:class="pika({
-							display: 'flex',
-							justifyContent: 'space-between',
-							width: '100%',
-							visibility: 'var(--visibility)',
+							'display': 'flex',
+							'justifyContent': 'space-between',
+							'width': '100%',
+
+							'$[data-can-play=false]': {
+								visibility: 'hidden',
+							},
 						})"
 					>
 						<div
@@ -280,10 +270,7 @@ const {
 					<button
 						:data-volume="volumeLevel"
 						:data-toggle="muted"
-						:style="{
-							'--size': '32px',
-						}"
-						:class="pika('icon-btn-toggle')"
+						:class="pika('icon-btn-toggle', { '--size': '32px' })"
 						@click="toggleMuted()"
 					>
 						<div
@@ -348,10 +335,9 @@ const {
 						>
 							<button
 								v-if="isSupported"
-								:style="{
-									'--size': '36px',
-								}"
 								:class="pika('icon-btn', {
+									'--size': '36px',
+
 									'@docpip': {
 										display: 'none',
 									},
@@ -384,10 +370,11 @@ const {
 							</div>
 							<button
 								:data-liked="isMusicLiked(currentMusic?.source || '')"
-								:style="{
+								:class="pika('icon-btn', {
 									'--size': '36px',
-								}"
-								:class="pika('icon-btn', { '[data-music-loaded=false] $': { visibility: 'hidden' } })"
+
+									'[data-music-loaded=false] $': { visibility: 'hidden' },
+								})"
 								@click="toggleMusicLike(currentMusic?.source || '')"
 							>
 								<div
