@@ -1,28 +1,28 @@
 <script setup lang="ts">
 import { useDocumentPictureInPicture } from '@/composables/useDocumentPictureInPicture'
 
-const musicPlayerStore = useMusicPlayerStore()
+const musicStore = useMusicStore()
 const {
 	currentMusic,
 	canPlay,
 	duration,
-	current,
+	currentTime,
 	isPaused,
-	randomState,
-	repeatState,
+	random,
+	repeated,
 	volume,
-	muteState,
-} = storeToRefs(musicPlayerStore)
+	muted,
+} = storeToRefs(musicStore)
 const {
 	isMusicLiked,
 	toggleMusicLike,
-	pressPlay,
-	pressPrev,
-	pressNext,
-	pressRandom,
-	pressRepeat,
-	pressMute,
-} = musicPlayerStore
+	togglePlay,
+	goPrevious,
+	goNext,
+	toggleRandom,
+	toggleRepeated,
+	toggleMuted,
+} = musicStore
 
 function formatTime(time: number) {
 	const minutes = String(Math.floor(time / 60))
@@ -32,7 +32,7 @@ function formatTime(time: number) {
 
 const volumeLevel = computed(() => {
 	switch (true) {
-		case muteState.value:
+		case muted.value:
 		case volume.value === 0:
 			return 'mute'
 		case volume.value <= 0.2:
@@ -108,34 +108,44 @@ const {
 			<DefineControlButtons>
 				<div
 					:class="pika({
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						gap: '16px',
-						width: '100%',
+						'display': 'flex',
+						'alignItems': 'center',
+						'justifyContent': 'center',
+						'gap': '16px',
+						'width': '100%',
+
+						'@screen * to 500': {
+							gap: '8px',
+						},
 					})"
 				>
 					<button
-						:data-state="randomState"
-						:data-toggle="randomState"
-						:style="{
+						:data-state="random"
+						:data-toggle="random"
+						:class="pika('icon-btn-toggle', {
 							'--size': '32px',
-						}"
-						:class="pika('icon-btn-toggle')"
+
+							'@screen * to 500': {
+								'--size': '24px',
+							},
+						})"
 						:disabled="currentMusic == null"
-						@click="pressRandom()"
+						@click="toggleRandom()"
 					>
 						<div
 							:class="pika('i-f7:shuffle')"
 						/>
 					</button>
 					<button
-						:style="{
+						:class="pika('icon-btn', {
 							'--size': '32px',
-						}"
-						:class="pika('icon-btn')"
+
+							'@screen * to 500': {
+								'--size': '24px',
+							},
+						})"
 						:disabled="currentMusic == null"
-						@click="pressPrev()"
+						@click="goPrevious()"
 					>
 						<div
 							:class="pika('i-f7:backward-end-fill')"
@@ -147,7 +157,7 @@ const {
 						}"
 						:class="pika('circle-icon-btn')"
 						:disabled="currentMusic == null"
-						@click="pressPlay()"
+						@click="togglePlay()"
 					>
 						<div
 							:data-is-paused="isPaused"
@@ -163,21 +173,21 @@ const {
 						}"
 						:class="pika('icon-btn')"
 						:disabled="currentMusic == null"
-						@click="pressNext()"
+						@click="goNext()"
 					>
 						<div
 							:class="pika('i-f7:forward-end-fill')"
 						/>
 					</button>
 					<button
-						:data-state="repeatState"
-						:data-toggle="repeatState !== 'off'"
+						:data-state="repeated"
+						:data-toggle="repeated !== 'off'"
 						:style="{
 							'--size': '32px',
 						}"
 						:class="pika('icon-btn-toggle')"
 						:disabled="currentMusic == null"
-						@click="pressRepeat()"
+						@click="toggleRepeated()"
 					>
 						<div
 							:class="pika({
@@ -220,7 +230,7 @@ const {
 								},
 							})"
 						>
-							{{ formatTime(current) }}
+							{{ formatTime(currentTime) }}
 						</div>
 						<div
 							:class="pika({
@@ -235,7 +245,7 @@ const {
 						</div>
 					</div>
 					<UiSlider
-						v-model="current"
+						v-model="currentTime"
 						:max="duration"
 						:step="0.1"
 						:disabled="canPlay === false"
@@ -269,12 +279,12 @@ const {
 					</div>
 					<button
 						:data-volume="volumeLevel"
-						:data-toggle="muteState"
+						:data-toggle="muted"
 						:style="{
 							'--size': '32px',
 						}"
 						:class="pika('icon-btn-toggle')"
-						@click="pressMute()"
+						@click="toggleMuted()"
 					>
 						<div
 							:class="pika({
@@ -303,12 +313,19 @@ const {
 			>
 				<div
 					:class="pika({
-						display: 'flex',
-						gap: '16px',
-						width: '100%',
-						minWidth: '450px',
-						maxWidth: '600px',
-						height: '150px',
+						'display': 'flex',
+						'gap': '16px',
+						'width': '100%',
+						'maxWidth': '600px',
+						'height': '150px',
+
+						'@docpip': {
+							minWidth: '450px',
+						},
+
+						'@screen * to 500': {
+							height: '120px',
+						},
 					})"
 				>
 					<div

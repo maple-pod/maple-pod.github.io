@@ -1,8 +1,10 @@
+import type { PlaylistId } from '@/types/Playlist'
 import { createRouter, createWebHistory } from 'vue-router'
 
 export const Routes = {
 	Root: 'Root',
-	Home: 'Home',
+	Playlists: 'Playlists',
+	Playlist: 'Playlist',
 } as const
 
 const router = createRouter({
@@ -11,16 +13,39 @@ const router = createRouter({
 		{
 			name: Routes.Root,
 			path: '/',
+			redirect: { name: Routes.Playlists },
 			component: () => import('@/components/DefaultLayout.vue'),
 			children: [
 				{
-					name: Routes.Home,
-					path: '',
-					component: () => import('@/views/Home.vue'),
+					name: Routes.Playlists,
+					path: 'playlists',
+					component: () => import('@/views/Playlists.vue'),
+				},
+				{
+					name: Routes.Playlist,
+					path: 'playlists/:playlistId',
+					component: () => import('@/views/Playlist.vue'),
+					props: to => ({ playlistId: to.params.playlistId as PlaylistId }),
 				},
 			],
 		},
 	],
+})
+
+router.beforeEach(async (to) => {
+	await useAppStore().ready
+
+	if (to.name === Routes.Playlist) {
+		const playlistId = to.params.playlistId as PlaylistId
+		const musicStore = useMusicStore()
+		if (musicStore.getPlaylist(playlistId) == null) {
+			return { name: Routes.Playlists }
+		}
+
+		return true
+	}
+
+	return true
 })
 
 export default router

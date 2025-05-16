@@ -20,8 +20,8 @@ export default defineConfig({
 				'pinia',
 				'@vueuse/core',
 				{
-					imports: ['useSound'],
-					from: '@vueuse/sound',
+					imports: ['Routes'],
+					from: '@/router/index',
 				},
 			],
 			dirs: [

@@ -1,24 +1,33 @@
 <script setup lang="ts">
-import type { Playlist } from '@/types/Playlist'
+import type { PlaylistId } from '@/types/Playlist'
 
-const props = defineProps<Playlist>()
+const props = defineProps<{
+	playlistId: PlaylistId
+}>()
 
-const list = toRef(props, 'list')
+const { getPlaylist } = useMusicStore()
+const playlist = computed(() => getPlaylist(props.playlistId)!)
 
-const appStore = useAppStore()
-const { getMusicData } = appStore
-const musicPlayerStore = useMusicPlayerStore()
-const { currentMusic, isPaused } = storeToRefs(musicPlayerStore)
-const { pressMusicItem, isMusicLiked, toggleMusicLike } = musicPlayerStore
+const title = computed(() => playlist.value.title)
+const list = toRef(() => playlist.value.list)
+
+const musicStore = useMusicStore()
+const { currentMusic, isPaused } = storeToRefs(musicStore)
+const { getMusicData, play, isMusicLiked, toggleMusicLike } = musicStore
 
 const items = computed(() => list.value.map(getMusicData).filter(data => data != null))
 
 const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
+
+const router = useRouter()
+function goBackToPlaylists() {
+	return router.push({ name: Routes.Playlists })
+}
 </script>
 
 <template>
 	<div
-		:class="pika({
+		:class="pika('card', {
 			display: 'flex',
 			flexDirection: 'column',
 			width: '100%',
@@ -28,11 +37,11 @@ const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
 		<div
 			:data-arrived-top="uiVerticalListRef?.scrollingArrivedTop"
 			:class="pika({
+				'display': 'flex',
+				'alignItems': 'center',
 				'margin': '-16px -16px 0 -16px',
-				'padding': '16px 32px',
+				'padding': '16px 32px 16px 8px',
 				'border': '1px solid transparent',
-				'borderRadius': '16px 16px 0 0',
-				'fontSize': '48px',
 				'fontWeight': '100',
 				'transition': 'border-color 0.2s',
 
@@ -47,7 +56,23 @@ const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
 				},
 			})"
 		>
-			{{ title }}
+			<button
+				:style="{
+					'--size': '48px',
+				}"
+				:class="pika('icon-btn', { marginRight: '12px' })"
+				@click="goBackToPlaylists()"
+			>
+				<div :class="pika('i-f7:chevron-left')" />
+			</button>
+			<div
+				:class="pika({
+					fontSize: '48px',
+					fontWeight: '100',
+				})"
+			>
+				{{ title }}
+			</div>
 		</div>
 
 		<div
@@ -95,10 +120,7 @@ const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
 								color: 'var(--color-primary-1)',
 							},
 						})"
-						@click="pressMusicItem({
-							source: item.source,
-							playlistId: id,
-						})"
+						@click="play(playlist, item.source)"
 					>
 						<div
 							:class="pika({

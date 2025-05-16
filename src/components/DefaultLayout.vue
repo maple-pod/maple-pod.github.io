@@ -1,19 +1,18 @@
 <script setup lang="ts">
 const appStore = useAppStore()
 const { toggleDark } = appStore
-const { getPlaylist } = useMusicPlayerStore()
+// const { getPlaylist } = useMusicStore()
 </script>
 
 <template>
 	<div
 		:class="pika('theme', {
-			position: 'relative',
 			display: 'flex',
 			justifyContent: 'center',
 			gap: '16px',
 			width: '100%',
-			height: '100dvh',
-			minHeight: '100vh',
+			height: '100%',
+			minHeight: '100%',
 			padding: '16px',
 		})"
 	>
@@ -62,8 +61,9 @@ const { getPlaylist } = useMusicPlayerStore()
 				gap: '16px',
 			})"
 		>
-			<div :class="pika('card', { flex: '1 1 0', minHeight: '0' })">
-				<MusicList v-bind="getPlaylist('all')!" />
+			<div :class="pika({ flex: '1 1 0', minHeight: '0' })">
+				<RouterView />
+				<!-- <MusicList v-bind="getPlaylist('all')!" /> -->
 			</div>
 
 			<div :class="pika('card')">

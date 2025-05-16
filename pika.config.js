@@ -72,6 +72,7 @@ export default defineEngineConfig({
 					'display': 'flex',
 					'alignItems': 'center',
 					'justifyContent': 'center',
+					'flexShrink': 0,
 					'width': 'var(--size)',
 					'height': 'var(--size)',
 					'fontSize': 'var(--size)',

@@ -89,8 +89,6 @@ export function useDocumentPictureInPicture() {
 
 	return {
 		isSupported,
-		pipWindow,
-		pipBody,
 		start,
 		stop,
 		PipBody,
