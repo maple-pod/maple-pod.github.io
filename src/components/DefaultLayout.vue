@@ -79,9 +79,8 @@ export const DefaultLayoutHeaderSlot = defineComponent({
 							})"
 						>
 						<div
-							:class="pika({
+							:class="pika('font-comfortaa-700', {
 								fontSize: '32px',
-								fontWeight: '100',
 								marginLeft: '8px',
 							})"
 						>

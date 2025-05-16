@@ -63,15 +63,10 @@ whenever(
 		<DefaultLayoutHeaderSlot>
 			<div
 				:class="pika({
-					'display': 'flex',
-					'alignItems': 'center',
-					'gap': '16px',
-					'fontWeight': '100',
-					'@dark': {
-						'&$[data-arrived-top=false]': {
-							borderBottomColor: 'var(--color-gray-3)',
-						},
-					},
+					display: 'flex',
+					alignItems: 'center',
+					gap: '16px',
+					fontWeight: '100',
 				})"
 			>
 				<button
@@ -82,7 +77,7 @@ whenever(
 				</button>
 				<div
 					:class="pika({
-						fontSize: '32px',
+						fontSize: '24px',
 						fontWeight: '100',
 						marginRight: 'auto',
 					})"
@@ -93,9 +88,9 @@ whenever(
 					:data-state="random"
 					:data-toggle="random"
 					:class="pika('icon-btn-toggle', {
-						'--size': '36px',
+						'--size': '32px',
 						'@screen * to 500': {
-							'--size': '32px',
+							'--size': '28px',
 						},
 					})"
 					@click="toggleRandom()"
@@ -106,7 +101,7 @@ whenever(
 				</button>
 				<button
 					:class="pika('circle-icon-btn', {
-						'--size': '42px',
+						'--size': '36px',
 						'@screen * to 500': {
 							'--size': '32px',
 						},

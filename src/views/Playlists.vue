@@ -25,12 +25,16 @@ function goToPlaylist(playlistId: string) {
 				:class="pika({
 					display: 'flex',
 					alignItems: 'center',
+					gap: '16px',
 					fontWeight: '100',
 				})"
 			>
+				<div :class="pika({ fontSize: '28px', padding: '4px' })">
+					<div :class="pika('i-f7:music-note-list')" />
+				</div>
 				<div
 					:class="pika({
-						fontSize: '32px',
+						fontSize: '24px',
 						fontWeight: '100',
 					})"
 				>
@@ -88,17 +92,32 @@ function goToPlaylist(playlistId: string) {
 								flexDirection: 'column',
 								gap: '4px',
 								marginRight: 'auto',
-
 							})"
 						>
 							<div
 								:class="pika({
 									display: 'flex',
-									alignItems: 'center',
-									gap: '16px',
+									flexDirection: 'column',
+									gap: '4px',
 								})"
 							>
-								<div>{{ playlist.title }}</div>
+								<div
+									:class="pika({
+										fontSize: '22px',
+										fontWeight: '100',
+									})"
+								>
+									{{ playlist.title }}
+								</div>
+								<div
+									:class="pika({
+										fontSize: '14px',
+										color: 'var(--color-gray-3)',
+										opacity: '0.8',
+									})"
+								>
+									{{ playlist.list.length }} music
+								</div>
 							</div>
 						</div>
 

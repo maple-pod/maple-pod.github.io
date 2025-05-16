@@ -27,7 +27,7 @@ export default defineEngineConfig({
 		selectors: [
 			['@dark', '[color-scheme="dark"] $'],
 			['@docpip', '@media all and (display-mode: picture-in-picture)'],
-			[/@screen (\*|\d+) to (\*|\d+)/, ([, min, max]) => {
+			[/^@screen (\*|\d+) to (\*|\d+)$/, ([, min, max]) => {
 				if (min === '*' && max !== '*') {
 					return `@media screen and (max-width: ${(max)}px)`
 				}
@@ -142,6 +142,23 @@ export default defineEngineConfig({
 							color: null,
 						},
 					},
+				],
+			],
+			[
+				/^font-comfortaa(-\d+)?$/,
+				([, weight]) => ({
+					fontFamily: 'Comfortaa',
+					fontOpticalSizing: 'auto',
+					fontWeight: weight ? -Number(weight) : 400,
+					fontStyle: 'normal',
+				}),
+				[
+					'font-comfortaa',
+					'font-comfortaa-300',
+					'font-comfortaa-400',
+					'font-comfortaa-500',
+					'font-comfortaa-600',
+					'font-comfortaa-700',
 				],
 			],
 		],
