@@ -127,7 +127,6 @@ const {
 								'--size': '24px',
 							},
 						})"
-						:disabled="currentMusic == null"
 						@click="toggleRandom()"
 					>
 						<div
@@ -175,7 +174,6 @@ const {
 						:data-state="repeated"
 						:data-toggle="repeated !== 'off'"
 						:class="pika('icon-btn-toggle', { '--size': '32px' })"
-						:disabled="currentMusic == null"
 						@click="toggleRepeated()"
 					>
 						<div
