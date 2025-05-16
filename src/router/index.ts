@@ -29,6 +29,11 @@ const router = createRouter({
 				},
 			],
 		},
+		// Fallback route for unmatched paths
+		{
+			path: '/:pathMatch(.*)*',
+			redirect: { name: Routes.Root },
+		},
 	],
 })
 
