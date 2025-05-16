@@ -95,6 +95,56 @@ export const useMusicStore = defineStore('music', () => {
 		audioPlayerLogic.currentTime.value = 0
 	}
 
+	if (navigator.mediaSession != null) {
+		watch(
+			currentMusic,
+			() => {
+				if (currentMusic.value == null) {
+					navigator.mediaSession.metadata = null
+					return
+				}
+
+				navigator.mediaSession.metadata = new MediaMetadata({
+					title: currentMusic.value.title,
+					artist: 'BGM',
+					album: currentPlaylist.value?.title,
+					artwork: [
+						{
+							src: currentMusic.value.cover,
+							sizes: '96x96',
+							type: 'image/png',
+						},
+						{
+							src: currentMusic.value.cover,
+							sizes: '128x128',
+							type: 'image/png',
+						},
+						{
+							src: currentMusic.value.cover,
+							sizes: '192x192',
+							type: 'image/png',
+						},
+						{
+							src: currentMusic.value.cover,
+							sizes: '256x256',
+							type: 'image/png',
+						},
+						{
+							src: currentMusic.value.cover,
+							sizes: '384x384',
+							type: 'image/png',
+						},
+						{
+							src: currentMusic.value.cover,
+							sizes: '512x512',
+							type: 'image/png',
+						},
+					],
+				})
+			},
+		)
+	}
+
 	const ready = until(isDataReady)
 		.toBe(true)
 		.then(() => {

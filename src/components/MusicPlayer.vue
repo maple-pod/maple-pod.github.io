@@ -362,7 +362,7 @@ async function handleShowMusicInPlaylist() {
 						:class="pika({
 							display: 'flex',
 							flexDirection: 'column',
-							gap: '8px',
+							gap: '16px',
 							flex: '1 1 0',
 							minWidth: '0',
 						})"
@@ -376,12 +376,18 @@ async function handleShowMusicInPlaylist() {
 								width: '100%',
 							})"
 						>
-							<div :class="pika({ display: 'flex', alignItems: 'center', gap: '8px' })">
+							<div
+								:class="pika({
+									display: 'flex',
+									alignItems: 'center',
+									gap: '8px',
+								})"
+							>
 								<button
 									:data-liked="isMusicLiked(currentMusic?.source || '')"
 									:class="pika('icon-btn', {
 										'--size': '36px',
-										'[data-music-loaded=false] $': { visibility: 'hidden' },
+										'[data-music-loaded=false] $': { display: 'none' },
 									})"
 									@click="toggleMusicLike(currentMusic?.source || '')"
 								>
