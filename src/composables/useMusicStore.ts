@@ -97,10 +97,11 @@ export const useMusicStore = defineStore('music', () => {
 
 	const ready = until(isDataReady)
 		.toBe(true)
-		.then(() => () => {
+		.then(() => {
 			// ensure the saved playlists are valid
-			if (savedPlaylists.value.find(([id]) => id === 'liked') == null)
+			if (savedPlaylists.value.some(([id]) => id === 'liked') === false) {
 				savedPlaylists.value.unshift(['liked', createLikedPlaylist()])
+			}
 
 			savedPlaylists.value = savedPlaylists.value
 				.filter(([id, playlist]) => {
@@ -119,11 +120,6 @@ export const useMusicStore = defineStore('music', () => {
 
 					// Ensure all music sources in the playlist exist in the data
 					playlist.list = playlist.list.filter(getMusicData)
-
-					if (playlist.list.length === 0) {
-						console.warn(`Empty playlist: ${id}`)
-						return false
-					}
 
 					return true
 				})
