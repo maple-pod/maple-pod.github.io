@@ -49,11 +49,11 @@ importers:
         specifier: ^1.2.2
         version: 1.2.2
       '@pikacss/plugin-icons':
-        specifier: ^0.0.21
-        version: 0.0.21
+        specifier: ^0.0.24
+        version: 0.0.24
       '@pikacss/vite-plugin-pikacss':
-        specifier: ^0.0.21
-        version: 0.0.21(vite@6.3.5(@types/node@22.15.15)(jiti@2.4.2)(yaml@2.7.1))
+        specifier: ^0.0.24
+        version: 0.0.24(vite@6.3.5(@types/node@22.15.15)(jiti@2.4.2)(yaml@2.7.1))
       '@tsconfig/node22':
         specifier: ^22.0.1
         version: 22.0.1
@@ -627,17 +627,17 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@pikacss/core@0.0.21':
-    resolution: {integrity: sha512-o/HmGou3vf4sGZsCbR0/Zo2FPSEX8i20+AFPA8S1hegNCU6q0mqs0aGhBizs0s2/mYCanN21X1I2l8YJy6Jotg==}
+  '@pikacss/core@0.0.24':
+    resolution: {integrity: sha512-Xp58+XfaNhuyZ9KMh4rSycNO1RancRetGIBS5DnBHuTrAZSRU6z2nMdvU+klmRip2xDcxI8VzeONaPs+LKHvJw==}
 
-  '@pikacss/integration@0.0.21':
-    resolution: {integrity: sha512-mhZ/Ej5q1YFV6SNorhHcXro7ZGL8IMGDXuSEI1BPeEjK0UaSDPK0ru1IJMHru0X+N1TtlQbr/0rMacGU/2WOhg==}
+  '@pikacss/integration@0.0.24':
+    resolution: {integrity: sha512-zroCjouC5nnpyEZoWju+KjyU5CyfxVAyYDL4DeTK6qD2hwCGwyBMyQ+J26f2e0eYPN5iT0BsKg/Fi2vS+eqO4A==}
 
-  '@pikacss/plugin-icons@0.0.21':
-    resolution: {integrity: sha512-+g2Rcga+vvEHog/V//flWYwRbg/QfSDrb6jvFRfoaMVK1nXwwprV440PjPdYQkd+AQdPWvccM0jedseNSVl3uA==}
+  '@pikacss/plugin-icons@0.0.24':
+    resolution: {integrity: sha512-6Shk5o6n3uWidBkwHO1tUPRXqzXB2yLAWcqVMtGYUdb89XPgSnERIh1rvmzSE2h2nFBJLCpIrlvzlLrRjWYC4g==}
 
-  '@pikacss/vite-plugin-pikacss@0.0.21':
-    resolution: {integrity: sha512-lSgB50bQ7Bp0OApnQb2v+JT8sumP7E/tP/tMBKZGgWUxfHS+3ZnM+3c9GWQIvC2S3RN84uFUeMbxxfdC1NGyHw==}
+  '@pikacss/vite-plugin-pikacss@0.0.24':
+    resolution: {integrity: sha512-XgEEQGThSHZTmQLC4oRGOimqlAz14Fudzfed6IJyp44Mcx9vYYeuTlkGjWmdnsqDsyk2STMEY2NqTNitAhiFJA==}
     peerDependencies:
       vite: ^5.0.0 || ^6.0.0
 
@@ -3732,13 +3732,13 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
-  '@pikacss/core@0.0.21':
+  '@pikacss/core@0.0.24':
     dependencies:
       csstype: 3.1.3
 
-  '@pikacss/integration@0.0.21':
+  '@pikacss/integration@0.0.24':
     dependencies:
-      '@pikacss/core': 0.0.21
+      '@pikacss/core': 0.0.24
       fast-glob: 3.3.3
       jiti: 2.4.2
       klona: 2.0.6
@@ -3748,18 +3748,18 @@ snapshots:
       pathe: 2.0.3
       perfect-debounce: 1.0.0
 
-  '@pikacss/plugin-icons@0.0.21':
+  '@pikacss/plugin-icons@0.0.24':
     dependencies:
       '@iconify/utils': 2.3.0
-      '@pikacss/core': 0.0.21
+      '@pikacss/core': 0.0.24
       '@unocss/preset-icons': 65.5.0
       ofetch: 1.4.1
     transitivePeerDependencies:
       - supports-color
 
-  '@pikacss/vite-plugin-pikacss@0.0.21(vite@6.3.5(@types/node@22.15.15)(jiti@2.4.2)(yaml@2.7.1))':
+  '@pikacss/vite-plugin-pikacss@0.0.24(vite@6.3.5(@types/node@22.15.15)(jiti@2.4.2)(yaml@2.7.1))':
     dependencies:
-      '@pikacss/integration': 0.0.21
+      '@pikacss/integration': 0.0.24
       pathe: 2.0.3
       vite: 6.3.5(@types/node@22.15.15)(jiti@2.4.2)(yaml@2.7.1)
 

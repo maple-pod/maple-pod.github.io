@@ -147,6 +147,31 @@ export default defineEngineConfig({
 		],
 	},
 
+	keyframes: {
+		keyframes: [
+			[
+				'marquee',
+				{
+					'0%': {
+						transform: 'translateX(0)',
+					},
+					'20%': {
+						transform: 'translateX(0)',
+					},
+					'80%': {
+						transform: 'translateX(calc(-1 * var(--marquee-distance)))',
+					},
+					'100%': {
+						transform: 'translateX(calc(-1 * var(--marquee-distance)))',
+					},
+				},
+				[
+					'5s marquee linear infinite alternate',
+				],
+			],
+		],
+	},
+
 	icons: {
 		autoInstall: true,
 	},
