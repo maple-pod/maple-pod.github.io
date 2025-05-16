@@ -301,7 +301,6 @@ const {
 						'display': 'flex',
 						'gap': '16px',
 						'width': '100%',
-						'maxWidth': '600px',
 						'height': '150px',
 
 						'@docpip': {

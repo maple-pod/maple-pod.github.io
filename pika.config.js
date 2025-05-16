@@ -8,6 +8,10 @@ export default defineEngineConfig({
 		icons(),
 	],
 
+	preflights: [
+		'a { text-decoration: none; color: currentColor; }',
+	],
+
 	variables: {
 		variables: [
 			['--color-gray-1', '#FEFEFE'],
