@@ -124,7 +124,7 @@ const {
 							'--size': '32px',
 
 							'@screen * to 500': {
-								'--size': '24px',
+								'--size': '28px',
 							},
 						})"
 						@click="toggleRandom()"
@@ -138,7 +138,7 @@ const {
 							'--size': '32px',
 
 							'@screen * to 500': {
-								'--size': '24px',
+								'--size': '28px',
 							},
 						})"
 						:disabled="currentMusic == null"
@@ -149,7 +149,13 @@ const {
 						/>
 					</button>
 					<button
-						:class="pika('circle-icon-btn', { '--size': '48px' })"
+						:class="pika('circle-icon-btn', {
+							'--size': '48px',
+
+							'@screen * to 500': {
+								'--size': '32px',
+							},
+						})"
 						:disabled="currentMusic == null"
 						@click="togglePlay()"
 					>
@@ -162,7 +168,13 @@ const {
 						/>
 					</button>
 					<button
-						:class="pika('icon-btn', { '--size': '32px' })"
+						:class="pika('icon-btn', {
+							'--size': '32px',
+
+							'@screen * to 500': {
+								'--size': '28px',
+							},
+						})"
 						:disabled="currentMusic == null"
 						@click="goNext()"
 					>
@@ -173,7 +185,13 @@ const {
 					<button
 						:data-state="repeated"
 						:data-toggle="repeated !== 'off'"
-						:class="pika('icon-btn-toggle', { '--size': '32px' })"
+						:class="pika('icon-btn-toggle', {
+							'--size': '32px',
+
+							'@screen * to 500': {
+								'--size': '28px',
+							},
+						})"
 						@click="toggleRepeated()"
 					>
 						<div
@@ -362,8 +380,12 @@ const {
 								})"
 								:title="currentMusic?.title"
 							>
-								<span :class="pika({ '[data-music-loaded=true] $': { display: 'none' } })">Music Player</span>
-								<span :class="pika({ '[data-music-loaded=false] $': { display: 'none' } })">{{ currentMusic?.title }}</span>
+								<UiMarquee :class="pika({ '[data-music-loaded=true] $': { display: 'none' } })">
+									Music Player
+								</UiMarquee>
+								<UiMarquee :class="pika({ '[data-music-loaded=false] $': { display: 'none' } })">
+									{{ currentMusic?.title }}
+								</UiMarquee>
 							</div>
 							<button
 								:data-liked="isMusicLiked(currentMusic?.source || '')"
