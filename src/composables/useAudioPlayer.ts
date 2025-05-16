@@ -79,7 +79,9 @@ export function useAudioPlayer() {
 
 	const load = useDebounceFn(audioLogic.load, 300)
 
-	const audioQueueLogic = useAudioQueue()
+	const audioQueueLogic = useAudioQueue({
+		random: savedPreferences.value.random,
+	})
 
 	const random = audioQueueLogic.random
 	const toggleRandom = audioQueueLogic.toggleRandom
