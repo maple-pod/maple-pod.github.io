@@ -5,19 +5,24 @@ const props = defineProps<{
 	playlistId: PlaylistId
 }>()
 
-const { getPlaylist } = useMusicStore()
-const playlist = computed(() => getPlaylist(props.playlistId)!)
+const musicStore = useMusicStore()
 
+const { currentPlaylist, currentMusic, isPaused, random } = storeToRefs(musicStore)
+const { getPlaylist, getMusicData, play, togglePlay, isMusicLiked, toggleMusicLike, toggleRandom } = musicStore
+const playlist = computed(() => getPlaylist(props.playlistId)!)
 const title = computed(() => playlist.value.title)
 const list = toRef(() => playlist.value.list)
-
-const musicStore = useMusicStore()
-const { currentMusic, isPaused } = storeToRefs(musicStore)
-const { getMusicData, play, isMusicLiked, toggleMusicLike } = musicStore
-
 const items = computed(() => list.value.map(getMusicData).filter(data => data != null))
-
 const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
+
+function handlePlayPlaylist() {
+	if (playlist.value.id !== currentPlaylist.value?.id) {
+		play(playlist.value)
+		return
+	}
+
+	togglePlay()
+}
 
 const router = useRouter()
 function goBackToPlaylists() {
@@ -39,8 +44,9 @@ function goBackToPlaylists() {
 			:class="pika({
 				'display': 'flex',
 				'alignItems': 'center',
+				'gap': '16px',
 				'margin': '-16px -16px 0 -16px',
-				'padding': '16px 32px 16px 8px',
+				'padding': '16px 8px',
 				'border': '1px solid transparent',
 				'fontWeight': '100',
 				'transition': 'border-color 0.2s',
@@ -57,10 +63,7 @@ function goBackToPlaylists() {
 			})"
 		>
 			<button
-				:class="pika('icon-btn', {
-					'--size': '36px',
-					'marginRight': '12px',
-				})"
+				:class="pika('icon-btn', { '--size': '36px' })"
 				@click="goBackToPlaylists()"
 			>
 				<div :class="pika('i-f7:chevron-left')" />
@@ -69,10 +72,46 @@ function goBackToPlaylists() {
 				:class="pika({
 					fontSize: '36px',
 					fontWeight: '100',
+					marginRight: 'auto',
 				})"
 			>
 				{{ title }}
 			</div>
+			<button
+				:data-state="random"
+				:data-toggle="random"
+				:class="pika('icon-btn-toggle', {
+					'--size': '36px',
+
+					'@screen * to 500': {
+						'--size': '32px',
+					},
+				})"
+				@click="toggleRandom()"
+			>
+				<div
+					:class="pika('i-f7:shuffle')"
+				/>
+			</button>
+
+			<button
+				:class="pika('circle-icon-btn', {
+					'--size': '42px',
+
+					'@screen * to 500': {
+						'--size': '32px',
+					},
+				})"
+				@click="handlePlayPlaylist()"
+			>
+				<div
+					:data-is-paused="isPaused"
+					:class="pika({
+						'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
+						'$[data-is-paused=false]': ['i-f7:pause-fill'],
+					})"
+				/>
+			</button>
 		</div>
 
 		<div
