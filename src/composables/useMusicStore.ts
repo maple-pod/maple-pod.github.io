@@ -84,12 +84,15 @@ export const useMusicStore = defineStore('music', () => {
 	const audioPlayerLogic = useAudioPlayer()
 	const currentPlaylist = ref<Playlist | null>(null)
 	const currentMusic = computed(() => getMusicData(audioPlayerLogic.currentAudioSrc.value!) ?? null)
-	function play(playlist: Playlist, musicSource: string) {
-		if (playlist.list.includes(musicSource) === false)
+	function play(playlist: Playlist, musicSource?: string) {
+		if (musicSource != null && (playlist.list.includes(musicSource) === false))
 			return
 
 		currentPlaylist.value = playlist
 		audioPlayerLogic.play(playlist.list, musicSource)
+
+		// ensure the audio is reset
+		audioPlayerLogic.currentTime.value = 0
 	}
 
 	const ready = until(isDataReady)

@@ -35,7 +35,7 @@ export function useAudioQueue(options: UseAudioQueueOptions = {}) {
 	function initQueue(audioSrcList: string[], audioSrc?: string | null | undefined) {
 		if (
 			(audioSrcList.length === 0)
-			|| (audioSrcList.includes(audioSrc!) === false)
+			|| (audioSrc != null && (audioSrcList.includes(audioSrc!) === false))
 		) {
 			return
 		}
