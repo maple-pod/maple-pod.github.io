@@ -25,7 +25,15 @@ const router = createRouter({
 					name: Routes.Playlist,
 					path: 'playlists/:playlistId',
 					component: () => import('@/views/Playlist.vue'),
-					props: to => ({ playlistId: to.params.playlistId as PlaylistId }),
+					props: (to) => {
+						let scrollToIndex: number | undefined = Number(to.query.scrollToIndex)
+						scrollToIndex = Number.isNaN(scrollToIndex) ? undefined : scrollToIndex
+
+						return {
+							playlistId: to.params.playlistId as PlaylistId,
+							scrollToIndex,
+						}
+					},
 				},
 			],
 		},

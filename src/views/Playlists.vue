@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
+import { DefaultLayoutHeaderSlot } from '@/components/DefaultLayout.vue'
 
 const musicStore = useMusicStore()
 const { playlistList, currentPlaylist } = storeToRefs(musicStore)
@@ -12,55 +12,40 @@ function goToPlaylist(playlistId: string) {
 
 <template>
 	<div
-		:class="pika('card', {
+		:class="pika({
 			display: 'flex',
 			flexDirection: 'column',
+			gap: '16px',
 			width: '100%',
 			height: '100%',
 		})"
 	>
-		<div
-			:data-arrived-top="uiVerticalListRef?.scrollingArrivedTop"
-			:class="pika({
-				'display': 'flex',
-				'alignItems': 'center',
-				'margin': '-16px -16px 0 -16px',
-				'padding': '16px',
-				'border': '1px solid transparent',
-				'fontWeight': '100',
-				'transition': 'border-color 0.2s',
-
-				'$[data-arrived-top=false]': {
-					borderBottomColor: 'var(--color-gray-2)',
-				},
-
-				'@dark': {
-					'&$[data-arrived-top=false]': {
-						borderBottomColor: 'var(--color-gray-3)',
-					},
-				},
-			})"
-		>
+		<DefaultLayoutHeaderSlot>
 			<div
 				:class="pika({
-					fontSize: '36px',
+					display: 'flex',
+					alignItems: 'center',
 					fontWeight: '100',
 				})"
 			>
-				Playlists
+				<div
+					:class="pika({
+						fontSize: '32px',
+						fontWeight: '100',
+					})"
+				>
+					Playlists
+				</div>
 			</div>
-		</div>
+		</DefaultLayoutHeaderSlot>
 
 		<div
-			:class="pika({
+			:class="pika('card', {
 				flex: '1 0 0',
 				minHeight: '0',
 			})"
 		>
-			<UiVerticalList
-				ref="uiVerticalListRef"
-				:items="playlistList"
-			>
+			<UiVerticalList :items="playlistList">
 				<template #default="{ item: playlist, index }">
 					<div
 						:key="index"

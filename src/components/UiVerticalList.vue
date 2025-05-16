@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T">
+import type { ScrollToIndexOpts } from 'virtua'
 import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewport } from 'reka-ui'
 import { Virtualizer } from 'virtua/vue'
 
@@ -6,18 +7,21 @@ defineProps<{
 	items: T[]
 }>()
 
-const scrollAreaRef = useTemplateRef('scrollAreaRef')
-const { arrivedState } = useScroll(() => unrefElement(scrollAreaRef)?.children[0] as HTMLElement)
-const scrollingArrivedTop = toRef(() => arrivedState.top)
+const virtualizerRef = useTemplateRef('virtualizerRef')
+function scrollToIndex(index: number, options?: ScrollToIndexOpts) {
+	if (!virtualizerRef.value)
+		return
+
+	virtualizerRef.value.scrollToIndex(index, options)
+}
 
 defineExpose({
-	scrollingArrivedTop,
+	scrollToIndex,
 })
 </script>
 
 <template>
 	<ScrollAreaRoot
-		ref="scrollAreaRef"
 		:class="pika({
 			width: '100%',
 			height: '100%',
@@ -31,6 +35,7 @@ defineExpose({
 			})"
 		>
 			<Virtualizer
+				ref="virtualizerRef"
 				v-slot="{ item, index }"
 				as="ul"
 				item="li"
@@ -59,18 +64,19 @@ defineExpose({
 			orientation="vertical"
 			:class="pika({
 				'zIndex': '10',
-				'width': '12px',
+				'width': '8px',
 				'padding': '2px',
 				'backgroundColor': 'var(--color-gray-2)',
 				'borderRadius': '9999px',
-				'opacity': '0.5',
-				'transition': 'opacity 0.2s',
+				'opacity': '0.4',
+				'transition': 'all 0.2s',
 
 				'@dark': {
 					backgroundColor: 'var(--color-gray-5)',
 				},
 
 				'$:hover': {
+					width: '16px',
 					opacity: '1',
 				},
 
@@ -81,7 +87,7 @@ defineExpose({
 		>
 			<ScrollAreaThumb
 				:class="pika({
-					'borderRadius': '5px',
+					'borderRadius': '9999px',
 					'backgroundColor': 'var(--color-gray-1)',
 
 					'@dark': {

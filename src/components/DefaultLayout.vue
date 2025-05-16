@@ -1,9 +1,21 @@
 <script setup lang="ts">
 import { Routes } from '@/router'
+import { Teleport } from 'vue'
 
 const appStore = useAppStore()
 const { toggleDark } = appStore
 // const { getPlaylist } = useMusicStore()
+</script>
+
+<script lang="ts">
+export const DefaultLayoutHeaderSlot = defineComponent({
+	name: 'DefaultLayoutHeaderSlot',
+	setup: (_, { slots }) => () => h(
+		Teleport,
+		{ to: '#default-layout-header-slot', defer: true },
+		[slots.default?.()],
+	),
+})
 </script>
 
 <template>
@@ -31,51 +43,68 @@ const { toggleDark } = appStore
 			<div
 				:class="pika('card', {
 					display: 'flex',
-					alignItems: 'center',
+					flexDirection: 'column',
+					gap: '16px',
+					padding: '0 16px 16px 16px',
 					borderRadius: '0 0 16px 16px',
 				})"
 			>
-				<RouterLink
-					:to="{ name: Routes.Root }"
+				<div
 					:class="pika({
-						display: 'flex',
-						alignItems: 'center',
-						gap: '8px',
-						marginRight: 'auto',
+						'display': 'flex',
+						'alignItems': 'center',
+						'padding': '32px 0',
+
+						'$:not(:last-child)': {
+							borderBottom: '1px solid var(--color-gray-3)',
+						},
 					})"
 				>
-					<img
-						src="/logo.png"
-						alt="Logo"
+					<RouterLink
+						:to="{ name: Routes.Root }"
 						:class="pika({
-							display: 'inline-block',
-							width: 'auto',
-							height: '32px',
+							display: 'flex',
+							alignItems: 'center',
+							gap: '8px',
+							marginRight: 'auto',
 						})"
 					>
-
-					<div
-						:class="pika({
-							fontSize: '32px',
-							fontWeight: '100',
-							marginLeft: '8px',
-						})"
+						<img
+							src="/logo.png"
+							alt="Logo"
+							:class="pika({
+								display: 'inline-block',
+								width: 'auto',
+								height: '32px',
+							})"
+						>
+						<div
+							:class="pika({
+								fontSize: '32px',
+								fontWeight: '100',
+								marginLeft: '8px',
+							})"
+						>
+							Maple Pod
+						</div>
+					</RouterLink>
+					<button
+						:class="pika('icon-btn', { '--size': '36px' })"
+						@click="toggleDark()"
 					>
-						Maple Pod
-					</div>
-				</RouterLink>
+						<div
+							:class="pika({
+								'$': ['i-f7:sun-max'],
+								'@dark': ['i-f7:moon'],
+							})"
+						/>
+					</button>
+				</div>
 
-				<button
-					:class="pika('icon-btn', { '--size': '36px' })"
-					@click="toggleDark()"
-				>
-					<div
-						:class="pika({
-							'$': ['i-f7:sun-max'],
-							'@dark': ['i-f7:moon'],
-						})"
-					/>
-				</button>
+				<div
+					id="default-layout-header-slot"
+					:class="pika({ display: 'contents' })"
+				/>
 			</div>
 
 			<div :class="pika({ flex: '1 1 0', minHeight: '0' })">

@@ -3,6 +3,7 @@ import { useDocumentPictureInPicture } from '@/composables/useDocumentPictureInP
 
 const musicStore = useMusicStore()
 const {
+	currentPlaylist,
 	currentMusic,
 	canPlay,
 	duration,
@@ -56,6 +57,33 @@ const {
 	start: startPip,
 	stop: stopPip,
 } = useDocumentPictureInPicture()
+
+const isHandlingShowMusicInPlaylist = ref(false)
+const router = useRouter()
+async function handleShowMusicInPlaylist() {
+	if (
+		isHandlingShowMusicInPlaylist.value
+		|| currentPlaylist.value == null
+		|| currentMusic.value == null
+	) {
+		return
+	}
+
+	isHandlingShowMusicInPlaylist.value = true
+	const scrollToIndex = currentPlaylist.value.list.indexOf(currentMusic.value.source)
+	if (scrollToIndex === -1) {
+		isHandlingShowMusicInPlaylist.value = false
+		return
+	}
+
+	await router.push({
+		name: Routes.Playlist,
+		params: { playlistId: currentPlaylist.value.id },
+		query: { scrollToIndex },
+	})
+
+	isHandlingShowMusicInPlaylist.value = false
+}
 </script>
 
 <template>
@@ -334,7 +362,7 @@ const {
 						:class="pika({
 							display: 'flex',
 							flexDirection: 'column',
-							gap: '4px',
+							gap: '8px',
 							flex: '1 1 0',
 							minWidth: '0',
 						})"
@@ -344,65 +372,78 @@ const {
 							:class="pika({
 								display: 'flex',
 								alignItems: 'center',
-								gap: '8px',
+								gap: '32px',
 								width: '100%',
 							})"
 						>
-							<button
-								v-if="isSupported"
-								:class="pika('icon-btn', {
-									'--size': '36px',
-
-									'@docpip': {
-										display: 'none',
-									},
-								})"
-								@click="startPip({
-									width: 480,
-									height: 180,
-								})"
-							>
-								<div
-									:class="pika('i-f7:rectangle-on-rectangle')"
-								/>
-							</button>
-							<div
-								:class="pika({
-									display: 'flex',
-									alignItems: 'center',
-									gap: '4px',
-									maxWidth: '250px',
-									fontSize: '24px',
-									fontWeight: '200',
-									whiteSpace: 'nowrap',
-									textOverflow: 'ellipsis',
-									overflow: 'hidden',
-								})"
-								:title="currentMusic?.title"
-							>
-								<UiMarquee :class="pika({ '[data-music-loaded=true] $': { display: 'none' } })">
-									Music Player
-								</UiMarquee>
-								<UiMarquee :class="pika({ '[data-music-loaded=false] $': { display: 'none' } })">
-									{{ currentMusic?.title }}
-								</UiMarquee>
-							</div>
-							<button
-								:data-liked="isMusicLiked(currentMusic?.source || '')"
-								:class="pika('icon-btn', {
-									'--size': '36px',
-
-									'[data-music-loaded=false] $': { visibility: 'hidden' },
-								})"
-								@click="toggleMusicLike(currentMusic?.source || '')"
-							>
+							<div :class="pika({ display: 'flex', alignItems: 'center', gap: '8px' })">
+								<button
+									:data-liked="isMusicLiked(currentMusic?.source || '')"
+									:class="pika('icon-btn', {
+										'--size': '36px',
+										'[data-music-loaded=false] $': { visibility: 'hidden' },
+									})"
+									@click="toggleMusicLike(currentMusic?.source || '')"
+								>
+									<div
+										:class="pika({
+											'[data-liked=true] $': ['i-f7:heart-fill', { color: 'var(--color-primary-1)' }],
+											'[data-liked=false] $': ['i-f7:heart'],
+										})"
+									/>
+								</button>
 								<div
 									:class="pika({
-										'[data-liked=true] $': ['i-f7:heart-fill', { color: 'var(--color-primary-1)' }],
-										'[data-liked=false] $': ['i-f7:heart'],
+										display: 'flex',
+										alignItems: 'center',
+										gap: '4px',
+										maxWidth: '250px',
+										fontSize: '24px',
+										fontWeight: '200',
+										whiteSpace: 'nowrap',
+										textOverflow: 'ellipsis',
+										overflow: 'hidden',
 									})"
-								/>
-							</button>
+									:title="currentMusic?.title"
+								>
+									<UiMarquee :class="pika({ '[data-music-loaded=true] $': { display: 'none' } })">
+										Music Player
+									</UiMarquee>
+									<UiMarquee :class="pika({ '[data-music-loaded=false] $': { display: 'none' } })">
+										{{ currentMusic?.title }}
+									</UiMarquee>
+								</div>
+							</div>
+							<div :class="pika({ display: 'flex', alignItems: 'center', gap: '0px', marginLeft: 'auto' })">
+								<button
+									:class="pika('icon-btn', {
+										'--size': '36px',
+										'[data-music-loaded=false] $': { visibility: 'hidden' },
+									})"
+									@click="handleShowMusicInPlaylist()"
+								>
+									<div
+										:class="pika('i-f7:compass')"
+									/>
+								</button>
+								<button
+									v-if="isSupported"
+									:class="pika('icon-btn', {
+										'--size': '36px',
+										'@docpip': {
+											display: 'none',
+										},
+									})"
+									@click="startPip({
+										width: 480,
+										height: 180,
+									})"
+								>
+									<div
+										:class="pika('i-f7:rectangle-on-rectangle')"
+									/>
+								</button>
+							</div>
 						</div>
 						<!-- Cover & Controls -->
 						<div
