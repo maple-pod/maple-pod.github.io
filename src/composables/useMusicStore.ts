@@ -2,39 +2,56 @@ import type { MusicData } from '@/types/MusicData'
 import type { Playlist, PlaylistId, SaveablePlaylistId } from '@/types/Playlist'
 import { ofetch } from 'ofetch'
 
-function createAllPlaylist(data: Map<string, MusicData>): Playlist {
-	return { id: 'all', title: 'All', list: Array.from(data.keys()) }
+function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playlist {
+	return {
+		id: 'all',
+		title: 'All',
+		list: Array.from(
+			dataGroupedByCover.values(),
+			list => list.map(item => item.source),
+		).flat(),
+	}
 }
 
 function createLikedPlaylist(): Playlist {
 	return { id: 'liked', title: 'Liked', list: [] }
 }
 
+function groupByCover(data: MusicData[]): Map<string, MusicData[]> {
+	const map = new Map<string, MusicData[]>()
+	for (const item of data) {
+		if (!map.has(item.cover)) {
+			map.set(item.cover, [])
+		}
+		map.get(item.cover)!.push(item)
+	}
+	return map
+}
+
 export const useMusicStore = defineStore('music', () => {
 	const {
-		state: data,
+		state: dataList,
 		isReady: isDataReady,
 	} = useAsyncState(
-		async () => new Map<string, MusicData>(
-			(await ofetch<any[]>('/data/bgm.json'))
-				.map<MusicData>(data => ({
-					title: data.metadata.title,
-					cover: `/mark/${data.mark}.png`,
-					source: `/bgm/${data.source.structure}/${data.filename}.mp3`,
-					info: {
-						maps: data.maps,
-					},
-				}))
-				.map<[string, MusicData]>(data => [data.source, data]),
-		),
-		new Map<string, MusicData>(),
+		async () => (await ofetch<any[]>('/data/bgm.json'))
+			.map<MusicData>(data => ({
+				title: data.metadata.title,
+				cover: `/mark/${data.mark}.png`,
+				source: `/bgm/${data.source.structure}/${data.filename}.mp3`,
+				info: {
+					maps: data.maps,
+				},
+			})),
+		[],
 	)
+	const dataMap = computed(() => new Map<string, MusicData>(dataList.value.map(item => [item.source, item])))
+	const dataGroupedByCover = computed(() => groupByCover(dataList.value))
 
 	function getMusicData(source: string): MusicData | undefined {
-		return data.value.get(source)
+		return dataMap.value.get(source)
 	}
 
-	const playlistAll = computed(() => createAllPlaylist(data.value))
+	const playlistAll = computed(() => createAllPlaylist(dataGroupedByCover.value))
 	const savedPlaylists = useLocalStorage<[SaveablePlaylistId, Playlist][]>('playlists', [])
 	const savedPlaylistsMap = computed<Map<SaveablePlaylistId, Playlist>>(() => new Map(savedPlaylists.value))
 	const playlistList = computed(() => [
