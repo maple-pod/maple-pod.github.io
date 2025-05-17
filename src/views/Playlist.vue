@@ -129,7 +129,7 @@ whenever(
 			<UiVerticalList
 				ref="uiVerticalListRef"
 				:items
-				:itemHeight="82"
+				:itemHeight="80"
 			>
 				<template #item="{ item, index }">
 					<div
@@ -140,10 +140,11 @@ whenever(
 						:class="pika({
 							'position': 'relative',
 							'width': '100%',
+							'height': '80px',
 							'display': 'flex',
 							'alignItems': 'center',
 							'gap': '16px',
-							'padding': '16px 16px 16px 4px',
+							'padding': '0 16px 0 4px',
 							'cursor': 'pointer',
 							'userSelect': 'none',
 							'$::before': {

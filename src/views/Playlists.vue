@@ -49,18 +49,22 @@ function goToPlaylist(playlistId: string) {
 				minHeight: '0',
 			})"
 		>
-			<UiVerticalList :items="playlistList">
-				<template #default="{ item: playlist, index }">
+			<UiVerticalList
+				:items="playlistList"
+				:itemHeight="80"
+			>
+				<template #item="{ item: playlist, index }">
 					<div
 						:key="index"
 						:data-is-current-playlist="playlist.id === currentPlaylist?.id"
 						:class="pika({
 							'position': 'relative',
 							'width': '100%',
+							'height': '80px',
 							'display': 'flex',
 							'alignItems': 'center',
 							'gap': '16px',
-							'padding': '16px',
+							'padding': '0 16px',
 							'cursor': 'pointer',
 							'userSelect': 'none',
 							'$::before': {
