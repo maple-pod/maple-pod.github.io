@@ -418,7 +418,10 @@ async function handleShowMusicInPlaylist() {
 									<UiMarquee :class="pika({ '[data-music-loaded=true] $': { display: 'none' } })">
 										Music Player
 									</UiMarquee>
-									<UiMarquee :class="pika({ '[data-music-loaded=false] $': { display: 'none' } })">
+									<UiMarquee
+										:key="currentMusic?.title"
+										:class="pika({ '[data-music-loaded=false] $': { display: 'none' } })"
+									>
 										{{ currentMusic?.title }}
 									</UiMarquee>
 								</div>
