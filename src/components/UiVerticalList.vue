@@ -1,22 +1,33 @@
 <script setup lang="ts" generic="T">
-import type { ScrollToIndexOpts } from 'virtua'
 import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewport } from 'reka-ui'
-import { Virtualizer } from 'virtua/vue'
 
-defineProps<{
+const props = defineProps<{
 	items: T[]
+	itemHeight: number
 }>()
 
-const virtualizerRef = useTemplateRef('virtualizerRef')
-function scrollToIndex(index: number, options?: ScrollToIndexOpts) {
-	if (!virtualizerRef.value)
-		return
+const {
+	list,
+	containerProps,
+	wrapperProps,
+	scrollTo,
+} = useVirtualList(toRef(() => props.items), { itemHeight: () => props.itemHeight })
 
-	virtualizerRef.value.scrollToIndex(index, options)
-}
+const scrollAreaViewportRef = useTemplateRef('scrollAreaViewportRef')
+const scrollAreaViewportEl = computed<HTMLElement | null>(() => (unrefElement(scrollAreaViewportRef)?.parentElement ?? null))
+syncRef(
+	scrollAreaViewportEl,
+	containerProps.ref,
+)
+useEventListener(
+	scrollAreaViewportEl,
+	'scroll',
+	containerProps.onScroll,
+	{ passive: true },
+)
 
 defineExpose({
-	scrollToIndex,
+	scrollToIndex: scrollTo,
 })
 </script>
 
@@ -28,36 +39,27 @@ defineExpose({
 		})"
 	>
 		<ScrollAreaViewport
-			asChild
+			ref="scrollAreaViewportRef"
 			:class="pika({
 				width: '100%',
 				height: '100%',
 			})"
 		>
-			<Virtualizer
-				ref="virtualizerRef"
-				v-slot="{ item, index }"
-				as="ul"
-				item="li"
-				:data="items"
-				:class="pika({
-					padding: '0',
-					margin: '0',
-					listStyle: 'none',
-				})"
+			<div
+				v-bind="wrapperProps"
 			>
-				<slot
-					v-bind="{
-						index,
-						item,
-					} as {
-						index: number
-						item: T
-					}"
+				<div
+					v-for="({ data: item, index }) in list"
+					:key="index"
+					:class="pika({ margin: '0', padding: '0' })"
 				>
-					{{ item }}
-				</slot>
-			</Virtualizer>
+					<slot
+						name="item"
+						:item
+						:index
+					/>
+				</div>
+			</div>
 		</ScrollAreaViewport>
 		<ScrollAreaScrollbar
 			forceMount

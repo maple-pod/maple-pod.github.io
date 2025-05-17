@@ -129,10 +129,11 @@ whenever(
 			<UiVerticalList
 				ref="uiVerticalListRef"
 				:items
+				:itemHeight="82"
 			>
-				<template #default="{ item, index }">
+				<template #item="{ item, index }">
 					<div
-						:key="index"
+						:key="item.source"
 						:data-is-current-music="item.source === currentMusic?.source && playlist.id === currentPlaylist?.id"
 						:data-is-paused="isPaused"
 						:data-music-source="item.source"
