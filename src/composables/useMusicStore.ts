@@ -106,7 +106,7 @@ export const useMusicStore = defineStore('music', () => {
 
 				navigator.mediaSession.metadata = new MediaMetadata({
 					title: currentMusic.value.title,
-					artist: 'BGM',
+					artist: 'MapleStory',
 					album: currentPlaylist.value?.title,
 					artwork: [
 						{
