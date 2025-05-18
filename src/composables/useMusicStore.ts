@@ -25,6 +25,11 @@ function groupByCover(data: MusicData[]): Map<string, MusicData[]> {
 		}
 		map.get(item.cover)!.push(item)
 	}
+	const temp = map.get('/logo.png')
+	map.delete('/logo.png')
+	if (temp != null) {
+		map.set('/logo.png', temp)
+	}
 	return map
 }
 
@@ -33,15 +38,17 @@ export const useMusicStore = defineStore('music', () => {
 		state: dataList,
 		isReady: isDataReady,
 	} = useAsyncState(
-		async () => (await ofetch<any[]>('/data/bgm.json'))
-			.map<MusicData>(data => ({
-				title: data.metadata.title,
-				cover: `/mark/${data.mark}.png`,
-				source: `/bgm/${data.source.structure}/${data.filename}.mp3`,
-				info: {
-					maps: data.maps,
-				},
-			})),
+		async () => (await ofetch<any[]>('/data/data.json'))
+			.map<MusicData>((data) => {
+				const mark = data.marks.filter((m: string) => m !== 'None')[0]
+				return {
+					title: data.title,
+					cover: mark == null
+						? '/logo.png'
+						: `/mark/${mark}.png`,
+					source: `/bgm/${data.src}`,
+				}
+			}),
 		[],
 	)
 	const dataMap = computed(() => new Map<string, MusicData>(dataList.value.map(item => [item.source, item])))

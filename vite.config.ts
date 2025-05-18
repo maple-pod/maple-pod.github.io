@@ -39,7 +39,7 @@ export default defineConfig({
 	},
 	server: {
 		proxy: {
-			'/data/bgm.json': {
+			'/data/data.json': {
 				target: 'https://maple-pod.github.io',
 				changeOrigin: true,
 			},
