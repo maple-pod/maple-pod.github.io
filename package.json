@@ -10,7 +10,8 @@
 		"build": "vite build",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",
-		"type-check": "vue-tsc --build --noEmit"
+		"type-check": "vue-tsc --build --noEmit",
+		"dump-data": "tsx ./scripts/dump.ts"
 	},
 	"dependencies": {
 		"@unhead/vue": "^2.0.8",
@@ -30,13 +31,17 @@
 		"@pikacss/plugin-icons": "^0.0.24",
 		"@pikacss/vite-plugin-pikacss": "^0.0.24",
 		"@tsconfig/node22": "^22.0.1",
+		"@tybys/wz": "^1.7.1",
 		"@types/node": "^22.14.0",
 		"@vitejs/plugin-vue": "^5.2.3",
 		"@vue/tsconfig": "^0.7.0",
 		"eslint": "^9.26.0",
+		"fast-glob": "^3.3.3",
 		"lint-staged": "^15.5.2",
 		"npm-run-all2": "^7.0.2",
+		"simple-git": "^3.27.0",
 		"simple-git-hooks": "^2.13.0",
+		"tsx": "^4.19.4",
 		"typescript": "~5.8.0",
 		"unplugin-auto-import": "^19.2.0",
 		"unplugin-vue-components": "^28.5.0",
