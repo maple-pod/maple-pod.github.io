@@ -1,6 +1,20 @@
-import type { MusicData } from '@/types/MusicData'
-import type { Playlist, PlaylistId, SaveablePlaylistId } from '@/types/Playlist'
 import { ofetch } from 'ofetch'
+
+export interface MusicData {
+	title: string
+	cover: string
+	src: string
+}
+
+export type PlaylistId = 'all' | 'liked' | `custom:${string}`
+
+export type SaveablePlaylistId = Exclude<PlaylistId, 'all'>
+
+export interface Playlist {
+	id: PlaylistId
+	title: string
+	list: string[]
+}
 
 function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playlist {
 	return {
