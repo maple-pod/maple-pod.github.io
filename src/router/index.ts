@@ -1,4 +1,4 @@
-import type { PlaylistId } from '@/types/Playlist'
+import type { PlaylistId } from '@/composables/useMusicStore'
 import { createRouter, createWebHistory } from 'vue-router'
 
 export const Routes = {

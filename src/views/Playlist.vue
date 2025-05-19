@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PlaylistId } from '@/types/Playlist'
+import type { PlaylistId } from '@/composables/useMusicStore'
 import { DefaultLayoutHeaderSlot } from '@/components/DefaultLayout.vue'
 
 const props = defineProps<{
