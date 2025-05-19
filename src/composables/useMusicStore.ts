@@ -38,17 +38,7 @@ export const useMusicStore = defineStore('music', () => {
 		state: dataList,
 		isReady: isDataReady,
 	} = useAsyncState(
-		async () => (await ofetch<any[]>('/data/data.json'))
-			.map<MusicData>((data) => {
-				const mark = data.marks.filter((m: string) => m !== 'None')[0]
-				return {
-					title: data.title,
-					cover: mark == null
-						? '/logo.png'
-						: `/mark/${mark}.png`,
-					src: `/bgm/${data.src}`,
-				}
-			}),
+		async () => (await ofetch<MusicData[]>('/data/data.json')),
 		[],
 	)
 	const dataMap = computed(() => new Map<string, MusicData>(dataList.value.map(item => [item.src, item])))
