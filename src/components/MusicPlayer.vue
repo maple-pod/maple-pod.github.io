@@ -70,7 +70,7 @@ async function handleShowMusicInPlaylist() {
 	}
 
 	isHandlingShowMusicInPlaylist.value = true
-	const scrollToIndex = currentPlaylist.value.list.indexOf(currentMusic.value.source)
+	const scrollToIndex = currentPlaylist.value.list.indexOf(currentMusic.value.src)
 	if (scrollToIndex === -1) {
 		isHandlingShowMusicInPlaylist.value = false
 		return
@@ -386,12 +386,12 @@ async function handleShowMusicInPlaylist() {
 								})"
 							>
 								<button
-									:data-liked="isMusicLiked(currentMusic?.source || '')"
+									:data-liked="isMusicLiked(currentMusic?.src || '')"
 									:class="pika('icon-btn', {
 										'--size': '36px',
 										'[data-music-loaded=false] $': { display: 'none' },
 									})"
-									@click="toggleMusicLike(currentMusic?.source || '')"
+									@click="toggleMusicLike(currentMusic?.src || '')"
 								>
 									<div
 										:class="pika({

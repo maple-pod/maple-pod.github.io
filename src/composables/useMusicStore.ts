@@ -8,7 +8,7 @@ function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playli
 		title: 'All',
 		list: Array.from(
 			dataGroupedByCover.values(),
-			list => list.map(item => item.source),
+			list => list.map(item => item.src),
 		).flat(),
 	}
 }
@@ -46,16 +46,16 @@ export const useMusicStore = defineStore('music', () => {
 					cover: mark == null
 						? '/logo.png'
 						: `/mark/${mark}.png`,
-					source: `/bgm/${data.src}`,
+					src: `/bgm/${data.src}`,
 				}
 			}),
 		[],
 	)
-	const dataMap = computed(() => new Map<string, MusicData>(dataList.value.map(item => [item.source, item])))
+	const dataMap = computed(() => new Map<string, MusicData>(dataList.value.map(item => [item.src, item])))
 	const dataGroupedByCover = computed(() => groupByCover(dataList.value))
 
-	function getMusicData(source: string): MusicData | undefined {
-		return dataMap.value.get(source)
+	function getMusicData(src: string): MusicData | undefined {
+		return dataMap.value.get(src)
 	}
 
 	const playlistAll = computed(() => createAllPlaylist(dataGroupedByCover.value))
@@ -76,44 +76,44 @@ export const useMusicStore = defineStore('music', () => {
 			return playlistAll.value
 		return savedPlaylistsMap.value.get(id) ?? null
 	}
-	function findMusicInPlaylistIndex(playlistId: PlaylistId, musicSource: string) {
+	function findMusicInPlaylistIndex(playlistId: PlaylistId, musicsrc: string) {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null)
 			return -1
-		return playlist.list.indexOf(musicSource)
+		return playlist.list.indexOf(musicsrc)
 	}
-	function toggleMusicInPlaylist(playlistId: SaveablePlaylistId, musicSource: string) {
+	function toggleMusicInPlaylist(playlistId: SaveablePlaylistId, musicsrc: string) {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null)
 			return
 
-		const index = playlist.list.indexOf(musicSource)
+		const index = playlist.list.indexOf(musicsrc)
 		if (index !== -1) {
 			playlist.list.splice(index, 1)
 			return
 		}
 
 		if (index === -1) {
-			playlist.list.push(musicSource)
+			playlist.list.push(musicsrc)
 		}
 	}
 
-	function isMusicLiked(musicSource: string) {
-		return findMusicInPlaylistIndex('liked', musicSource) !== -1
+	function isMusicLiked(musicsrc: string) {
+		return findMusicInPlaylistIndex('liked', musicsrc) !== -1
 	}
-	function toggleMusicLike(musicSource: string) {
-		toggleMusicInPlaylist('liked', musicSource)
+	function toggleMusicLike(musicsrc: string) {
+		toggleMusicInPlaylist('liked', musicsrc)
 	}
 
 	const audioPlayerLogic = useAudioPlayer()
 	const currentPlaylist = ref<Playlist | null>(null)
 	const currentMusic = computed(() => getMusicData(audioPlayerLogic.currentAudioSrc.value!) ?? null)
-	function play(playlist: Playlist, musicSource?: string) {
-		if (musicSource != null && (playlist.list.includes(musicSource) === false))
+	function play(playlist: Playlist, musicsrc?: string) {
+		if (musicsrc != null && (playlist.list.includes(musicsrc) === false))
 			return
 
 		currentPlaylist.value = playlist
-		audioPlayerLogic.play(playlist.list, musicSource)
+		audioPlayerLogic.play(playlist.list, musicsrc)
 
 		// ensure the audio is reset
 		audioPlayerLogic.currentTime.value = 0
@@ -192,7 +192,7 @@ export const useMusicStore = defineStore('music', () => {
 						return false
 					}
 
-					// Ensure all music sources in the playlist exist in the data
+					// Ensure all music srcs in the playlist exist in the data
 					playlist.list = playlist.list.filter(getMusicData)
 
 					return true

@@ -133,10 +133,10 @@ whenever(
 			>
 				<template #item="{ item, index }">
 					<div
-						:key="item.source"
-						:data-is-current-music="item.source === currentMusic?.source && playlist.id === currentPlaylist?.id"
+						:key="item.src"
+						:data-is-current-music="item.src === currentMusic?.src && playlist.id === currentPlaylist?.id"
 						:data-is-paused="isPaused"
-						:data-music-source="item.source"
+						:data-music-src="item.src"
 						:class="pika({
 							'position': 'relative',
 							'width': '100%',
@@ -168,7 +168,7 @@ whenever(
 								color: 'var(--color-primary-1)',
 							},
 						})"
-						@click="play(playlist, item.source)"
+						@click="play(playlist, item.src)"
 					>
 						<div
 							:class="pika({
@@ -238,9 +238,9 @@ whenever(
 						</div>
 
 						<button
-							:data-liked="isMusicLiked(item.source)"
+							:data-liked="isMusicLiked(item.src)"
 							:class="pika('icon-btn', { '--size': '36px' })"
-							@click.stop="toggleMusicLike(item.source)"
+							@click.stop="toggleMusicLike(item.src)"
 						>
 							<div
 								:class="pika({
