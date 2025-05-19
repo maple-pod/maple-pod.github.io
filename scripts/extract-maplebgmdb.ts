@@ -6,8 +6,8 @@ import ytdl from '@distube/ytdl-core'
 import fg from 'fast-glob'
 import ffmpeg from 'fluent-ffmpeg'
 import { ofetch } from 'ofetch'
-import path, { basename, relative } from 'pathe'
-import simpleGit, { CleanOptions, type SimpleGit } from 'simple-git'
+import path, { relative } from 'pathe'
+import simpleGit, { type SimpleGit } from 'simple-git'
 
 process.env.YTDL_NO_UPDATE = 'true'
 
@@ -71,7 +71,6 @@ async function downloadMark(item: OutputDataItem) {
 	const markPath = path.join(markDir, markFilename)
 
 	if (downloadedMarks.has(markFilename)) {
-		// console.log(`Mark for ${item.mark} already downloaded, skipping...`)
 		return
 	}
 
@@ -96,7 +95,6 @@ async function downloadBgm(item: OutputDataItem) {
 		})
 		downloadedBgms.add(bgmFilename)
 	}
-	// console.log(`BGM ${bgmFilename} already downloaded, skipping...`)
 
 	const duration = await new Promise<number>((resolve, reject) => {
 		ffmpeg.ffprobe(bgmPath, (err, metadata) => {
@@ -113,9 +111,19 @@ async function pushToRemote(target: 'bgm' | 'mark' | 'data') {
 	await rm(path.join(dir, '.git'))
 	const git: SimpleGit = simpleGit(dir)
 	await git.init(['--initial-branch=master'])
-	await git.add('.')
-	await git.commit('publish')
+	await git.commit('init', ['--allow-empty'])
 	await git.push(`https://github.com/maple-pod/${target}.git`, 'master', ['-f'])
+
+	const ext = target === 'bgm' ? 'mp3' : target === 'mark' ? 'png' : 'json'
+	const files = fg.sync(path.join(dir, `*.${ext}`))
+	let batchCount = 0
+	while (files.length > 0) {
+		batchCount++
+		const batch = files.splice(0, 100)
+		await git.add(batch.map(file => relative(dir, file)))
+		await git.commit(`upload ${target} batch ${batchCount} at ${new Date().toISOString()}`)
+		await git.push(`https://github.com/maple-pod/${target}.git`, 'master', ['-f'])
+	}
 }
 
 async function main() {
@@ -129,11 +137,12 @@ async function main() {
 			src: `/bgm/${item.filename}.mp3`,
 			data: item,
 		}))
-		.slice(0, 1)
 
 	const errorLogs: { type: 'bgm' | 'mark', message: string }[] = []
 	for (const item of outputData) {
-		console.log(`Processing ${item.data.filename}...`)
+		const index = outputData.indexOf(item) + 1
+		const total = outputData.length
+		console.log(`Processing ${item.data.filename}... (${index}/${total})`)
 		const [markResult, bgmResult] = await Promise.allSettled([
 			downloadMark(item),
 			downloadBgm(item),
