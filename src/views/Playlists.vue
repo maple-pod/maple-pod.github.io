@@ -36,10 +36,23 @@ function goToPlaylist(playlistId: string) {
 					:class="pika({
 						fontSize: '24px',
 						fontWeight: '100',
+						marginRight: 'auto',
 					})"
 				>
 					Playlists
 				</div>
+
+				<CreatePlaylistDialog>
+					<template #trigger>
+						<button
+							:class="pika('icon-btn', {
+								'--size': '36px',
+							})"
+						>
+							<div :class="pika('i-f7:text-badge-plus')" />
+						</button>
+					</template>
+				</CreatePlaylistDialog>
 			</div>
 		</DefaultLayoutHeaderSlot>
 
@@ -51,39 +64,22 @@ function goToPlaylist(playlistId: string) {
 		>
 			<UiVerticalList
 				:items="playlistList"
-				:itemHeight="80"
+				:itemHeight="72"
 			>
 				<template #item="{ item: playlist, index }">
 					<div
 						:key="index"
 						:data-is-current-playlist="playlist.id === currentPlaylist?.id"
-						:class="pika({
-							'position': 'relative',
+						:class="pika('hover-mask', {
 							'width': '100%',
-							'height': '80px',
+							'height': '64px',
 							'display': 'flex',
 							'alignItems': 'center',
 							'gap': '16px',
 							'padding': '0 16px',
+							'marginBottom': '8px',
 							'cursor': 'pointer',
 							'userSelect': 'none',
-							'$::before': {
-								content: '\'\'',
-								zIndex: '1',
-								position: 'absolute',
-								top: '4px',
-								left: '0',
-								bottom: '4px',
-								width: '100%',
-								borderRadius: '8px',
-								backgroundColor: 'var(--color-gray-3)',
-								opacity: '0',
-								transition: 'opacity 0.1s',
-								pointerEvents: 'none',
-							},
-							'$:hover::before': {
-								opacity: '0.1',
-							},
 							'$[data-is-current-playlist=true]': {
 								color: 'var(--color-primary-1)',
 							},
@@ -100,39 +96,25 @@ function goToPlaylist(playlistId: string) {
 						>
 							<div
 								:class="pika({
-									display: 'flex',
-									flexDirection: 'column',
-									gap: '4px',
+									fontSize: '22px',
+									fontWeight: '100',
 								})"
 							>
-								<div
-									:class="pika({
-										fontSize: '22px',
-										fontWeight: '100',
-									})"
-								>
-									{{ playlist.title }}
-								</div>
-								<div
-									:class="pika({
-										fontSize: '14px',
-										color: 'var(--color-gray-3)',
-										opacity: '0.8',
-									})"
-								>
-									{{ playlist.list.length }} music
-								</div>
+								{{ playlist.title }}
+							</div>
+							<div
+								:class="pika({
+									fontSize: '14px',
+									color: 'var(--color-gray-3)',
+									opacity: '0.8',
+								})"
+							>
+								{{ playlist.list.length }} music
 							</div>
 						</div>
 
-						<div
-							:class="pika({
-								'width': '24px',
-								'height': '24px',
-								'fontSize': '24px',
-								'transition': 'opacity 0.1s',
-								':hover > $': ['i-f7:chevron-right', { opacity: '1', color: 'var(--color-primary-1)' }],
-							})"
+						<PlaylistDropdownMenu
+							:playlistId="playlist.id"
 						/>
 					</div>
 				</template>

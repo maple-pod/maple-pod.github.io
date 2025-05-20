@@ -129,7 +129,7 @@ whenever(
 			<UiVerticalList
 				ref="uiVerticalListRef"
 				:items
-				:itemHeight="80"
+				:itemHeight="72"
 			>
 				<template #item="{ item, index }">
 					<div
@@ -137,31 +137,17 @@ whenever(
 						:data-is-current-music="item.src === currentMusic?.src && playlist.id === currentPlaylist?.id"
 						:data-is-paused="isPaused"
 						:data-music-src="item.src"
-						:class="pika({
-							'position': 'relative',
+						:class="pika('hover-mask', {
 							'width': '100%',
-							'height': '80px',
+							'height': '64px',
 							'display': 'flex',
 							'alignItems': 'center',
 							'gap': '16px',
 							'padding': '0 16px 0 4px',
+							'marginBottom': '8px',
 							'cursor': 'pointer',
 							'userSelect': 'none',
-							'$::before': {
-								content: '\'\'',
-								zIndex: '1',
-								position: 'absolute',
-								top: '4px',
-								left: '0',
-								bottom: '4px',
-								width: '100%',
-								borderRadius: '8px',
-								backgroundColor: 'var(--color-gray-3)',
-								opacity: '0',
-								transition: 'opacity 0.1s',
-								pointerEvents: 'none',
-							},
-							'$:hover::before': {
+							'$:has([id^=reka-dropdown-menu-trigger-][data-state=open])::before': {
 								opacity: '0.1',
 							},
 							'$[data-is-current-music=true]': {
@@ -176,7 +162,7 @@ whenever(
 								minWidth: '0',
 								display: 'flex',
 								alignItems: 'center',
-								gap: '16px',
+								gap: '8px',
 							})"
 						>
 							<div
@@ -211,6 +197,23 @@ whenever(
 									})"
 								/>
 							</div>
+
+							<button
+								:data-liked="isMusicLiked(item.src)"
+								:class="pika('icon-btn', {
+									'--size': '36px',
+									'[data-music-src]:not(:hover) [data-liked=false]$': { visibility: 'hidden' },
+								})"
+								@click.stop="toggleMusicLike(item.src)"
+							>
+								<div
+									:class="pika({
+										'[data-liked=true] $': ['i-f7:heart-fill', { color: 'var(--color-primary-1)' }],
+										'[data-liked=false] $': ['i-f7:heart'],
+									})"
+								/>
+							</button>
+
 							<img
 								:src="item.cover"
 								:alt="item.title"
@@ -237,18 +240,9 @@ whenever(
 							</div>
 						</div>
 
-						<button
-							:data-liked="isMusicLiked(item.src)"
-							:class="pika('icon-btn', { '--size': '36px' })"
-							@click.stop="toggleMusicLike(item.src)"
-						>
-							<div
-								:class="pika({
-									'[data-liked=true] $': ['i-f7:heart-fill', { color: 'var(--color-primary-1)' }],
-									'[data-liked=false] $': ['i-f7:heart'],
-								})"
-							/>
-						</button>
+						<PlaylistMusicDropdownMenu
+							:musicSrc="item.src"
+						/>
 					</div>
 				</template>
 			</UiVerticalList>

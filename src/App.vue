@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { isReady } = storeToRefs(useAppStore())
+const { UiConfirmDialog } = useUiConfirmDialog()
 </script>
 
 <template>
@@ -13,5 +14,7 @@ const { isReady } = storeToRefs(useAppStore())
 	>
 		<RouterView v-if="isReady" />
 		<AppLoading v-else />
+
+		<UiConfirmDialog />
 	</div>
 </template>

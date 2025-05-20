@@ -9,7 +9,9 @@ import VueDevTools from 'vite-plugin-vue-devtools'
 // https://vite.dev/config/
 export default defineConfig({
 	plugins: [
-		PikaCSS(),
+		PikaCSS({
+			target: ['**/*.vue', '**/*.ts'],
+		}),
 		Vue(),
 		VueDevTools(),
 		Imports({
@@ -26,6 +28,7 @@ export default defineConfig({
 			],
 			dirs: [
 				'src/composables',
+				'src/utils',
 			],
 		}),
 		Components({

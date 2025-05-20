@@ -6,12 +6,13 @@ export interface MusicData {
 	src: string
 }
 
-export type PlaylistId = 'all' | 'liked' | `custom:${string}`
+export type LikedPlaylistId = 'liked'
+export type CustomPlaylistId = `custom:${string}`
+export type SaveablePlaylistId = CustomPlaylistId | LikedPlaylistId
+export type PlaylistId = 'all' | SaveablePlaylistId
 
-export type SaveablePlaylistId = Exclude<PlaylistId, 'all'>
-
-export interface Playlist {
-	id: PlaylistId
+export interface Playlist<Id extends PlaylistId = PlaylistId> {
+	id: Id
 	title: string
 	list: string[]
 }
@@ -75,49 +76,99 @@ export const useMusicStore = defineStore('music', () => {
 			}),
 	])
 
+	function isCustomPlaylist(id: PlaylistId): id is CustomPlaylistId {
+		return id.startsWith('custom:')
+	}
+
+	function isAddedInPlaylist(playlistId: PlaylistId, musicSrc: string) {
+		const playlist = getPlaylist(playlistId)
+		if (playlist == null)
+			return false
+		return playlist.list.includes(musicSrc)
+	}
+
+	function validatePlaylistTitle(title: string): string | undefined {
+		const value = title.trim()
+		switch (true) {
+			case value.length === 0:
+				return 'Playlist title is required'
+			case value.length > 50:
+				return 'Playlist title must be less than 50 characters'
+			default:
+				return undefined
+		}
+	}
+	function createPlaylist(title: string): [id: SaveablePlaylistId, error: null] | [null, error: string] {
+		const id = `custom:${Date.now()}` as const
+
+		const playlist: Playlist = {
+			id,
+			title,
+			list: [],
+		}
+		savedPlaylists.value.push([id, playlist])
+
+		return [id, null]
+	}
+	function deletePlaylist(id: SaveablePlaylistId) {
+		if (id === 'liked') {
+			return
+		}
+
+		const index = savedPlaylists.value.findIndex(([playlistId]) => playlistId === id)
+		if (index !== -1) {
+			savedPlaylists.value.splice(index, 1)
+		}
+	}
 	function getPlaylist(id: PlaylistId) {
 		if (id === 'all')
 			return playlistAll.value
 		return savedPlaylistsMap.value.get(id) ?? null
 	}
-	function findMusicInPlaylistIndex(playlistId: PlaylistId, musicsrc: string) {
+	function findMusicInPlaylistIndex(playlistId: PlaylistId, musicSrc: string) {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null)
 			return -1
-		return playlist.list.indexOf(musicsrc)
+		return playlist.list.indexOf(musicSrc)
 	}
-	function toggleMusicInPlaylist(playlistId: SaveablePlaylistId, musicsrc: string) {
+	function toggleMusicInPlaylist(playlistId: PlaylistId, musicSrc: string, action?: 'add' | 'remove') {
 		const playlist = getPlaylist(playlistId)
-		if (playlist == null)
+		if (playlist == null || playlist.id === 'all')
 			return
 
-		const index = playlist.list.indexOf(musicsrc)
-		if (index !== -1) {
+		const index = playlist.list.indexOf(musicSrc)
+		if (index !== -1 && (action === 'remove' || action == null)) {
 			playlist.list.splice(index, 1)
 			return
 		}
 
-		if (index === -1) {
-			playlist.list.push(musicsrc)
+		if (index === -1 && (action === 'add' || action == null)) {
+			playlist.list.push(musicSrc)
 		}
 	}
 
-	function isMusicLiked(musicsrc: string) {
-		return findMusicInPlaylistIndex('liked', musicsrc) !== -1
+	function isMusicLiked(musicSrc: string) {
+		return findMusicInPlaylistIndex('liked', musicSrc) !== -1
 	}
-	function toggleMusicLike(musicsrc: string) {
-		toggleMusicInPlaylist('liked', musicsrc)
+	function toggleMusicLike(musicSrc: string) {
+		toggleMusicInPlaylist('liked', musicSrc)
 	}
 
 	const audioPlayerLogic = useAudioPlayer()
 	const currentPlaylist = ref<Playlist | null>(null)
 	const currentMusic = computed(() => getMusicData(audioPlayerLogic.currentAudioSrc.value!) ?? null)
-	function play(playlist: Playlist, musicsrc?: string) {
-		if (musicsrc != null && (playlist.list.includes(musicsrc) === false))
+	function play(playlistId: PlaylistId, musicSrc?: string): void
+	function play(playlist: Playlist, musicSrc?: string): void
+	function play(playlistOrId: Playlist | PlaylistId, musicSrc?: string) {
+		const playlist = typeof playlistOrId === 'string' ? getPlaylist(playlistOrId) : playlistOrId
+		if (playlist == null)
+			return
+
+		if (musicSrc != null && (playlist.list.includes(musicSrc) === false))
 			return
 
 		currentPlaylist.value = playlist
-		audioPlayerLogic.play(playlist.list, musicsrc)
+		audioPlayerLogic.play(playlist.list, musicSrc)
 
 		// ensure the audio is reset
 		audioPlayerLogic.currentTime.value = 0
@@ -177,13 +228,13 @@ export const useMusicStore = defineStore('music', () => {
 		.toBe(true)
 		.then(() => {
 			// ensure the saved playlists are valid
-			if (savedPlaylists.value.some(([id]) => id === 'liked') === false) {
+			if (savedPlaylists.value.every(([id]) => id !== 'liked')) {
 				savedPlaylists.value.unshift(['liked', createLikedPlaylist()])
 			}
 
 			savedPlaylists.value = savedPlaylists.value
 				.filter(([id, playlist]) => {
-					if (id !== 'liked' && (id.startsWith('custom-') === false)) {
+					if (id !== 'liked' && (id.startsWith('custom:') === false)) {
 						console.warn(`Invalid playlist ID: ${id}`)
 						return false
 					}
@@ -206,8 +257,14 @@ export const useMusicStore = defineStore('music', () => {
 	return {
 		getMusicData,
 		playlistList,
+		savedPlaylists: computed(() => savedPlaylists.value.filter(([, playlist]) => isCustomPlaylist(playlist.id)).map(([, playlist]) => playlist)),
 		getPlaylist,
 		findMusicInPlaylistIndex,
+		isCustomPlaylist,
+		isAddedInPlaylist,
+		validatePlaylistTitle,
+		createPlaylist,
+		deletePlaylist,
 		toggleMusicInPlaylist,
 		isMusicLiked,
 		toggleMusicLike,

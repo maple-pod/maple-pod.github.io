@@ -15,9 +15,10 @@ const {
 
 const scrollAreaViewportRef = useTemplateRef('scrollAreaViewportRef')
 const scrollAreaViewportEl = computed<HTMLElement | null>(() => (unrefElement(scrollAreaViewportRef)?.parentElement ?? null))
-syncRef(
+watch(
 	scrollAreaViewportEl,
-	containerProps.ref,
+	el => containerProps.ref.value = el as any,
+	{ immediate: true },
 )
 useEventListener(
 	scrollAreaViewportEl,
@@ -65,7 +66,7 @@ defineExpose({
 			forceMount
 			orientation="vertical"
 			:class="pika({
-				'zIndex': '10',
+				'zIndex': '2',
 				'width': '8px',
 				'padding': '2px',
 				'backgroundColor': 'var(--color-gray-2)',
