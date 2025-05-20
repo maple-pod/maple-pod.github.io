@@ -43,15 +43,15 @@ export default defineConfig({
 	server: {
 		proxy: {
 			'/data/data.json': {
-				target: 'https://maple-pod.github.io',
+				target: 'https://maple-pod.deviltea.me',
 				changeOrigin: true,
 			},
 			'/mark': {
-				target: 'https://maple-pod.github.io',
+				target: 'https://maple-pod.deviltea.me',
 				changeOrigin: true,
 			},
 			'/bgm': {
-				target: 'https://maple-pod.github.io',
+				target: 'https://maple-pod.deviltea.me',
 				changeOrigin: true,
 			},
 		},
