@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CustomPlaylistId } from '@/composables/useMusicStore'
+import type { CustomPlaylistId } from '@/types'
 
 const props = defineProps<{
 	playlistId: CustomPlaylistId

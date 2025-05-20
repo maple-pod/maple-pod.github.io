@@ -1,11 +1,14 @@
 import { useHead } from '@unhead/vue'
 
 export const useAppStore = defineStore('app', () => {
+	const { theme } = useSavedUserData()
+
 	const isDark = useDark({
 		selector: 'body',
 		attribute: 'color-scheme',
 		valueDark: 'dark',
 		valueLight: 'light',
+		storageRef: theme,
 	})
 	const toggleDark = useToggle(isDark)
 

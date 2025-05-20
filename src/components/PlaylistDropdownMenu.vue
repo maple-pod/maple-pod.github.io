@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CustomPlaylistId, PlaylistId } from '@/composables/useMusicStore'
+import type { CustomPlaylistId, PlaylistId } from '@/types'
 import {
 	DropdownMenuItem,
 } from 'reka-ui'

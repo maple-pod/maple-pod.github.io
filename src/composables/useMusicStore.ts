@@ -1,21 +1,5 @@
+import type { CustomPlaylistId, MusicData, Playlist, PlaylistId } from '@/types'
 import { ofetch } from 'ofetch'
-
-export interface MusicData {
-	title: string
-	cover: string
-	src: string
-}
-
-export type LikedPlaylistId = 'liked'
-export type CustomPlaylistId = `custom:${string}`
-export type SaveablePlaylistId = CustomPlaylistId | LikedPlaylistId
-export type PlaylistId = 'all' | SaveablePlaylistId
-
-export interface Playlist<Id extends PlaylistId = PlaylistId> {
-	id: Id
-	title: string
-	list: string[]
-}
 
 function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playlist {
 	return {
@@ -26,10 +10,6 @@ function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playli
 			list => list.map(item => item.src),
 		).flat(),
 	}
-}
-
-function createLikedPlaylist(): Playlist {
-	return { id: 'liked', title: 'Liked', list: [] }
 }
 
 function groupByCover(data: MusicData[]): Map<string, MusicData[]> {
@@ -64,16 +44,12 @@ export const useMusicStore = defineStore('music', () => {
 	}
 
 	const playlistAll = computed(() => createAllPlaylist(dataGroupedByCover.value))
-	const savedPlaylists = useLocalStorage<[SaveablePlaylistId, Playlist][]>('playlists', [])
-	const savedPlaylistsMap = computed<Map<SaveablePlaylistId, Playlist>>(() => new Map(savedPlaylists.value))
+	const { likedPlaylist, savedPlaylists } = useSavedUserData()
+	const savedPlaylistsMap = computed(() => new Map(savedPlaylists.value.map(playlist => [playlist.id, playlist])))
 	const playlistList = computed(() => [
 		playlistAll.value,
-		...Array.from(savedPlaylistsMap.value.values())
-			.sort((a, b) => {
-				const weightA = a.id === 'liked' ? 0 : 1
-				const weightB = b.id === 'liked' ? 0 : 1
-				return weightA - weightB
-			}),
+		likedPlaylist.value,
+		...savedPlaylists.value,
 	])
 
 	function isCustomPlaylist(id: PlaylistId): id is CustomPlaylistId {
@@ -98,24 +74,20 @@ export const useMusicStore = defineStore('music', () => {
 				return undefined
 		}
 	}
-	function createPlaylist(title: string): [id: SaveablePlaylistId, error: null] | [null, error: string] {
-		const id = `custom:${Date.now()}` as const
+	function createPlaylist(title: string): [id: CustomPlaylistId, error: null] | [null, error: string] {
+		const id = `custom:${Date.now()}` as CustomPlaylistId
 
-		const playlist: Playlist = {
+		const playlist: Playlist<CustomPlaylistId> = {
 			id,
 			title,
 			list: [],
 		}
-		savedPlaylists.value.push([id, playlist])
+		savedPlaylists.value.push(playlist)
 
 		return [id, null]
 	}
-	function deletePlaylist(id: SaveablePlaylistId) {
-		if (id === 'liked') {
-			return
-		}
-
-		const index = savedPlaylists.value.findIndex(([playlistId]) => playlistId === id)
+	function deletePlaylist(id: CustomPlaylistId) {
+		const index = savedPlaylists.value.findIndex(({ id: playlistId }) => playlistId === id)
 		if (index !== -1) {
 			savedPlaylists.value.splice(index, 1)
 		}
@@ -123,6 +95,8 @@ export const useMusicStore = defineStore('music', () => {
 	function getPlaylist(id: PlaylistId) {
 		if (id === 'all')
 			return playlistAll.value
+		if (id === 'liked')
+			return likedPlaylist.value
 		return savedPlaylistsMap.value.get(id) ?? null
 	}
 	function findMusicInPlaylistIndex(playlistId: PlaylistId, musicSrc: string) {
@@ -228,22 +202,14 @@ export const useMusicStore = defineStore('music', () => {
 		.toBe(true)
 		.then(() => {
 			// ensure the saved playlists are valid
-			if (savedPlaylists.value.every(([id]) => id !== 'liked')) {
-				savedPlaylists.value.unshift(['liked', createLikedPlaylist()])
-			}
-
 			savedPlaylists.value = savedPlaylists.value
-				.filter(([id, playlist]) => {
-					if (id !== 'liked' && (id.startsWith('custom:') === false)) {
-						console.warn(`Invalid playlist ID: ${id}`)
-						return false
-					}
-					if (id !== playlist.id) {
-						console.warn(`Playlist ID mismatch: ${id} !== ${playlist.id}`)
+				.filter((playlist) => {
+					if (playlist.id.startsWith('custom:') === false) {
+						console.warn(`Invalid playlist ID: ${playlist.id}`)
 						return false
 					}
 					if (playlist.list == null || !Array.isArray(playlist.list)) {
-						console.warn(`Invalid playlist: ${id}`)
+						console.warn(`Invalid playlist: ${playlist.id}`)
 						return false
 					}
 
@@ -257,7 +223,7 @@ export const useMusicStore = defineStore('music', () => {
 	return {
 		getMusicData,
 		playlistList,
-		savedPlaylists: computed(() => savedPlaylists.value.filter(([, playlist]) => isCustomPlaylist(playlist.id)).map(([, playlist]) => playlist)),
+		savedPlaylists: computed(() => savedPlaylists.value.filter(playlist => isCustomPlaylist(playlist.id)).map(playlist => playlist)),
 		getPlaylist,
 		findMusicInPlaylistIndex,
 		isCustomPlaylist,

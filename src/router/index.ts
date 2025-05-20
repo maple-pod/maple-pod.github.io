@@ -1,4 +1,4 @@
-import type { PlaylistId } from '@/composables/useMusicStore'
+import type { PlaylistId } from '@/types'
 import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
 import { createRouter, createWebHistory } from 'vue-router'
 

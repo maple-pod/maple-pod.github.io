@@ -1,48 +1,41 @@
-export interface SavedPreferences {
-	volume: number
-	muted: boolean
-	random: boolean
-	repeated: 'off' | 'repeat' | 'repeat-1'
-}
-
 export function useAudioPlayer() {
-	const savedPreferences = useLocalStorage<SavedPreferences>('preferences', {
-		volume: 1,
-		muted: false,
-		random: false,
-		repeated: 'off',
-	})
+	const {
+		volume: savedVolume,
+		muted: savedMuted,
+		random: savedRandom,
+		repeated: savedRepeated,
+	} = useSavedUserData()
 
 	// ensure the saved preferences are valid
 	if (
-		savedPreferences.value.volume == null
-		|| typeof savedPreferences.value.volume !== 'number'
-		|| savedPreferences.value.volume < 0
-		|| savedPreferences.value.volume > 1
+		savedVolume.value == null
+		|| typeof savedVolume.value !== 'number'
+		|| savedVolume.value < 0
+		|| savedVolume.value > 1
 	) {
-		savedPreferences.value.volume = 1
+		savedVolume.value = 1
 	}
 	if (
-		savedPreferences.value.muted == null
-		|| typeof savedPreferences.value.muted !== 'boolean'
+		savedMuted.value == null
+		|| typeof savedMuted.value !== 'boolean'
 	) {
-		savedPreferences.value.muted = false
+		savedMuted.value = false
 	}
 	if (
-		savedPreferences.value.random == null
-		|| typeof savedPreferences.value.random !== 'boolean'
+		savedRandom.value == null
+		|| typeof savedRandom.value !== 'boolean'
 	) {
-		savedPreferences.value.random = false
+		savedRandom.value = false
 	}
 	if (
-		['off', 'repeat', 'repeat-1'].includes(savedPreferences.value.repeated) === false
+		['off', 'repeat', 'repeat-1'].includes(savedRepeated.value) === false
 	) {
-		savedPreferences.value.repeated = 'off'
+		savedRepeated.value = 'off'
 	}
 
 	const audioLogic = useAudio({
-		volume: savedPreferences.value.volume,
-		muted: savedPreferences.value.muted,
+		volume: savedVolume.value,
+		muted: savedMuted.value,
 	})
 
 	const audio = audioLogic.audio
@@ -59,7 +52,7 @@ export function useAudioPlayer() {
 		state: repeated,
 		next: nextRepeated,
 	} = useCycleList(['off', 'repeat', 'repeat-1'] as const, {
-		initialValue: savedPreferences.value.repeated,
+		initialValue: savedRepeated.value,
 	})
 	function toggleRepeated(mode?: 'off' | 'repeat' | 'repeat-1') {
 		if (mode == null)
@@ -80,7 +73,7 @@ export function useAudioPlayer() {
 	const load = useDebounceFn(audioLogic.load, 300)
 
 	const audioQueueLogic = useAudioQueue({
-		random: savedPreferences.value.random,
+		random: savedRandom.value,
 	})
 
 	const random = audioQueueLogic.random
@@ -138,10 +131,10 @@ export function useAudioPlayer() {
 	watch(
 		[muted, volume, random, repeated],
 		() => {
-			savedPreferences.value.muted = muted.value
-			savedPreferences.value.volume = volume.value
-			savedPreferences.value.random = random.value
-			savedPreferences.value.repeated = repeated.value
+			savedMuted.value = muted.value
+			savedVolume.value = volume.value
+			savedRandom.value = random.value
+			savedRepeated.value = repeated.value
 		},
 	)
 
