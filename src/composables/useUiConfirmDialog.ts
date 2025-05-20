@@ -32,6 +32,7 @@ export const useUiConfirmDialog = createSharedComposable(() => {
 							UiDialog,
 							{
 								defaultOpen: true,
+								contentClass: pika({ width: '500px' }),
 								onClose: () => resolve(false),
 							},
 							{
