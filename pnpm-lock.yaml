@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@deviltea/vue-router-middleware':
+        specifier: ^0.0.3
+        version: 0.0.3(vue-router@4.5.1(vue@3.5.13(typescript@5.8.3)))(vue@3.5.13(typescript@5.8.3))
       '@unhead/vue':
         specifier: ^2.0.8
         version: 2.0.8(vue@3.5.13(typescript@5.8.3))
@@ -330,6 +333,12 @@ packages:
     peerDependenciesMeta:
       '@types/node':
         optional: true
+
+  '@deviltea/vue-router-middleware@0.0.3':
+    resolution: {integrity: sha512-YYrVtIq1AOLKNdLKkz2RKi7iN0NB40ifG8v7UF5J6VmSAPztDMaOB/cngkTZ88t3fQXFrJhs7l//yJJ77LX27w==}
+    peerDependencies:
+      vue: '>=3.0.0'
+      vue-router: '>=4.0.0'
 
   '@distube/ytdl-core@4.16.10':
     resolution: {integrity: sha512-KFKZtNlynOO0PYxelUF5h2bKyAU1d8fe6aZmo+gxWt7H2MQbd0bUeyV4y9iWhI57nukjkSXXQGB625CfhrVdGQ==}
@@ -3486,6 +3495,11 @@ snapshots:
       typescript: 5.8.3
     optionalDependencies:
       '@types/node': 22.15.15
+
+  '@deviltea/vue-router-middleware@0.0.3(vue-router@4.5.1(vue@3.5.13(typescript@5.8.3)))(vue@3.5.13(typescript@5.8.3))':
+    dependencies:
+      vue: 3.5.13(typescript@5.8.3)
+      vue-router: 4.5.1(vue@3.5.13(typescript@5.8.3))
 
   '@distube/ytdl-core@4.16.10':
     dependencies:

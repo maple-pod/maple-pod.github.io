@@ -1,4 +1,5 @@
 import type { PlaylistId } from '@/composables/useMusicStore'
+import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
 import { createRouter, createWebHistory } from 'vue-router'
 
 export const Routes = {
@@ -7,6 +8,21 @@ export const Routes = {
 	Playlist: 'Playlist',
 } as const
 
+const middlewares = {
+	waitUntilReady: async () => {
+		const appStore = useAppStore()
+		await appStore.ready
+	},
+	validatePlaylistId: (to) => {
+		const playlistId = to.params.playlistId as PlaylistId
+		const musicStore = useMusicStore()
+		if (musicStore.getPlaylist(playlistId) == null) {
+			return { name: Routes.Playlists }
+		}
+		return true
+	},
+} satisfies Record<string, Middleware>
+
 const router = createRouter({
 	history: createWebHistory(import.meta.env.BASE_URL),
 	routes: [
@@ -14,6 +30,9 @@ const router = createRouter({
 			name: Routes.Root,
 			path: '/',
 			redirect: { name: Routes.Playlists },
+			meta: {
+				middleware: middlewares.waitUntilReady,
+			},
 			component: () => import('@/components/DefaultLayout.vue'),
 			children: [
 				{
@@ -24,6 +43,9 @@ const router = createRouter({
 				{
 					name: Routes.Playlist,
 					path: 'playlists/:playlistId',
+					meta: {
+						middleware: middlewares.validatePlaylistId,
+					},
 					component: () => import('@/views/Playlist.vue'),
 					props: (to) => {
 						let scrollToIndex: number | undefined = Number(to.query.scrollToIndex)
@@ -45,20 +67,6 @@ const router = createRouter({
 	],
 })
 
-router.beforeEach(async (to) => {
-	await useAppStore().ready
-
-	if (to.name === Routes.Playlist) {
-		const playlistId = to.params.playlistId as PlaylistId
-		const musicStore = useMusicStore()
-		if (musicStore.getPlaylist(playlistId) == null) {
-			return { name: Routes.Playlists }
-		}
-
-		return true
-	}
-
-	return true
-})
+router.beforeEach(handleMiddlewares)
 
 export default router
