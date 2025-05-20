@@ -47,15 +47,7 @@ const router = createRouter({
 						middleware: middlewares.validatePlaylistId,
 					},
 					component: () => import('@/views/Playlist.vue'),
-					props: (to) => {
-						let scrollToIndex: number | undefined = Number(to.query.scrollToIndex)
-						scrollToIndex = Number.isNaN(scrollToIndex) ? undefined : scrollToIndex
-
-						return {
-							playlistId: to.params.playlistId as PlaylistId,
-							scrollToIndex,
-						}
-					},
+					props: to => ({ playlistId: to.params.playlistId as PlaylistId }),
 				},
 			],
 		},

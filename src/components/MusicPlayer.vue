@@ -79,8 +79,8 @@ async function handleShowMusicInPlaylist() {
 	await router.push({
 		name: Routes.Playlist,
 		params: { playlistId: currentPlaylist.value.id },
-		query: { scrollToIndex },
 	})
+	useAppStore().scrollPlaylistToIndex?.(scrollToIndex)
 
 	isHandlingShowMusicInPlaylist.value = false
 }

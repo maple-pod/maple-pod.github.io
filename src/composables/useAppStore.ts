@@ -33,6 +33,8 @@ export const useAppStore = defineStore('app', () => {
 		},
 	)
 
+	const scrollPlaylistToIndex = shallowRef<((index: number) => void) | null>(null)
+
 	const isReady = ref(false)
 	const ready = Promise.all([
 		musicStore.ready,
@@ -43,6 +45,7 @@ export const useAppStore = defineStore('app', () => {
 	return {
 		isDark,
 		toggleDark,
+		scrollPlaylistToIndex,
 		ready,
 		isReady,
 	}

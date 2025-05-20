@@ -4,7 +4,6 @@ import { DefaultLayoutHeaderSlot } from '@/components/DefaultLayout.vue'
 
 const props = defineProps<{
 	playlistId: PlaylistId
-	scrollToIndex?: number
 }>()
 
 const musicStore = useMusicStore()
@@ -16,6 +15,8 @@ const title = computed(() => playlist.value.title)
 const list = toRef(() => playlist.value.list)
 const items = computed(() => list.value.map(getMusicData).filter(data => data != null))
 const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
+
+useAppStore().scrollPlaylistToIndex = (index: number) => uiVerticalListRef.value?.scrollToIndex(index)
 
 function handlePlayPlaylist() {
 	if (playlist.value.list.length === 0)
@@ -33,21 +34,6 @@ const router = useRouter()
 function goBackToPlaylists() {
 	return router.push({ name: Routes.Playlists })
 }
-
-whenever(
-	() => props.scrollToIndex != null && uiVerticalListRef.value != null,
-	async () => {
-		await nextTick()
-		uiVerticalListRef.value!.scrollToIndex(props.scrollToIndex!)
-		router.replace({
-			...router.currentRoute.value,
-			query: {
-				...router.currentRoute.value.query,
-				scrollToIndex: undefined,
-			},
-		})
-	},
-)
 </script>
 
 <template>
