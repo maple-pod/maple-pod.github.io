@@ -40,8 +40,6 @@ async function handleDeletePlaylist(playlistId: CustomPlaylistId) {
 		<template #trigger>
 			<button
 				:class="pika('icon-btn', {
-					'--size': '36px',
-
 					'@screen 769 to *': {
 						':not(:has([id^=reka-dropdown-menu-trigger-][data-state=open])):not(:hover) $': { visibility: 'hidden' },
 					},

@@ -165,13 +165,14 @@ export default defineEngineConfig({
 			[
 				'icon-btn',
 				{
+					'--size': '24px',
 					'display': 'flex',
 					'alignItems': 'center',
 					'justifyContent': 'center',
 					'flexShrink': 0,
 					'width': 'var(--size)',
 					'height': 'var(--size)',
-					'padding': '8px',
+					'padding': '4px',
 					'fontSize': 'var(--size)',
 					'color': 'var(--color-gray-3)',
 					'backgroundColor': 'transparent',
