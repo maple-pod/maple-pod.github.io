@@ -1,17 +1,5 @@
 <script setup lang="ts">
 import { Routes } from '@/router'
-import { Teleport } from 'vue'
-</script>
-
-<script lang="ts">
-export const DefaultLayoutHeaderSlot = defineComponent({
-	name: 'DefaultLayoutHeaderSlot',
-	setup: (_, { slots }) => () => h(
-		Teleport,
-		{ to: '#default-layout-header-slot', defer: true },
-		[slots.default?.()],
-	),
-})
 </script>
 
 <template>

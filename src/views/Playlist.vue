@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { PlaylistId } from '@/types'
-import { DefaultLayoutHeaderSlot } from '@/components/DefaultLayout.vue'
 
 const props = defineProps<{
 	playlistId: PlaylistId

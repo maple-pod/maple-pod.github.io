@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { DefaultLayoutHeaderSlot } from '@/components/DefaultLayout.vue'
-
 const musicStore = useMusicStore()
 const { playlistList, currentPlaylist } = storeToRefs(musicStore)
 
