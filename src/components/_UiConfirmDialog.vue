@@ -28,6 +28,7 @@ whenever(
 	<UiDialog
 		v-model:open="open"
 		:defaultOpen
+		:contentClass
 		@close="emit('close')"
 	>
 		<template #title>
