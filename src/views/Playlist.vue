@@ -211,7 +211,9 @@ function goBackToPlaylists() {
 								:data-liked="isMusicLiked(item.src)"
 								:class="pika('icon-btn', {
 									'--size': '36px',
-									'[data-music-src]:not(:hover) [data-liked=false]$': { visibility: 'hidden' },
+									'@screen 501 to *': {
+										'[data-music-src]:not(:hover) [data-liked=false]$': { visibility: 'hidden' },
+									},
 								})"
 								@click.stop="toggleMusicLike(item.src)"
 							>
