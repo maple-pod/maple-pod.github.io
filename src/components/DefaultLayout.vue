@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { Routes } from '@/router'
 import { Teleport } from 'vue'
-
-const appStore = useAppStore()
-const { toggleDark } = appStore
-// const { getPlaylist } = useMusicStore()
 </script>
 
 <script lang="ts">
@@ -87,17 +83,8 @@ export const DefaultLayoutHeaderSlot = defineComponent({
 							Maple Pod
 						</div>
 					</RouterLink>
-					<button
-						:class="pika('icon-btn', { '--size': '36px' })"
-						@click="toggleDark()"
-					>
-						<div
-							:class="pika({
-								'$': ['i-f7:sun-max'],
-								'@dark': ['i-f7:moon'],
-							})"
-						/>
-					</button>
+
+					<SettingsDropdownMenu />
 				</div>
 
 				<div
