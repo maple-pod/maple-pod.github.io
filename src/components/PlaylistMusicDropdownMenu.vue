@@ -15,7 +15,7 @@ defineProps<{
 }>()
 
 const musicStore = useMusicStore()
-const { savedPlaylists } = storeToRefs(musicStore)
+const { likedPlaylist, savedPlaylists } = storeToRefs(musicStore)
 const { toggleMusicInPlaylist, isAddedInPlaylist } = musicStore
 
 const CreatePlaylistDialogPromise = createTemplatePromise<void>()
@@ -55,8 +55,7 @@ const { handleShowMusicInPlaylist } = useAppStore()
 				:class="pika('hover-mask', {
 					'display': 'flex',
 					'alignItems': 'center',
-					'justifyContent': 'space-between',
-					'gap': '32px',
+					'gap': '8px',
 					'padding': '8px',
 					'cursor': 'pointer',
 
@@ -69,9 +68,10 @@ const { handleShowMusicInPlaylist } = useAppStore()
 					},
 				})"
 			>
-				<span :class="pika({ fontSize: '14px' })">Add to / Remove from Playlist</span>
+				<div :class="pika('i-f7:music-note-list')" />
+				<span :class="pika({ fontSize: '14px' })">Playlists</span>
 
-				<div :class="pika('i-f7:chevron-right')" />
+				<div :class="pika('i-f7:chevron-right', { marginLeft: 'auto' })" />
 			</DropdownMenuSubTrigger>
 			<DropdownMenuPortal>
 				<DropdownMenuSubContent
@@ -96,7 +96,7 @@ const { handleShowMusicInPlaylist } = useAppStore()
 						@click="CreatePlaylistDialogPromise.start()"
 					>
 						<div :class="pika('i-f7:plus')" />
-						<span :class="pika({ fontSize: '14px' })">Create Playlist</span>
+						<span :class="pika({ fontSize: '14px' })">New Playlist</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuSeparator
@@ -107,13 +107,12 @@ const { handleShowMusicInPlaylist } = useAppStore()
 					/>
 
 					<DropdownMenuItem
-						v-for="playlist in savedPlaylists"
+						v-for="playlist in [likedPlaylist, ...savedPlaylists]"
 						:key="playlist.id"
 						:class="pika('hover-mask', {
 							'display': 'flex',
 							'alignItems': 'center',
-							'justifyContent': 'space-between',
-							'gap': '32px',
+							'gap': '8px',
 							'padding': '8px',
 							'cursor': 'pointer',
 
@@ -124,11 +123,17 @@ const { handleShowMusicInPlaylist } = useAppStore()
 						@click="toggleMusicInPlaylist(playlist.id, musicSrc)"
 						@select.prevent
 					>
-						<span :class="pika({ fontSize: '14px' })">{{ playlist.title }}</span>
 						<div
-							v-if="isAddedInPlaylist(playlist.id, musicSrc)"
-							:class="pika('i-f7:checkmark', { color: 'var(--color-primary-1)' })"
+							:is-liked-playlist="playlist.id === 'liked'"
+							:data-added="isAddedInPlaylist(playlist.id, musicSrc)"
+							:class="pika({
+								'$[data-added=true]': ['i-f7:bookmark-fill'],
+								'$[data-added=false]': ['i-f7:bookmark'],
+								'$[is-liked-playlist=true][data-added=true]': ['i-f7:heart-fill'],
+								'$[is-liked-playlist=true][data-added=false]': ['i-f7:heart'],
+							})"
 						/>
+						<span :class="pika({ fontSize: '14px' })">{{ playlist.title }}</span>
 					</DropdownMenuItem>
 				</DropdownMenuSubContent>
 			</DropdownMenuPortal>

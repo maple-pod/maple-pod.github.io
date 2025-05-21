@@ -223,6 +223,7 @@ export const useMusicStore = defineStore('music', () => {
 	return {
 		getMusicData,
 		playlistList,
+		likedPlaylist,
 		savedPlaylists: computed(() => savedPlaylists.value.filter(playlist => isCustomPlaylist(playlist.id)).map(playlist => playlist)),
 		getPlaylist,
 		findMusicInPlaylistIndex,
