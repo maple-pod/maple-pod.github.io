@@ -26,3 +26,8 @@ export interface Playlist<Id extends PlaylistId = PlaylistId> {
 	title: string
 	list: string[]
 }
+
+export interface HashActionImportSavedUserData {
+	type: 'import-saved-user-data'
+	data: SavedUserData
+}

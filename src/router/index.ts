@@ -1,5 +1,7 @@
-import type { PlaylistId } from '@/types'
+import type { HashActionImportSavedUserData, PlaylistId } from '@/types'
+import { HashActionImportSavedUserDataSchema } from '@/schemas/HashActionImportSavedUserData'
 import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
+import { type ObjectSchema, safeParse } from 'valibot'
 import { createRouter, createWebHistory } from 'vue-router'
 
 export const Routes = {
@@ -12,6 +14,43 @@ const middlewares = {
 	waitUntilReady: async () => {
 		const appStore = useAppStore()
 		await appStore.ready
+	},
+	executeHashAction: async (to) => {
+		const data = urlHashToData(to.hash)
+		if (data == null)
+			return true
+
+		const actions: [schema: ObjectSchema<any, any>, handler: (data: any) => any][] = [
+			[
+				HashActionImportSavedUserDataSchema,
+				async ({ data }: HashActionImportSavedUserData) => {
+					const { confirm } = useUiConfirmDialog()
+
+					const agreed = await confirm({
+						title: 'Import Saved User Data',
+						description: 'Are you sure you want to import this saved user data?',
+					})
+
+					if (agreed) {
+						const { savedUserData } = useSavedUserData()
+						savedUserData.value = data
+					}
+				},
+			],
+		]
+
+		for (const [schema, handler] of actions) {
+			const result = safeParse(schema, data)
+			if (result.success) {
+				await handler(result.output)
+				return {
+					...to,
+					hash: '',
+				}
+			}
+		}
+
+		return true
 	},
 	validatePlaylistId: (to) => {
 		const playlistId = to.params.playlistId as PlaylistId
@@ -31,7 +70,10 @@ const router = createRouter({
 			path: '/',
 			redirect: { name: Routes.Playlists },
 			meta: {
-				middleware: middlewares.waitUntilReady,
+				middleware: [
+					middlewares.waitUntilReady,
+					middlewares.executeHashAction,
+				],
 			},
 			component: () => import('@/components/DefaultLayout.vue'),
 			children: [

@@ -4,21 +4,21 @@ export function mergeClasses(...classes: any[]) {
 	return mergeProps(...classes.map(cls => ({ class: cls }))).class as any
 }
 
-export function toHashData(data: any) {
+export function dataToUrlHash(data: any) {
 	const hash = btoa(encodeURIComponent(JSON.stringify(data)))
 	return `#${hash}`
 }
 
-export function fromHashData<T = any>(hash: string): [T, null] | [null, string] {
+export function urlHashToData<T = any>(hash: string): T | null {
 	if (hash.startsWith('#') === false) {
-		return [null, 'Invalid hash format']
+		return null
 	}
 	try {
 		const data = JSON.parse(decodeURIComponent(atob(hash.slice(1))))
-		return [data, null]
+		return data as T
 	}
 	catch {
-		return [null, 'Invalid hash data']
+		return null
 	}
 }
 

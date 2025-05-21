@@ -7,9 +7,10 @@ const appStore = useAppStore()
 const { toggleDark } = appStore
 
 const {
-	exportSavedUserData,
-	importSavedUserData,
+	exportSavedUserDataFile,
+	importSavedUserDataFile,
 	resetSavedUserData,
+	getImportSavedUserDataUrl,
 } = useSavedUserData()
 
 const { confirm } = useUiConfirmDialog()
@@ -34,10 +35,10 @@ importSavedDataFileDialog.onChange(async (files) => {
 	if (!agreed)
 		return
 
-	importSavedUserData(file)
+	importSavedUserDataFile(file)
 })
 
-function handleImportSavedData() {
+function handleImportSavedDataFile() {
 	importSavedDataFileDialog.open()
 }
 
@@ -51,6 +52,14 @@ async function handleResetSavedData() {
 		return
 
 	resetSavedUserData()
+}
+
+const { copy } = useClipboard({ legacy: true })
+const copiedImportSavedUserDataUrl = autoResetRef(false, 2000)
+function copyImportSavedUserDataUrl() {
+	const url = getImportSavedUserDataUrl()
+	copy(url)
+	copiedImportSavedUserDataUrl.value = true
 }
 </script>
 
@@ -103,12 +112,12 @@ async function handleResetSavedData() {
 					borderRadius: '4px',
 				},
 			})"
-			@select="exportSavedUserData()"
+			@select="exportSavedUserDataFile()"
 		>
 			<div
 				:class="pika('i-f7:arrow-down-doc', { fontSize: '20px' })"
 			/>
-			<span :class="pika({ fontSize: '14px' })">Export Saved Data</span>
+			<span :class="pika({ fontSize: '14px' })">Export Saved Data File</span>
 		</DropdownMenuItem>
 
 		<DropdownMenuItem
@@ -122,12 +131,36 @@ async function handleResetSavedData() {
 					borderRadius: '4px',
 				},
 			})"
-			@select="handleImportSavedData()"
+			@select="handleImportSavedDataFile()"
 		>
 			<div
 				:class="pika('i-f7:arrow-up-doc', { fontSize: '20px' })"
 			/>
-			<span :class="pika({ fontSize: '14px' })">Import Saved Data</span>
+			<span :class="pika({ fontSize: '14px' })">Import Saved Data File</span>
+		</DropdownMenuItem>
+
+		<DropdownMenuItem
+			:class="pika('hover-mask', {
+				'display': 'flex',
+				'alignItems': 'center',
+				'gap': '8px',
+				'padding': '8px',
+				'cursor': 'pointer',
+				'$::before': {
+					borderRadius: '4px',
+				},
+			})"
+			@select="copyImportSavedUserDataUrl()"
+		>
+			<div
+				:data-copied="copiedImportSavedUserDataUrl"
+				:class="pika({
+					'fontSize': '20px',
+					'$': ['i-f7:link'],
+					'$[data-copied=true]': ['i-f7:checkmark', { color: 'var(--color-primary-1)' }],
+				})"
+			/>
+			<span :class="pika({ fontSize: '14px' })">Copy Import Saved Data Url</span>
 		</DropdownMenuItem>
 
 		<DropdownMenuItem
