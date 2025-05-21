@@ -1,5 +1,5 @@
 import type { HashActionImportSavedUserData, PlaylistId } from '@/types'
-import { HashActionImportSavedUserDataSchema } from '@/schemas/HashActionImportSavedUserData'
+import { HashActionImportSavedUserDataSchema } from '@/schemas'
 import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
 import { type ObjectSchema, safeParse } from 'valibot'
 import { createRouter, createWebHistory } from 'vue-router'
