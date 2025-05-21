@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { PlaylistId } from '@/types'
 import {
 	DropdownMenuItem,
 	DropdownMenuPortal,
@@ -9,6 +10,7 @@ import {
 } from 'reka-ui'
 
 defineProps<{
+	playlistId: PlaylistId
 	musicSrc: string
 }>()
 
@@ -17,6 +19,8 @@ const { savedPlaylists } = storeToRefs(musicStore)
 const { toggleMusicInPlaylist, isAddedInPlaylist } = musicStore
 
 const CreatePlaylistDialogPromise = createTemplatePromise<void>()
+
+const { handleShowMusicInPlaylist } = useAppStore()
 </script>
 
 <template>
@@ -129,5 +133,23 @@ const CreatePlaylistDialogPromise = createTemplatePromise<void>()
 				</DropdownMenuSubContent>
 			</DropdownMenuPortal>
 		</DropdownMenuSub>
+
+		<DropdownMenuItem
+			v-if="playlistId !== 'all'"
+			:class="pika('hover-mask', {
+				'display': 'flex',
+				'alignItems': 'center',
+				'gap': '8px',
+				'padding': '8px',
+				'cursor': 'pointer',
+
+				'$::before': {
+					borderRadius: '4px',
+				},
+			})"
+			@select="handleShowMusicInPlaylist(musicSrc, 'all')"
+		>
+			Show in Playlist "All"
+		</DropdownMenuItem>
 	</UiDropdownMenu>
 </template>

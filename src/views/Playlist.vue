@@ -226,6 +226,7 @@ function goBackToPlaylists() {
 						</div>
 
 						<PlaylistMusicDropdownMenu
+							:playlistId
 							:musicSrc="item.src"
 						/>
 					</div>

@@ -1,3 +1,4 @@
+import type { PlaylistId } from '@/types'
 import { useHead } from '@unhead/vue'
 
 export const useAppStore = defineStore('app', () => {
@@ -37,6 +38,42 @@ export const useAppStore = defineStore('app', () => {
 	)
 
 	const scrollPlaylistToIndex = shallowRef<((index: number) => void) | null>(null)
+	const isHandlingShowMusicInPlaylist = ref(false)
+	const router = useRouter()
+	async function handleShowMusicInPlaylist(musicSrc?: string, playlistId?: PlaylistId) {
+		const theMusicSrc = musicSrc || musicStore.currentMusic?.src
+		const thePlaylistId = playlistId || musicStore.currentPlaylist?.id
+
+		if (
+			isHandlingShowMusicInPlaylist.value
+			|| thePlaylistId == null
+			|| theMusicSrc == null
+		) {
+			isHandlingShowMusicInPlaylist.value = false
+			return
+		}
+
+		const thePlaylist = musicStore.getPlaylist(thePlaylistId)
+		if (thePlaylist == null) {
+			isHandlingShowMusicInPlaylist.value = false
+			return
+		}
+
+		isHandlingShowMusicInPlaylist.value = true
+		const scrollToIndex = thePlaylist.list.indexOf(theMusicSrc)
+		if (scrollToIndex === -1) {
+			isHandlingShowMusicInPlaylist.value = false
+			return
+		}
+
+		await router.push({
+			name: Routes.Playlist,
+			params: { playlistId: thePlaylistId },
+		})
+		scrollPlaylistToIndex.value?.(scrollToIndex)
+
+		isHandlingShowMusicInPlaylist.value = false
+	}
 
 	const isReady = ref(false)
 	const ready = Promise.all([
@@ -49,6 +86,7 @@ export const useAppStore = defineStore('app', () => {
 		isDark,
 		toggleDark,
 		scrollPlaylistToIndex,
+		handleShowMusicInPlaylist,
 		ready,
 		isReady,
 	}

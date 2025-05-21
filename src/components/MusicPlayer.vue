@@ -3,7 +3,6 @@ import { useDocumentPictureInPicture } from '@/composables/useDocumentPictureInP
 
 const musicStore = useMusicStore()
 const {
-	currentPlaylist,
 	currentMusic,
 	canPlay,
 	duration,
@@ -58,32 +57,7 @@ const {
 	stop: stopPip,
 } = useDocumentPictureInPicture()
 
-const isHandlingShowMusicInPlaylist = ref(false)
-const router = useRouter()
-async function handleShowMusicInPlaylist() {
-	if (
-		isHandlingShowMusicInPlaylist.value
-		|| currentPlaylist.value == null
-		|| currentMusic.value == null
-	) {
-		return
-	}
-
-	isHandlingShowMusicInPlaylist.value = true
-	const scrollToIndex = currentPlaylist.value.list.indexOf(currentMusic.value.src)
-	if (scrollToIndex === -1) {
-		isHandlingShowMusicInPlaylist.value = false
-		return
-	}
-
-	await router.push({
-		name: Routes.Playlist,
-		params: { playlistId: currentPlaylist.value.id },
-	})
-	useAppStore().scrollPlaylistToIndex?.(scrollToIndex)
-
-	isHandlingShowMusicInPlaylist.value = false
-}
+const { handleShowMusicInPlaylist } = useAppStore()
 </script>
 
 <template>
