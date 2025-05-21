@@ -1,4 +1,4 @@
-import UiDialog from '@/components/UiDialog.vue'
+import _UiConfirmDialog from '@/components/_UiConfirmDialog.vue'
 
 interface ConfirmDialogOptions {
 	title: string
@@ -29,29 +29,13 @@ export const useUiConfirmDialog = createSharedComposable(() => {
 						args: [ConfirmDialogOptions]
 					}) => {
 						return h(
-							UiDialog,
+							_UiConfirmDialog,
 							{
 								defaultOpen: true,
 								contentClass: pika({ width: '500px' }),
+								...args[0],
+								onConfirm: bool => resolve(bool),
 								onClose: () => resolve(false),
-							},
-							{
-								title: () => args[0].title,
-								description: () => args[0].description,
-								actions: () => h(
-									'div',
-									{
-										class: pika({
-											display: 'flex',
-											justifyContent: 'end',
-											gap: '16px',
-										}),
-									},
-									[
-										h('button', { class: pika('primary-plain-btn'), onClick: () => resolve(false) }, args[0].cancelText || 'No'),
-										h('button', { class: pika('primary-btn'), onClick: () => resolve(true) }, args[0].confirmText || 'Yes'),
-									],
-								),
 							},
 						)
 					},
