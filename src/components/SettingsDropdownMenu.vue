@@ -1,17 +1,31 @@
 <script setup lang="ts">
+import type { HashActionImportSavedUserData, SavedUserData } from '@/types'
+import { SavedUserDataSchema } from '@/schemas'
 import {
 	DropdownMenuItem,
+	DropdownMenuPortal,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 } from 'reka-ui'
+import { safeParse } from 'valibot'
 
 const appStore = useAppStore()
 const { toggleDark } = appStore
 
 const {
-	exportSavedUserDataFile,
-	importSavedUserDataFile,
-	resetSavedUserData,
-	getImportSavedUserDataUrl,
+	savedUserData,
 } = useSavedUserData()
+
+function resetSavedUserData() {
+	savedUserData.value = undefined
+	window.location.reload()
+}
+
+function handleDownloadSavedDataFile() {
+	const timeStr = new Date().toISOString()
+	exportToJSONFile(savedUserData.value, `maple-pod.${timeStr}.json`)
+}
 
 const { confirm } = useUiConfirmDialog()
 
@@ -35,10 +49,20 @@ importSavedDataFileDialog.onChange(async (files) => {
 	if (!agreed)
 		return
 
-	importSavedUserDataFile(file)
+	const text = await file.text()
+	const data = JSON.parse(text)
+	const result = safeParse(SavedUserDataSchema, data)
+
+	if (result.success === false) {
+		console.error('Failed to parse saved user data:', result.issues)
+		return
+	}
+
+	savedUserData.value = result.output as SavedUserData
+	window.location.reload()
 })
 
-function handleImportSavedDataFile() {
+function handleUploadSavedDataFile() {
 	importSavedDataFileDialog.open()
 }
 
@@ -56,9 +80,17 @@ async function handleResetSavedData() {
 
 const { copy } = useClipboard({ legacy: true })
 const copiedImportSavedUserDataUrl = autoResetRef(false, 2000)
-function copyImportSavedUserDataUrl() {
-	const url = getImportSavedUserDataUrl()
-	copy(url)
+const router = useRouter()
+function handleCopySavedDataLink() {
+	const data: HashActionImportSavedUserData = {
+		type: 'import-saved-user-data',
+		data: savedUserData.value,
+	}
+	const url = router.resolve({
+		name: Routes.Root,
+		hash: dataToUrlHash(data),
+	})
+	copy(`${window.location.origin}${url.href}`)
 	copiedImportSavedUserDataUrl.value = true
 }
 </script>
@@ -101,67 +133,104 @@ function copyImportSavedUserDataUrl() {
 			<span :class="pika({ fontSize: '14px' })">Theme</span>
 		</DropdownMenuItem>
 
-		<DropdownMenuItem
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@select="exportSavedUserDataFile()"
-		>
-			<div
-				:class="pika('i-f7:arrow-down-doc', { fontSize: '20px' })"
-			/>
-			<span :class="pika({ fontSize: '14px' })">Export Saved Data File</span>
-		</DropdownMenuItem>
+		<DropdownMenuSub>
+			<DropdownMenuSubTrigger
+				:class="pika('hover-mask', {
+					'display': 'flex',
+					'alignItems': 'center',
+					'gap': '8px',
+					'padding': '8px',
+					'cursor': 'pointer',
 
-		<DropdownMenuItem
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@select="handleImportSavedDataFile()"
-		>
-			<div
-				:class="pika('i-f7:arrow-up-doc', { fontSize: '20px' })"
-			/>
-			<span :class="pika({ fontSize: '14px' })">Import Saved Data File</span>
-		</DropdownMenuItem>
+					'$::before': {
+						borderRadius: '4px',
+					},
 
-		<DropdownMenuItem
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@select="copyImportSavedUserDataUrl()"
-		>
-			<div
-				:data-copied="copiedImportSavedUserDataUrl"
-				:class="pika({
-					'fontSize': '20px',
-					'$': ['i-f7:link'],
-					'$[data-copied=true]': ['i-f7:checkmark', { color: 'var(--color-primary-1)' }],
+					'$[id^=reka-menu-sub-trigger][data-state=open]::before': {
+						opacity: '0.1',
+					},
 				})"
-			/>
-			<span :class="pika({ fontSize: '14px' })">Copy Import Saved Data Url</span>
-		</DropdownMenuItem>
+			>
+				<div
+					:class="pika('i-f7:archivebox', { fontSize: '20px' })"
+				/>
+				<span :class="pika({ fontSize: '14px' })">Saved Data</span>
+
+				<div :class="pika('i-f7:chevron-right', { marginLeft: 'auto' })" />
+			</DropdownMenuSubTrigger>
+			<DropdownMenuPortal>
+				<DropdownMenuSubContent
+					:class="pika('theme', 'card', {
+						padding: '8px',
+						minWidth: '200px',
+						borderRadius: '4px',
+						zIndex: 2,
+					})"
+				>
+					<DropdownMenuItem
+						:class="pika('hover-mask', {
+							'display': 'flex',
+							'alignItems': 'center',
+							'gap': '8px',
+							'padding': '8px',
+							'cursor': 'pointer',
+							'$::before': {
+								borderRadius: '4px',
+							},
+						})"
+						@select="handleUploadSavedDataFile()"
+					>
+						<div
+							:class="pika('i-f7:arrow-up-doc', { fontSize: '20px' })"
+						/>
+						<span :class="pika({ fontSize: '14px' })">Upload</span>
+					</DropdownMenuItem>
+
+					<DropdownMenuItem
+						:class="pika('hover-mask', {
+							'display': 'flex',
+							'alignItems': 'center',
+							'gap': '8px',
+							'padding': '8px',
+							'cursor': 'pointer',
+							'$::before': {
+								borderRadius: '4px',
+							},
+						})"
+						@select="handleDownloadSavedDataFile()"
+					>
+						<div
+							:class="pika('i-f7:arrow-down-doc', { fontSize: '20px' })"
+						/>
+						<span :class="pika({ fontSize: '14px' })">Download</span>
+					</DropdownMenuItem>
+
+					<DropdownMenuItem
+						:class="pika('hover-mask', {
+							'display': 'flex',
+							'alignItems': 'center',
+							'gap': '8px',
+							'padding': '8px',
+							'cursor': 'pointer',
+							'$::before': {
+								borderRadius: '4px',
+							},
+						})"
+						@select="handleCopySavedDataLink()"
+					>
+						<div
+							:data-copied="copiedImportSavedUserDataUrl"
+							:class="pika({
+								'fontSize': '20px',
+								'$': ['i-f7:link'],
+								'$[data-copied=true]': ['i-f7:checkmark', { color: 'var(--color-primary-1)' }],
+							})"
+						/>
+						<span :class="pika({ fontSize: '14px' })">Copy Link</span>
+					</DropdownMenuItem>
+				</DropdownMenuSubContent>
+			</DropdownMenuPortal>
+		</DropdownMenuSub>
 
 		<DropdownMenuItem
 			:class="pika('hover-mask', {

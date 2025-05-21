@@ -32,7 +32,7 @@ function createInitialSavedUserData(): SavedUserData {
 }
 
 export const useSavedUserData = createSharedComposable(() => {
-	const savedUserData = useLocalStorage<SavedUserData>('maple-pod', createInitialSavedUserData())
+	const savedUserData = useLocalStorage<SavedUserData>('maple-pod', createInitialSavedUserData)
 
 	const theme = toSavedPreferenceRef(savedUserData, 'theme')
 	const volume = toSavedPreferenceRef(savedUserData, 'volume')
@@ -48,43 +48,6 @@ export const useSavedUserData = createSharedComposable(() => {
 		set: value => savedUserData.value.playlists = value,
 	})
 
-	function resetSavedUserData() {
-		savedUserData.value = createInitialSavedUserData()
-		window.location.reload()
-	}
-
-	function exportSavedUserDataFile() {
-		const timeStr = new Date().toISOString()
-		exportToJSONFile(savedUserData.value, `maple-pod.${timeStr}.json`)
-	}
-
-	async function importSavedUserDataFile(file: File) {
-		const text = await file.text()
-		const data = JSON.parse(text)
-		const result = safeParse(SavedUserDataSchema, data)
-
-		if (result.success === false) {
-			console.error('Failed to parse saved user data:', result.issues)
-			return
-		}
-
-		savedUserData.value = result.output as SavedUserData
-		window.location.reload()
-	}
-
-	const router = useRouter()
-	function getImportSavedUserDataUrl() {
-		const data: HashActionImportSavedUserData = {
-			type: 'import-saved-user-data',
-			data: savedUserData.value,
-		}
-		const url = router.resolve({
-			name: Routes.Root,
-			hash: dataToUrlHash(data),
-		})
-		return `${window.location.origin}${url.href}`
-	}
-
 	return {
 		savedUserData,
 		theme,
@@ -94,9 +57,5 @@ export const useSavedUserData = createSharedComposable(() => {
 		repeated,
 		likedPlaylist,
 		savedPlaylists,
-		resetSavedUserData,
-		exportSavedUserDataFile,
-		importSavedUserDataFile,
-		getImportSavedUserDataUrl,
 	}
 })
