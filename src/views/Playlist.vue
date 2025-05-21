@@ -54,12 +54,20 @@ function goBackToPlaylists() {
 					fontWeight: '100',
 				})"
 			>
-				<button
-					:class="pika('icon-btn', { '--size': '36px' })"
-					@click="goBackToPlaylists()"
-				>
-					<div :class="pika('i-f7:chevron-left')" />
-				</button>
+				<UiTooltip>
+					<template #trigger>
+						<button
+							:class="pika('icon-btn', { '--size': '36px' })"
+							@click="goBackToPlaylists()"
+						>
+							<div :class="pika('i-f7:chevron-left')" />
+						</button>
+					</template>
+
+					<template #content>
+						Back to playlists
+					</template>
+				</UiTooltip>
 				<div
 					:class="pika({
 						fontSize: '24px',
@@ -69,39 +77,55 @@ function goBackToPlaylists() {
 				>
 					{{ title }}
 				</div>
-				<button
-					:data-state="random"
-					:data-toggle="random"
-					:class="pika('icon-btn-toggle', {
-						'--size': '32px',
-						'@screen * to 500': {
-							'--size': '28px',
-						},
-					})"
-					@click="toggleRandom()"
-				>
-					<div
-						:class="pika('i-f7:shuffle')"
-					/>
-				</button>
-				<button
-					:class="pika('circle-icon-btn', {
-						'--size': '36px',
-						'@screen * to 500': {
-							'--size': '32px',
-						},
-					})"
-					:disabled="playlist.list.length === 0"
-					@click="handlePlayPlaylist()"
-				>
-					<div
-						:data-is-paused="isPaused || playlist.id !== currentPlaylist?.id"
-						:class="pika({
-							'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
-							'$[data-is-paused=false]': ['i-f7:pause-fill'],
-						})"
-					/>
-				</button>
+				<UiTooltip>
+					<template #trigger>
+						<button
+							:data-state="random"
+							:data-toggle="random"
+							:class="pika('icon-btn-toggle', {
+								'--size': '32px',
+								'@screen * to 500': {
+									'--size': '28px',
+								},
+							})"
+							@click="toggleRandom()"
+						>
+							<div
+								:class="pika('i-f7:shuffle')"
+							/>
+						</button>
+					</template>
+
+					<template #content>
+						{{ random === true ? 'Disable Random' : 'Enable Random' }}
+					</template>
+				</UiTooltip>
+				<UiTooltip>
+					<template #trigger>
+						<button
+							:class="pika('circle-icon-btn', {
+								'--size': '36px',
+								'@screen * to 500': {
+									'--size': '32px',
+								},
+							})"
+							:disabled="playlist.list.length === 0"
+							@click="handlePlayPlaylist()"
+						>
+							<div
+								:data-is-paused="isPaused || playlist.id !== currentPlaylist?.id"
+								:class="pika({
+									'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
+									'$[data-is-paused=false]': ['i-f7:pause-fill'],
+								})"
+							/>
+						</button>
+					</template>
+
+					<template #content>
+						{{ isPaused === true ? 'Play' : 'Pause' }}
+					</template>
+				</UiTooltip>
 			</div>
 		</DefaultLayoutHeaderSlot>
 

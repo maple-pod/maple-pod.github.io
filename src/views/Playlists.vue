@@ -42,13 +42,21 @@ function goToPlaylist(playlistId: string) {
 
 				<CreatePlaylistDialog>
 					<template #trigger>
-						<button
-							:class="pika('icon-btn', {
-								'--size': '36px',
-							})"
-						>
-							<div :class="pika('i-f7:text-badge-plus')" />
-						</button>
+						<UiTooltip>
+							<template #trigger>
+								<button
+									:class="pika('icon-btn', {
+										'--size': '36px',
+									})"
+								>
+									<div :class="pika('i-f7:text-badge-plus')" />
+								</button>
+							</template>
+
+							<template #content>
+								Create new playlist
+							</template>
+						</UiTooltip>
 					</template>
 				</CreatePlaylistDialog>
 			</div>

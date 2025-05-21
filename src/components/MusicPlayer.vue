@@ -131,91 +131,126 @@ function handleCopyMusicLink() {
 						},
 					})"
 				>
-					<button
-						:data-state="random"
-						:data-toggle="random"
-						:class="pika('icon-btn-toggle', {
-							'--size': '32px',
+					<UiTooltip>
+						<template #trigger>
+							<button
+								:data-state="random"
+								:data-toggle="random"
+								:class="pika('icon-btn-toggle', {
+									'--size': '32px',
+									'@screen * to 500': {
+										'--size': '28px',
+									},
+								})"
+								@click="toggleRandom()"
+							>
+								<div
+									:class="pika('i-f7:shuffle')"
+								/>
+							</button>
+						</template>
 
-							'@screen * to 500': {
-								'--size': '28px',
-							},
-						})"
-						@click="toggleRandom()"
-					>
-						<div
-							:class="pika('i-f7:shuffle')"
-						/>
-					</button>
-					<button
-						:class="pika('icon-btn', {
-							'--size': '32px',
+						<template #content>
+							{{ random === true ? 'Disable Random' : 'Enable Random' }}
+						</template>
+					</UiTooltip>
+					<UiTooltip>
+						<template #trigger>
+							<button
+								:class="pika('icon-btn', {
+									'--size': '32px',
+									'@screen * to 500': {
+										'--size': '28px',
+									},
+								})"
+								:disabled="currentMusic == null"
+								@click="goPrevious()"
+							>
+								<div
+									:class="pika('i-f7:backward-end-fill')"
+								/>
+							</button>
+						</template>
 
-							'@screen * to 500': {
-								'--size': '28px',
-							},
-						})"
-						:disabled="currentMusic == null"
-						@click="goPrevious()"
-					>
-						<div
-							:class="pika('i-f7:backward-end-fill')"
-						/>
-					</button>
-					<button
-						:class="pika('circle-icon-btn', {
-							'--size': '48px',
+						<template #content>
+							Previous
+						</template>
+					</UiTooltip>
+					<UiTooltip>
+						<template #trigger>
+							<button
+								:class="pika('circle-icon-btn', {
+									'--size': '48px',
+									'@screen * to 500': {
+										'--size': '32px',
+									},
+								})"
+								:disabled="currentMusic == null"
+								@click="togglePlay()"
+							>
+								<div
+									:data-is-paused="isPaused"
+									:class="pika({
+										'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
+										'$[data-is-paused=false]': ['i-f7:pause-fill'],
+									})"
+								/>
+							</button>
+						</template>
 
-							'@screen * to 500': {
-								'--size': '32px',
-							},
-						})"
-						:disabled="currentMusic == null"
-						@click="togglePlay()"
-					>
-						<div
-							:data-is-paused="isPaused"
-							:class="pika({
-								'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
-								'$[data-is-paused=false]': ['i-f7:pause-fill'],
-							})"
-						/>
-					</button>
-					<button
-						:class="pika('icon-btn', {
-							'--size': '32px',
+						<template #content>
+							{{ isPaused === true ? 'Play' : 'Pause' }}
+						</template>
+					</UiTooltip>
+					<UiTooltip>
+						<template #trigger>
+							<button
+								:class="pika('icon-btn', {
+									'--size': '32px',
+									'@screen * to 500': {
+										'--size': '28px',
+									},
+								})"
+								:disabled="currentMusic == null"
+								@click="goNext()"
+							>
+								<div
+									:class="pika('i-f7:forward-end-fill')"
+								/>
+							</button>
+						</template>
 
-							'@screen * to 500': {
-								'--size': '28px',
-							},
-						})"
-						:disabled="currentMusic == null"
-						@click="goNext()"
-					>
-						<div
-							:class="pika('i-f7:forward-end-fill')"
-						/>
-					</button>
-					<button
-						:data-state="repeated"
-						:data-toggle="repeated !== 'off'"
-						:class="pika('icon-btn-toggle', {
-							'--size': '32px',
+						<template #content>
+							Next
+						</template>
+					</UiTooltip>
+					<UiTooltip>
+						<template #trigger>
+							<button
+								:data-state="repeated"
+								:data-toggle="repeated !== 'off'"
+								:class="pika('icon-btn-toggle', {
+									'--size': '32px',
+									'@screen * to 500': {
+										'--size': '28px',
+									},
+								})"
+								@click="toggleRepeated()"
+							>
+								<div
+									:class="pika({
+										'[data-state=repeat] > $': ['i-f7:repeat'],
+										'[data-state=repeat-1] > $': ['i-f7:repeat-1'],
+										'[data-state=off] > $': ['i-f7:repeat'],
+									})"
+								/>
+							</button>
+						</template>
 
-							'@screen * to 500': {
-								'--size': '28px',
-							},
-						})"
-						@click="toggleRepeated()"
-					>
-						<div
-							:class="pika({
-								'[data-state=repeat] > $': ['i-f7:repeat'],
-								'[data-state=repeat-1] > $': ['i-f7:repeat-1'],
-								'[data-state=off] > $': ['i-f7:repeat'],
-							})"
-						/>
-					</button>
+						<template #content>
+							{{ repeated === 'off' ? 'Enable Repeat All' : repeated === 'repeat' ? 'Enable Repeat One' : 'Disable Repeat' }}
+						</template>
+					</UiTooltip>
 				</div>
 			</DefineControlButtons>
 			<DefinePlayingProgress>
@@ -426,34 +461,50 @@ function handleCopyMusicLink() {
 								</div>
 							</div>
 							<div :class="pika({ display: 'flex', alignItems: 'center', gap: '0px', flexShrink: '0' })">
-								<button
-									:class="pika('icon-btn', {
-										'--size': '36px',
-										'[data-music-loaded=false] $': { visibility: 'hidden' },
-									})"
-									@click="handleShowMusicInPlaylist()"
-								>
-									<div
-										:class="pika('i-f7:compass')"
-									/>
-								</button>
-								<button
-									v-if="isSupported"
-									:class="pika('icon-btn', {
-										'--size': '36px',
-										'@docpip': {
-											display: 'none',
-										},
-									})"
-									@click="startPip({
-										width: 480,
-										height: 180,
-									})"
-								>
-									<div
-										:class="pika('i-f7:rectangle-on-rectangle')"
-									/>
-								</button>
+								<UiTooltip>
+									<template #trigger>
+										<button
+											:class="pika('icon-btn', {
+												'--size': '36px',
+												'[data-music-loaded=false] $': { visibility: 'hidden' },
+											})"
+											@click="handleShowMusicInPlaylist()"
+										>
+											<div
+												:class="pika('i-f7:compass')"
+											/>
+										</button>
+									</template>
+
+									<template #content>
+										Show in Playlist
+									</template>
+								</UiTooltip>
+								<UiTooltip>
+									<template #trigger>
+										<button
+											v-if="isSupported"
+											:class="pika('icon-btn', {
+												'--size': '36px',
+												'@docpip': {
+													display: 'none',
+												},
+											})"
+											@click="startPip({
+												width: 480,
+												height: 180,
+											})"
+										>
+											<div
+												:class="pika('i-f7:rectangle-on-rectangle')"
+											/>
+										</button>
+									</template>
+
+									<template #content>
+										Open in Picture-in-Picture
+									</template>
+								</UiTooltip>
 							</div>
 						</div>
 						<!-- Cover & Controls -->

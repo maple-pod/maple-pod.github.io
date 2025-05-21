@@ -13,12 +13,14 @@ import { TooltipArrow, TooltipContent, TooltipPortal, TooltipProvider, TooltipRo
 			<TooltipPortal>
 				<TooltipContent
 					:class="pika('theme', 'card', {
+						padding: '8px 16px',
 						fontSize: '14px',
-						borderRadius: '4px',
 						zIndex: 2,
 					})"
 				>
-					<slot name="content" />
+					<span :class="pika({ opacity: 0.7 })">
+						<slot name="content" />
+					</span>
 					<TooltipArrow
 						:class="pika({
 							'fill': 'var(--color-gray-1)',
