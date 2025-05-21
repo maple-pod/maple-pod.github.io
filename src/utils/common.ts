@@ -34,3 +34,8 @@ export function exportToJSONFile(data: any, filename: string) {
 	document.body.removeChild(a)
 	URL.revokeObjectURL(url)
 }
+
+export function makeHashActionLink(data: any) {
+	const hash = dataToUrlHash(data)
+	return `${window.location.origin}${import.meta.env.BASE_URL}${hash}`
+}

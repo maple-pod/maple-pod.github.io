@@ -1,5 +1,5 @@
 import type { HashActionImportSavedUserData, PlaylistId } from '@/types'
-import { HashActionImportSavedUserDataSchema } from '@/schemas'
+import { HashActionImportSavedUserDataSchema, HashActionPlayMusicSchema } from '@/schemas'
 import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
 import { type ObjectSchema, safeParse } from 'valibot'
 import { createRouter, createWebHistory } from 'vue-router'
@@ -34,6 +34,24 @@ const middlewares = {
 					if (agreed) {
 						const { savedUserData } = useSavedUserData()
 						savedUserData.value = data
+					}
+				},
+			],
+			[
+				HashActionPlayMusicSchema,
+				async ({ data }) => {
+					const { confirm } = useUiConfirmDialog()
+					const musicStore = useMusicStore()
+					const musicData = musicStore.getMusicData(data.musicSrc)!
+
+					const agreed = await confirm({
+						title: 'Play Music From Link',
+						description: `Are you sure you want to play "${musicData.title}" from link?`,
+					})
+
+					if (agreed) {
+						const musicStore = useMusicStore()
+						musicStore.play('all', data.musicSrc)
 					}
 				},
 			],

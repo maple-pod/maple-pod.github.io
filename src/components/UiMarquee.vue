@@ -34,6 +34,7 @@ whenever(
 			display: 'inline-block',
 			overflow: 'hidden',
 			whiteSpace: 'nowrap',
+			textOverflow: 'ellipsis',
 		})"
 		v-bind="$attrs"
 	>

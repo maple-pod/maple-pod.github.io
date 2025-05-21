@@ -58,6 +58,18 @@ const {
 } = useDocumentPictureInPicture()
 
 const { handleShowMusicInPlaylist } = useAppStore()
+
+const { copy } = useClipboard({ legacy: true })
+function handleCopyMusicLink() {
+	if (currentMusic.value) {
+		copy(makeHashActionLink({
+			type: 'play-music',
+			data: {
+				musicSrc: currentMusic.value.src,
+			},
+		}))
+	}
+}
 </script>
 
 <template>
@@ -380,24 +392,37 @@ const { handleShowMusicInPlaylist } = useAppStore()
 										minWidth: '0',
 										display: 'flex',
 										alignItems: 'center',
-										gap: '4px',
 										fontSize: '24px',
 										fontWeight: '200',
-										whiteSpace: 'nowrap',
-										textOverflow: 'ellipsis',
-										overflow: 'hidden',
 									})"
-									:title="currentMusic?.title"
 								>
-									<UiMarquee :class="pika({ '[data-music-loaded=true] $': { display: 'none' } })">
+									<UiMarquee
+										v-if="currentMusic == null"
+										:class="pika({ '[data-music-loaded=true] $': { display: 'none' } })"
+									>
 										Music Player
 									</UiMarquee>
-									<UiMarquee
+									<UiTooltip
+										v-else
 										:key="currentMusic?.title"
-										:class="pika({ '[data-music-loaded=false] $': { display: 'none' } })"
 									>
-										{{ currentMusic?.title }}
-									</UiMarquee>
+										<template #trigger>
+											<UiMarquee
+												:class="pika({
+													'cursor': 'pointer',
+													'[data-music-loaded=false] $': { display: 'none' },
+												})"
+												:title="currentMusic?.title"
+												role="button"
+												@click="handleCopyMusicLink()"
+											>
+												{{ currentMusic?.title }}
+											</UiMarquee>
+										</template>
+										<template #content>
+											Copy Music Link
+										</template>
+									</UiTooltip>
 								</div>
 							</div>
 							<div :class="pika({ display: 'flex', alignItems: 'center', gap: '0px', flexShrink: '0' })">
