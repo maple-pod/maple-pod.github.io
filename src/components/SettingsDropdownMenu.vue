@@ -80,17 +80,12 @@ async function handleResetSavedData() {
 
 const { copy } = useClipboard({ legacy: true })
 const copiedImportSavedUserDataUrl = autoResetRef(false, 2000)
-const router = useRouter()
 function handleCopySavedDataLink() {
 	const data: HashActionImportSavedUserData = {
 		type: 'import-saved-user-data',
 		data: savedUserData.value,
 	}
-	const url = router.resolve({
-		name: Routes.Root,
-		hash: dataToUrlHash(data),
-	})
-	copy(`${window.location.origin}${url.href}`)
+	copy(makeHashActionLink(data))
 	copiedImportSavedUserDataUrl.value = true
 }
 </script>
