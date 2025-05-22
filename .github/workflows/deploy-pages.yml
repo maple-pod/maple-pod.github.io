@@ -47,11 +47,18 @@ jobs:
       - name: install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: setup secrets
+      - name: verify secrets not empty
         run: |
-          echo "VITE_APP_WORKER_URL=\"${{ secrets.WORKER_URL }}\"" >> .env
-          echo "VITE_APP_MAGIC_HEADER_KEY=\"${{ secrets.MAGIC_HEADER_KEY }}\"" >> .env
-          echo "VITE_APP_MAGIC_HEADER_VALUE=\"${{ secrets.MAGIC_HEADER_VALUE }}\"" >> .env
+          if [ -z "${{ secrets.WORKER_URL }}" ]; then echo "WORKER_URL is empty"; exit 1; fi
+          if [ -z "${{ secrets.MAGIC_HEADER_KEY }}" ]; then echo "MAGIC_HEADER_KEY is empty"; exit 1; fi
+          if [ -z "${{ secrets.MAGIC_HEADER_VALUE }}" ]; then echo "MAGIC_HEADER_VALUE is empty"; exit 1; fi
+
+      - name: create .env file
+        run: |
+          touch .env.production
+          echo "VITE_APP_WORKER_URL=${{ secrets.WORKER_URL }}" >> .env.production
+          echo "VITE_APP_MAGIC_HEADER_KEY=${{ secrets.MAGIC_HEADER_KEY }}" >> .env.production
+          echo "VITE_APP_MAGIC_HEADER_VALUE=${{ secrets.MAGIC_HEADER_VALUE }}" >> .env.production
 
       - name: build
         run: pnpm build && cp dist/index.html dist/404.html
