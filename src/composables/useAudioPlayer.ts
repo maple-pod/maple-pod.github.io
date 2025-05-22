@@ -145,6 +145,17 @@ export function useAudioPlayer() {
 			bool => navigator.mediaSession.playbackState = bool ? 'paused' : 'playing',
 			{ immediate: true },
 		)
+		watch(
+			[currentTime, duration],
+			() => {
+				navigator.mediaSession.setPositionState({
+					duration: duration.value,
+					playbackRate: 1,
+					position: currentTime.value,
+				})
+			},
+			{ immediate: true },
+		)
 		navigator.mediaSession.setActionHandler('play', () => {
 			audioLogic.play()
 		})
