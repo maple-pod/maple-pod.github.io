@@ -12,6 +12,7 @@ export async function createRecord(urlHash: string) {
 			headers: {
 				[import.meta.env.VITE_APP_MAGIC_HEADER_KEY]: import.meta.env.VITE_APP_MAGIC_HEADER_VALUE,
 			},
+			timeout: 1000,
 			body: {
 				value: urlHash,
 			},
@@ -34,6 +35,7 @@ export async function getRecord(recordId: string) {
 			headers: {
 				[import.meta.env.VITE_APP_MAGIC_HEADER_KEY]: import.meta.env.VITE_APP_MAGIC_HEADER_VALUE,
 			},
+			timeout: 1000,
 		})
 		return value
 	}

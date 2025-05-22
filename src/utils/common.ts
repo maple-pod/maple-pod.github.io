@@ -41,7 +41,7 @@ export async function makeHashActionLink(data: any) {
 	const recordId = await createRecord(hash)
 
 	if (recordId == null) {
-		return null
+		return `${window.location.origin}${import.meta.env.BASE_URL}${hash}`
 	}
 
 	return `${window.location.origin}${import.meta.env.BASE_URL}link/${recordId}`
