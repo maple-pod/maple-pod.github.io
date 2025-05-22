@@ -80,12 +80,20 @@ async function handleResetSavedData() {
 
 const { copy } = useClipboard({ legacy: true })
 const { toast } = useUiToast()
-function handleCopySavedDataLink() {
+async function handleCopySavedDataLink() {
 	const data: HashActionImportSavedUserData = {
 		type: 'import-saved-user-data',
 		data: savedUserData.value,
 	}
-	copy(makeHashActionLink(data))
+	const link = await makeHashActionLink(data)
+	if (link == null) {
+		toast({
+			title: 'Failed to create link',
+			duration: 2000,
+		})
+		return
+	}
+	copy(link)
 	toast({
 		title: 'Link Copied!',
 		duration: 2000,

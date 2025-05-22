@@ -1,4 +1,5 @@
 import { mergeProps } from 'vue'
+import { createRecord } from './cfWorker'
 
 export function mergeClasses(...classes: any[]) {
 	return mergeProps(...classes.map(cls => ({ class: cls }))).class as any
@@ -35,7 +36,13 @@ export function exportToJSONFile(data: any, filename: string) {
 	URL.revokeObjectURL(url)
 }
 
-export function makeHashActionLink(data: any) {
+export async function makeHashActionLink(data: any) {
 	const hash = dataToUrlHash(data)
-	return `${window.location.origin}${import.meta.env.BASE_URL}${hash}`
+	const recordId = await createRecord(hash)
+
+	if (recordId == null) {
+		return null
+	}
+
+	return `${window.location.origin}${import.meta.env.BASE_URL}link/${recordId}`
 }

@@ -61,14 +61,22 @@ const { handleShowMusicInPlaylist } = useAppStore()
 
 const { copy } = useClipboard({ legacy: true })
 const { toast } = useUiToast()
-function handleCopyMusicLink() {
+async function handleCopyMusicLink() {
 	if (currentMusic.value) {
-		copy(makeHashActionLink({
+		const link = await makeHashActionLink({
 			type: 'play-music',
 			data: {
 				musicSrc: currentMusic.value.src,
 			},
-		}))
+		})
+		if (link == null) {
+			toast({
+				title: 'Failed to create link',
+				duration: 2000,
+			})
+			return
+		}
+		copy(link)
 		toast({
 			title: 'Link Copied!',
 			duration: 2000,

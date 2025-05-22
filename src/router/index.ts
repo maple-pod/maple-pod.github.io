@@ -1,11 +1,13 @@
 import type { HashActionImportSavedUserData, PlaylistId } from '@/types'
 import { HashActionImportSavedUserDataSchema, HashActionPlayMusicSchema } from '@/schemas'
+import { getRecord } from '@/utils/cfWorker'
 import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
 import { type ObjectSchema, safeParse } from 'valibot'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, RouterView } from 'vue-router'
 
 export const Routes = {
 	Root: 'Root',
+	Link: 'Link',
 	Playlists: 'Playlists',
 	Playlist: 'Playlist',
 } as const
@@ -83,6 +85,25 @@ const middlewares = {
 const router = createRouter({
 	history: createWebHistory(import.meta.env.BASE_URL),
 	routes: [
+		{
+			name: Routes.Link,
+			path: '/link/:recordId',
+			component: RouterView,
+			meta: {
+				middleware: async (to) => {
+					const { recordId } = to.params as { recordId: string }
+					const hash = await getRecord(recordId)
+					if (hash == null) {
+						return { name: Routes.Root }
+					}
+
+					return {
+						name: Routes.Root,
+						hash,
+					}
+				},
+			},
+		},
 		{
 			name: Routes.Root,
 			path: '/',
