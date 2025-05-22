@@ -154,7 +154,8 @@ const { handleShowMusicInPlaylist } = useAppStore()
 			})"
 			@select="handleShowMusicInPlaylist(musicSrc, 'all')"
 		>
-			Show in Playlist "All"
+			<div :class="pika('i-f7:compass')" />
+			<span :class="pika({ fontSize: '14px' })">Show in "All"</span>
 		</DropdownMenuItem>
 	</UiDropdownMenu>
 </template>
