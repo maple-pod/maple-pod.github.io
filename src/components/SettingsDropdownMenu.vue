@@ -79,14 +79,17 @@ async function handleResetSavedData() {
 }
 
 const { copy } = useClipboard({ legacy: true })
-const copiedImportSavedUserDataUrl = autoResetRef(false, 2000)
+const { toast } = useUiToast()
 function handleCopySavedDataLink() {
 	const data: HashActionImportSavedUserData = {
 		type: 'import-saved-user-data',
 		data: savedUserData.value,
 	}
 	copy(makeHashActionLink(data))
-	copiedImportSavedUserDataUrl.value = true
+	toast({
+		title: 'Link Copied!',
+		duration: 2000,
+	})
 }
 </script>
 
@@ -214,12 +217,7 @@ function handleCopySavedDataLink() {
 						@select="handleCopySavedDataLink()"
 					>
 						<div
-							:data-copied="copiedImportSavedUserDataUrl"
-							:class="pika({
-								'fontSize': '20px',
-								'$': ['i-f7:link'],
-								'$[data-copied=true]': ['i-f7:checkmark', { color: 'var(--color-primary-1)' }],
-							})"
+							:class="pika('i-f7:link', { fontSize: '20px' })"
 						/>
 						<span :class="pika({ fontSize: '14px' })">Copy Link</span>
 					</DropdownMenuItem>

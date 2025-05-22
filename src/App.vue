@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { isReady } = storeToRefs(useAppStore())
 const { UiConfirmDialog } = useUiConfirmDialog()
+const { UiToast } = useUiToast()
 </script>
 
 <template>
@@ -16,5 +17,6 @@ const { UiConfirmDialog } = useUiConfirmDialog()
 		<AppLoading v-else />
 
 		<UiConfirmDialog />
+		<UiToast />
 	</div>
 </template>

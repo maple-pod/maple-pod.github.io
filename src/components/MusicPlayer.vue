@@ -60,6 +60,7 @@ const {
 const { handleShowMusicInPlaylist } = useAppStore()
 
 const { copy } = useClipboard({ legacy: true })
+const { toast } = useUiToast()
 function handleCopyMusicLink() {
 	if (currentMusic.value) {
 		copy(makeHashActionLink({
@@ -68,6 +69,10 @@ function handleCopyMusicLink() {
 				musicSrc: currentMusic.value.src,
 			},
 		}))
+		toast({
+			title: 'Link Copied!',
+			duration: 2000,
+		})
 	}
 }
 </script>
