@@ -1,7 +1,4 @@
-import type { HashActionImportSavedUserData, SavedUserData } from '@/types'
-import { SavedUserDataSchema } from '@/schemas'
-import { exportToJSONFile } from '@/utils/common'
-import { safeParse } from 'valibot'
+import type { SavedUserData } from '@/types'
 
 function toSavedPreferenceRef<P extends keyof SavedUserData['preferences']>(
 	savedUserData: Ref<SavedUserData>,
