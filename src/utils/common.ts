@@ -1,3 +1,4 @@
+import { decompressSync, deflateSync, strFromU8, strToU8 } from 'fflate'
 import { mergeProps } from 'vue'
 import { createRecord } from './cfWorker'
 
@@ -6,8 +7,9 @@ export function mergeClasses(...classes: any[]) {
 }
 
 export function dataToUrlHash(data: any) {
-	const hash = btoa(encodeURIComponent(JSON.stringify(data)))
-	return `#${hash}`
+	const json = JSON.stringify(data)
+	const compressed = deflateSync(strToU8(json))
+	return `#${btoa(String.fromCharCode(...compressed))}`
 }
 
 export function urlHashToData<T = any>(hash: string): T | null {
@@ -15,8 +17,10 @@ export function urlHashToData<T = any>(hash: string): T | null {
 		return null
 	}
 	try {
-		const data = JSON.parse(decodeURIComponent(atob(hash.slice(1))))
-		return data as T
+		const binary = atob(hash.slice(1))
+		const compressed = Uint8Array.from(binary, c => c.charCodeAt(0))
+		const json = strFromU8(decompressSync(compressed))
+		return JSON.parse(json) as T
 	}
 	catch {
 		return null

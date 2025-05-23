@@ -17,6 +17,7 @@
 		"@deviltea/vue-router-middleware": "^0.0.3",
 		"@unhead/vue": "^2.0.8",
 		"@vueuse/core": "^13.1.0",
+		"fflate": "^0.8.2",
 		"modern-normalize": "^3.0.1",
 		"ofetch": "^1.4.1",
 		"pinia": "^3.0.2",
