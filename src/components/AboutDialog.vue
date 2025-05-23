@@ -10,6 +10,7 @@ const open = ref(false)
 	<UiDialog
 		v-model:open="open"
 		:defaultOpen="true"
+		:contentClass="pika({ width: '500px' })"
 		@close="$emit('close')"
 	>
 		<template #trigger>
