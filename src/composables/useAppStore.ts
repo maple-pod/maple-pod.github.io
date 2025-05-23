@@ -14,13 +14,9 @@ export const useAppStore = defineStore('app', () => {
 	const toggleDark = useToggle(isDark)
 
 	const title = ref('Maple Pod')
-	const icon = ref('/logo.png')
 
 	useHead({
 		title,
-		link: [
-			{ rel: 'icon', href: icon },
-		],
 	})
 
 	const musicStore = useMusicStore()
@@ -33,7 +29,6 @@ export const useAppStore = defineStore('app', () => {
 			}
 
 			title.value = `♪ ${currentMusic.title} | Maple Pod`
-			icon.value = currentMusic.cover
 		},
 	)
 
