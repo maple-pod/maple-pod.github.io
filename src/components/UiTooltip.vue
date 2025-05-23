@@ -17,6 +17,7 @@ import { TooltipArrow, TooltipContent, TooltipPortal, TooltipProvider, TooltipRo
 						fontSize: '14px',
 						zIndex: 2,
 					})"
+					:sideOffset="8"
 				>
 					<span :class="pika({ opacity: 0.7 })">
 						<slot name="content" />

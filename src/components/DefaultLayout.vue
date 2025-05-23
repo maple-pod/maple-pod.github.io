@@ -62,14 +62,43 @@ import { Routes } from '@/router'
 								height: '32px',
 							})"
 						>
-						<div
+						<span
 							:class="pika('font-comfortaa-700', {
 								fontSize: '32px',
-								marginLeft: '8px',
 							})"
 						>
 							Maple Pod
-						</div>
+						</span>
+
+						<UiTooltip>
+							<template #trigger>
+								<span
+									:class="pika('font-comfortaa-700', {
+										display: 'inline-block',
+										padding: '4px',
+										borderRadius: '4px',
+										fontSize: '14px',
+										background: '#ffc15f',
+									})"
+								>
+									DEV
+								</span>
+							</template>
+
+							<template #content>
+								<span
+									:class="pika({
+										display: 'inline-block',
+										width: '250px',
+										maxWidth: '100vw',
+										fontSize: '16px',
+										lineHeight: '2',
+									})"
+								>
+									Work in progress, some features may not work as expected and breaking changes may occur.
+								</span>
+							</template>
+						</UiTooltip>
 					</RouterLink>
 
 					<SettingsDropdownMenu />
