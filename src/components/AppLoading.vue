@@ -3,7 +3,7 @@
 
 <template>
 	<div
-		:class="pika({
+		:class="pika('font-comfortaa-300', {
 			position: 'fixed',
 			top: '0',
 			left: '0',
