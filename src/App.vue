@@ -2,6 +2,8 @@
 const { isReady } = storeToRefs(useAppStore())
 const { UiConfirmDialog } = useUiConfirmDialog()
 const { UiToast } = useUiToast()
+
+const firstVisit = useLocalStorage('firstVisit', true)
 </script>
 
 <template>
@@ -18,5 +20,10 @@ const { UiToast } = useUiToast()
 
 		<UiConfirmDialog />
 		<UiToast />
+
+		<AboutDialog
+			v-if="firstVisit"
+			@close="firstVisit = false"
+		/>
 	</div>
 </template>

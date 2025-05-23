@@ -99,6 +99,8 @@ async function handleCopySavedDataLink() {
 		duration: 2000,
 	})
 }
+
+const AboutDialogPromise = createTemplatePromise<void>()
 </script>
 
 <template>
@@ -114,6 +116,12 @@ async function handleCopySavedDataLink() {
 					:class="pika('i-f7:gear-alt')"
 				/>
 			</button>
+
+			<AboutDialogPromise v-slot="{ resolve }">
+				<AboutDialog
+					@close="resolve()"
+				/>
+			</AboutDialogPromise>
 		</template>
 
 		<DropdownMenuItem
@@ -250,6 +258,25 @@ async function handleCopySavedDataLink() {
 				:class="pika('i-f7:arrow-counterclockwise', { fontSize: '20px' })"
 			/>
 			<span :class="pika({ fontSize: '14px' })">Reset</span>
+		</DropdownMenuItem>
+
+		<DropdownMenuItem
+			:class="pika('hover-mask', {
+				'display': 'flex',
+				'alignItems': 'center',
+				'gap': '8px',
+				'padding': '8px',
+				'cursor': 'pointer',
+				'$::before': {
+					borderRadius: '4px',
+				},
+			})"
+			@select="AboutDialogPromise.start()"
+		>
+			<div
+				:class="pika('i-f7:info-circle', { fontSize: '20px' })"
+			/>
+			<span :class="pika({ fontSize: '14px' })">About</span>
 		</DropdownMenuItem>
 	</UiDropdownMenu>
 </template>
