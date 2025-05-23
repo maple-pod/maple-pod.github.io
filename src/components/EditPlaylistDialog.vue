@@ -3,11 +3,10 @@ import type { CustomPlaylistId } from '@/types'
 
 const props = defineProps<{
 	playlistId: CustomPlaylistId
-	defaultOpen?: boolean
 }>()
 
-defineEmits<{
-	close: []
+const emit = defineEmits<{
+	resolve: []
 }>()
 
 const musicStore = useMusicStore()
@@ -32,30 +31,20 @@ const error = computed(() => {
 	return validatePlaylistTitle(title.value)
 })
 
-const open = ref(false)
-
-function reset() {
-	title.value = ''
-	validating.value = false
-}
-
-whenever(() => open.value === false, reset)
-
 function handleSave() {
 	if (error.value)
 		return
 
 	playlist.value.title = title.value
-	open.value = false
+	emit('resolve')
 }
 </script>
 
 <template>
 	<UiDialog
-		v-model:open="open"
-		:defaultOpen
+		defaultOpen
 		:contentClass="pika({ width: '500px' })"
-		@close="$emit('close')"
+		@close="$emit('resolve')"
 	>
 		<template #trigger>
 			<slot name="trigger" />

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HashActionImportSavedUserData, SavedUserData } from '@/types'
+import AboutDialog from '@/components/AboutDialog.vue'
 import { SavedUserDataSchema } from '@/schemas'
 import {
 	DropdownMenuItem,
@@ -100,7 +101,10 @@ async function handleCopySavedDataLink() {
 	})
 }
 
-const AboutDialogPromise = createTemplatePromise<void>()
+const { dialog } = useAppDialog()
+function handleShowAboutDialog() {
+	dialog(AboutDialog, {})
+}
 </script>
 
 <template>
@@ -116,12 +120,6 @@ const AboutDialogPromise = createTemplatePromise<void>()
 					:class="pika('i-f7:gear-alt')"
 				/>
 			</button>
-
-			<AboutDialogPromise v-slot="{ resolve }">
-				<AboutDialog
-					@close="resolve()"
-				/>
-			</AboutDialogPromise>
 		</template>
 
 		<DropdownMenuItem
@@ -271,7 +269,7 @@ const AboutDialogPromise = createTemplatePromise<void>()
 					borderRadius: '4px',
 				},
 			})"
-			@select="AboutDialogPromise.start()"
+			@select="handleShowAboutDialog()"
 		>
 			<div
 				:class="pika('i-f7:info-circle', { fontSize: '20px' })"

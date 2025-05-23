@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PlaylistId } from '@/types'
+import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
 import {
 	DropdownMenuItem,
 	DropdownMenuPortal,
@@ -18,7 +19,10 @@ const musicStore = useMusicStore()
 const { likedPlaylist, savedPlaylists } = storeToRefs(musicStore)
 const { toggleMusicInPlaylist, isAddedInPlaylist } = musicStore
 
-const CreatePlaylistDialogPromise = createTemplatePromise<void>()
+const { dialog } = useAppDialog()
+function handleStartCreatePlaylist() {
+	return dialog(CreatePlaylistDialog, {})
+}
 
 const { handleShowMusicInPlaylist } = useAppStore()
 </script>
@@ -41,13 +45,6 @@ const { handleShowMusicInPlaylist } = useAppStore()
 					})"
 				/>
 			</button>
-
-			<CreatePlaylistDialogPromise v-slot="{ resolve }">
-				<CreatePlaylistDialog
-					:defaultOpen="true"
-					@close="resolve()"
-				/>
-			</CreatePlaylistDialogPromise>
 		</template>
 
 		<DropdownMenuSub>
@@ -93,7 +90,7 @@ const { handleShowMusicInPlaylist } = useAppStore()
 								borderRadius: '4px',
 							},
 						})"
-						@click="CreatePlaylistDialogPromise.start()"
+						@click="handleStartCreatePlaylist()"
 					>
 						<div :class="pika('i-f7:plus')" />
 						<span :class="pika({ fontSize: '14px' })">New Playlist</span>

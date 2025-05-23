@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{
+defineProps<{
 	defaultOpen?: boolean
 	contentClass?: any
 	title: string
@@ -9,19 +9,15 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-	confirm: [boolean]
-	close: []
+	resolve: [boolean]
 }>()
 
 const open = defineModel<boolean>('open')
 
-if (props.defaultOpen != null)
-	open.value = props.defaultOpen
-
-whenever(
-	() => open.value === false,
-	() => emit('close'),
-)
+function handleResolve(value: boolean) {
+	open.value = false
+	emit('resolve', value)
+}
 </script>
 
 <template>
@@ -29,7 +25,7 @@ whenever(
 		v-model:open="open"
 		:defaultOpen
 		:contentClass
-		@close="emit('close')"
+		@close="emit('resolve', false)"
 	>
 		<template #title>
 			{{ title }}
@@ -47,13 +43,13 @@ whenever(
 			>
 				<button
 					:class="pika('primary-plain-btn')"
-					@click="emit('confirm', false)"
+					@click="handleResolve(false)"
 				>
 					{{ cancelText || 'No' }}
 				</button>
 				<button
 					:class="pika('primary-btn')"
-					@click="emit('confirm', true)"
+					@click="handleResolve(true)"
 				>
 					{{ confirmText || 'Yes' }}
 				</button>

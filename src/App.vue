@@ -1,9 +1,14 @@
 <script setup lang="ts">
+import AboutDialog from '@/components/AboutDialog.vue'
+
 const { isReady } = storeToRefs(useAppStore())
-const { UiConfirmDialog } = useUiConfirmDialog()
+const { AppDialog, dialog } = useAppDialog()
 const { UiToast } = useUiToast()
 
 const firstVisit = useLocalStorage('firstVisit', true)
+if (firstVisit.value) {
+	dialog(AboutDialog, {}).then(() => firstVisit.value = false)
+}
 </script>
 
 <template>
@@ -18,12 +23,7 @@ const firstVisit = useLocalStorage('firstVisit', true)
 		<RouterView v-if="isReady" />
 		<AppLoading v-else />
 
-		<UiConfirmDialog />
+		<AppDialog />
 		<UiToast />
-
-		<AboutDialog
-			v-if="firstVisit"
-			@close="firstVisit = false"
-		/>
 	</div>
 </template>

@@ -1,17 +1,14 @@
 <script setup lang="ts">
 defineEmits<{
-	close: []
+	resolve: []
 }>()
-
-const open = ref(false)
 </script>
 
 <template>
 	<UiDialog
-		v-model:open="open"
 		:defaultOpen="true"
 		:contentClass="pika({ width: '500px' })"
-		@close="$emit('close')"
+		@close="$emit('resolve')"
 	>
 		<template #trigger>
 			<slot name="trigger" />

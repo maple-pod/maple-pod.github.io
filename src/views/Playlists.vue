@@ -1,10 +1,17 @@
 <script setup lang="ts">
+import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
+
 const musicStore = useMusicStore()
 const { playlistList, currentPlaylist } = storeToRefs(musicStore)
 
 const router = useRouter()
 function goToPlaylist(playlistId: string) {
 	return router.push({ name: Routes.Playlist, params: { playlistId } })
+}
+
+const { dialog } = useAppDialog()
+function handleStartCreatePlaylist() {
+	return dialog(CreatePlaylistDialog, {})
 }
 </script>
 
@@ -40,25 +47,22 @@ function goToPlaylist(playlistId: string) {
 					Playlists
 				</div>
 
-				<CreatePlaylistDialog>
+				<UiTooltip>
 					<template #trigger>
-						<UiTooltip>
-							<template #trigger>
-								<button
-									:class="pika('icon-btn', {
-										'--size': '36px',
-									})"
-								>
-									<div :class="pika('i-f7:text-badge-plus')" />
-								</button>
-							</template>
-
-							<template #content>
-								Create new playlist
-							</template>
-						</UiTooltip>
+						<button
+							:class="pika('icon-btn', {
+								'--size': '36px',
+							})"
+							@click="handleStartCreatePlaylist"
+						>
+							<div :class="pika('i-f7:text-badge-plus')" />
+						</button>
 					</template>
-				</CreatePlaylistDialog>
+
+					<template #content>
+						Create new playlist
+					</template>
+				</UiTooltip>
 			</div>
 		</DefaultLayoutHeaderSlot>
 

@@ -3,6 +3,7 @@ import type { CustomPlaylistId, PlaylistId } from '@/types'
 import {
 	DropdownMenuItem,
 } from 'reka-ui'
+import EditPlaylistDialog from './EditPlaylistDialog.vue'
 
 defineProps<{
 	playlistId: PlaylistId
@@ -11,12 +12,12 @@ defineProps<{
 const musicStore = useMusicStore()
 const { getPlaylist, deletePlaylist, isCustomPlaylist, play } = musicStore
 
-const EditPlaylistDialogPromise = createTemplatePromise<void, [CustomPlaylistId]>()
-function handleEditPlaylist(playlistId: CustomPlaylistId) {
+const { dialog } = useAppDialog()
+function handleStartEditPlaylist(playlistId: CustomPlaylistId) {
 	const playlist = getPlaylist(playlistId)
 	if (playlist == null)
 		return
-	return EditPlaylistDialogPromise.start(playlistId)
+	dialog(EditPlaylistDialog, { playlistId })
 }
 
 const { confirm } = useUiConfirmDialog()
@@ -53,17 +54,6 @@ async function handleDeletePlaylist(playlistId: CustomPlaylistId) {
 					})"
 				/>
 			</button>
-
-			<EditPlaylistDialogPromise
-				v-if="isCustomPlaylist(playlistId)"
-				v-slot="{ resolve }"
-			>
-				<EditPlaylistDialog
-					:playlistId
-					:defaultOpen="true"
-					@close="resolve()"
-				/>
-			</EditPlaylistDialogPromise>
 		</template>
 
 		<DropdownMenuItem
@@ -95,7 +85,7 @@ async function handleDeletePlaylist(playlistId: CustomPlaylistId) {
 					borderRadius: '4px',
 				},
 			})"
-			@click="handleEditPlaylist(playlistId)"
+			@click="handleStartEditPlaylist(playlistId)"
 		>
 			<div :class="pika('i-f7:pencil')" />
 			<span :class="pika({ fontSize: '14px' })">Edit Playlist</span>
