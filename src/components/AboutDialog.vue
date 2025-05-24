@@ -2,6 +2,8 @@
 defineEmits<{
 	resolve: []
 }>()
+
+const gitCommitHash = __GIT_COMMIT_HASH__
 </script>
 
 <template>
@@ -15,7 +17,12 @@ defineEmits<{
 		</template>
 
 		<template #title>
-			About Maple Pod
+			<div :class="pika({ display: 'flex', flexDirection: 'column' })">
+				About Maple Pod
+				<span :class="pika({ fontSize: '14px', opacity: '0.5' })">
+					build: {{ gitCommitHash }}
+				</span>
+			</div>
 		</template>
 
 		<template #content>

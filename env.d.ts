@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+declare const __GIT_COMMIT_HASH__: string
+
 interface ImportMetaEnv {
 	readonly VITE_APP_WORKER_URL: string
 	readonly VITE_APP_MAGIC_HEADER_KEY: string
