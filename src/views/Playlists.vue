@@ -30,18 +30,14 @@ function handleStartCreatePlaylist() {
 				:class="pika({
 					display: 'flex',
 					alignItems: 'center',
-					gap: '16px',
 					fontWeight: '100',
 				})"
 			>
-				<div :class="pika({ fontSize: '28px', padding: '4px' })">
-					<div :class="pika('i-f7:music-note-list')" />
-				</div>
 				<div
 					:class="pika({
 						fontSize: '24px',
 						fontWeight: '100',
-						marginRight: 'auto',
+						marginRight: '4px',
 					})"
 				>
 					Playlists
@@ -53,7 +49,7 @@ function handleStartCreatePlaylist() {
 							:class="pika('icon-btn')"
 							@click="handleStartCreatePlaylist"
 						>
-							<div :class="pika('i-f7:text-badge-plus')" />
+							<div :class="pika('i-f7:plus')" />
 						</button>
 					</template>
 
