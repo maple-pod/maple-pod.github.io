@@ -111,9 +111,7 @@ function handleShowAboutDialog() {
 	<UiDropdownMenu>
 		<template #trigger>
 			<button
-				:class="pika('icon-btn', {
-					'--size': '36px',
-				})"
+				:class="pika('icon-btn')"
 				@click.stop
 			>
 				<div

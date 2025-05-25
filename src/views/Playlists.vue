@@ -50,9 +50,7 @@ function handleStartCreatePlaylist() {
 				<UiTooltip>
 					<template #trigger>
 						<button
-							:class="pika('icon-btn', {
-								'--size': '36px',
-							})"
+							:class="pika('icon-btn')"
 							@click="handleStartCreatePlaylist"
 						>
 							<div :class="pika('i-f7:text-badge-plus')" />

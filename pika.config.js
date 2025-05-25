@@ -91,7 +91,7 @@ export default defineEngineConfig({
 						transition: 'opacity 0.1s',
 						pointerEvents: 'none',
 					},
-					'$:hover::before': {
+					'$:not(:disabled):hover::before': {
 						opacity: '0.1',
 					},
 				},
@@ -103,6 +103,7 @@ export default defineEngineConfig({
 					'display': 'inline-flex',
 					'alignItems': 'center',
 					'justifyContent': 'center',
+					'flexShrink': 0,
 					'padding': '8px 16px',
 					'fontSize': '16px',
 					'borderRadius': '8px',
@@ -110,7 +111,7 @@ export default defineEngineConfig({
 					'transition': 'all 0.1s',
 
 					'$:disabled': {
-						opacity: 0.5,
+						opacity: 0.3,
 						cursor: 'not-allowed',
 					},
 
@@ -120,25 +121,6 @@ export default defineEngineConfig({
 
 					'$:not(:disabled):active': {
 						transform: 'scale(0.95)',
-					},
-
-					'$::before': {
-						content: '\'\'',
-						position: 'absolute',
-						top: 0,
-						left: 0,
-						zIndex: 1,
-						display: 'block',
-						width: '100%',
-						height: '100%',
-						borderRadius: '8px',
-						backgroundColor: 'var(--color-gray-3)',
-						opacity: 0,
-						transition: 'opacity 0.1s',
-					},
-
-					'$:not(:disabled):hover::before': {
-						opacity: 0.3,
 					},
 				},
 			],
@@ -156,6 +138,7 @@ export default defineEngineConfig({
 				'primary-plain-btn',
 				[
 					'base-btn',
+					'hover-mask',
 					{
 						color: 'var(--color-primary-1)',
 						backgroundColor: 'transparent',
@@ -164,36 +147,27 @@ export default defineEngineConfig({
 			],
 			[
 				'icon-btn',
-				{
-					'--size': '24px',
-					'display': 'flex',
-					'alignItems': 'center',
-					'justifyContent': 'center',
-					'flexShrink': 0,
-					'width': 'var(--size)',
-					'height': 'var(--size)',
-					'padding': '4px',
-					'fontSize': 'var(--size)',
-					'color': 'var(--color-gray-3)',
-					'backgroundColor': 'transparent',
-					'borderRadius': '50%',
-					'cursor': 'pointer',
-					'transition': 'all 0.1s',
+				[
+					'base-btn',
+					'hover-mask',
+					{
+						'width': '32px',
+						'height': '32px',
+						'padding': '6px',
+						'fontSize': '32px',
+						'color': 'var(--color-gray-3)',
+						'backgroundColor': 'transparent',
+						'borderRadius': '50%',
 
-					'$:disabled': {
-						opacity: 0.5,
-						cursor: 'not-allowed',
-					},
+						'$:not(:disabled):hover': {
+							color: 'var(--color-primary-1)',
+						},
 
-					'$:not(:disabled):hover': {
-						color: 'var(--color-primary-1)',
-						transform: 'scale(1.05)',
+						'$::before': {
+							borderRadius: '50%',
+						},
 					},
-
-					'$:not(:disabled):active': {
-						transform: 'scale(0.95)',
-					},
-				},
+				],
 			],
 			[
 				'icon-btn-toggle',
@@ -208,28 +182,12 @@ export default defineEngineConfig({
 							content: '\'\'',
 							position: 'absolute',
 							left: '50%',
-							bottom: '-2px',
+							bottom: '2px',
 							width: '4px',
 							height: '4px',
 							borderRadius: '9999px',
 							backgroundColor: 'var(--color-primary-1)',
 							transform: 'translateX(-50%)',
-						},
-					},
-				],
-			],
-			[
-				'circle-icon-btn',
-				[
-					'icon-btn',
-					{
-						'fontSize': 'calc(var(--size) * 0.6)',
-						'color': 'var(--color-gray-1)',
-						'backgroundColor': 'var(--color-primary-1)',
-						'cursor': 'pointer',
-
-						'$:not(:disabled):hover': {
-							color: null,
 						},
 					},
 				],

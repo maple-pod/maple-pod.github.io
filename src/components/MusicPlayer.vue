@@ -101,7 +101,6 @@ async function handleCopyMusicLink() {
 					v-if="isSupported"
 					data-toggle="true"
 					:class="pika('icon-btn-toggle', {
-						'--size': '48px',
 						'@docpip': {
 							display: 'none',
 						},
@@ -149,12 +148,7 @@ async function handleCopyMusicLink() {
 							<button
 								:data-state="random"
 								:data-toggle="random"
-								:class="pika('icon-btn-toggle', {
-									'--size': '32px',
-									'@screen * to 500': {
-										'--size': '28px',
-									},
-								})"
+								:class="pika('icon-btn-toggle')"
 								@click="toggleRandom()"
 							>
 								<div
@@ -170,12 +164,7 @@ async function handleCopyMusicLink() {
 					<UiTooltip>
 						<template #trigger>
 							<button
-								:class="pika('icon-btn', {
-									'--size': '32px',
-									'@screen * to 500': {
-										'--size': '28px',
-									},
-								})"
+								:class="pika('icon-btn')"
 								:disabled="currentMusic == null"
 								@click="goPrevious()"
 							>
@@ -192,12 +181,7 @@ async function handleCopyMusicLink() {
 					<UiTooltip>
 						<template #trigger>
 							<button
-								:class="pika('circle-icon-btn', {
-									'--size': '48px',
-									'@screen * to 500': {
-										'--size': '32px',
-									},
-								})"
+								:class="pika('icon-btn')"
 								:disabled="currentMusic == null"
 								@click="togglePlay()"
 							>
@@ -218,12 +202,7 @@ async function handleCopyMusicLink() {
 					<UiTooltip>
 						<template #trigger>
 							<button
-								:class="pika('icon-btn', {
-									'--size': '32px',
-									'@screen * to 500': {
-										'--size': '28px',
-									},
-								})"
+								:class="pika('icon-btn')"
 								:disabled="currentMusic == null"
 								@click="goNext()"
 							>
@@ -242,12 +221,7 @@ async function handleCopyMusicLink() {
 							<button
 								:data-state="repeated"
 								:data-toggle="repeated !== 'off'"
-								:class="pika('icon-btn-toggle', {
-									'--size': '32px',
-									'@screen * to 500': {
-										'--size': '28px',
-									},
-								})"
+								:class="pika('icon-btn-toggle')"
 								@click="toggleRepeated()"
 							>
 								<div
@@ -348,7 +322,7 @@ async function handleCopyMusicLink() {
 					<button
 						:data-volume="volumeLevel"
 						:data-toggle="muted"
-						:class="pika('icon-btn-toggle', { '--size': '32px' })"
+						:class="pika('icon-btn-toggle')"
 						@click="toggleMuted()"
 					>
 						<div
@@ -422,7 +396,6 @@ async function handleCopyMusicLink() {
 								<button
 									:data-liked="isMusicLiked(currentMusic?.src || '')"
 									:class="pika('icon-btn', {
-										'--size': '36px',
 										'[data-music-loaded=false] $': { display: 'none' },
 									})"
 									@click="toggleMusicLike(currentMusic?.src || '')"
@@ -478,7 +451,6 @@ async function handleCopyMusicLink() {
 									<template #trigger>
 										<button
 											:class="pika('icon-btn', {
-												'--size': '36px',
 												'[data-music-loaded=false] $': { visibility: 'hidden' },
 											})"
 											@click="handleShowMusicInPlaylist()"
@@ -498,7 +470,6 @@ async function handleCopyMusicLink() {
 										<button
 											v-if="isSupported"
 											:class="pika('icon-btn', {
-												'--size': '36px',
 												'@docpip': {
 													display: 'none',
 												},

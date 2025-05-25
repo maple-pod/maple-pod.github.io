@@ -57,7 +57,7 @@ function goBackToPlaylists() {
 				<UiTooltip>
 					<template #trigger>
 						<button
-							:class="pika('icon-btn', { '--size': '36px' })"
+							:class="pika('icon-btn')"
 							@click="goBackToPlaylists()"
 						>
 							<div :class="pika('i-f7:chevron-left')" />
@@ -82,12 +82,7 @@ function goBackToPlaylists() {
 						<button
 							:data-state="random"
 							:data-toggle="random"
-							:class="pika('icon-btn-toggle', {
-								'--size': '32px',
-								'@screen * to 500': {
-									'--size': '28px',
-								},
-							})"
+							:class="pika('icon-btn-toggle')"
 							@click="toggleRandom()"
 						>
 							<div
@@ -103,12 +98,7 @@ function goBackToPlaylists() {
 				<UiTooltip>
 					<template #trigger>
 						<button
-							:class="pika('circle-icon-btn', {
-								'--size': '36px',
-								'@screen * to 500': {
-									'--size': '32px',
-								},
-							})"
+							:class="pika('icon-btn')"
 							:disabled="playlist.list.length === 0"
 							@click="handlePlayPlaylist()"
 						>
@@ -210,7 +200,6 @@ function goBackToPlaylists() {
 							<button
 								:data-liked="isMusicLiked(item.src)"
 								:class="pika('icon-btn', {
-									'--size': '36px',
 									'@screen 501 to *': {
 										'[data-music-src]:not(:hover) [data-liked=false]$': { visibility: 'hidden' },
 									},
