@@ -15,7 +15,7 @@ export default defineEngineConfig({
 	variables: {
 		variables: [
 			['--color-gray-1', '#FEFEFE'],
-			['--color-gray-2', '#DFDFDF'],
+			['--color-gray-2', '#F2F2F2'],
 			['--color-gray-3', '#888888'],
 			['--color-gray-4', '#222222'],
 			['--color-gray-5', '#111111'],
