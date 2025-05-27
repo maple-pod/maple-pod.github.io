@@ -35,15 +35,11 @@ const {
 
 const { handleShowMusicInPlaylist } = useAppStore()
 
-const { copy } = useClipboard({ legacy: true })
-const { toast } = useUiToast()
-async function handleCopyMusicLink() {
+const { copyLink } = useCopyLink()
+function handleCopyMusicLink() {
 	if (currentMusic.value) {
-		const link = getPlayMusicLink(currentMusic.value.src)
-		copy(link)
-		toast({
-			title: 'Link Copied!',
-			duration: 2000,
+		copyLink({
+			link: getPlayMusicLink(currentMusic.value.src),
 		})
 	}
 }

@@ -79,8 +79,7 @@ async function handleResetSavedData() {
 	resetSavedUserData()
 }
 
-const { copy } = useClipboard({ legacy: true })
-const { toast } = useUiToast()
+const { copyLink } = useCopyLink()
 async function handleCopySavedDataLink() {
 	const data: HashActionImportSavedUserData = {
 		type: 'import-saved-user-data',
@@ -96,10 +95,8 @@ async function handleCopySavedDataLink() {
 		return
 	}
 
-	copy(link)
-	toast({
-		title: 'Link Copied!',
-		duration: 2000,
+	copyLink({
+		link,
 	})
 }
 
