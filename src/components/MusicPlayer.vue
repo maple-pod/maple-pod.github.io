@@ -161,6 +161,7 @@ function handleCopyMusicLink() {
 									</UiMarquee>
 									<UiMarquee
 										v-else
+										:key="currentMusic.title"
 										:title="currentMusic.title"
 									>
 										{{ currentMusic.title }}
