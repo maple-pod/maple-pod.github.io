@@ -164,7 +164,7 @@ function handleShowAboutDialog() {
 				})"
 			>
 				<div
-					:class="pika('i-f7:archivebox', { fontSize: '20px' })"
+					:class="pika('i-f7:archivebox')"
 				/>
 				<span :class="pika({ fontSize: '14px' })">Saved Data</span>
 
@@ -193,7 +193,7 @@ function handleShowAboutDialog() {
 						@select="handleUploadSavedDataFile()"
 					>
 						<div
-							:class="pika('i-f7:arrow-up-doc', { fontSize: '20px' })"
+							:class="pika('i-f7:arrow-up-doc')"
 						/>
 						<span :class="pika({ fontSize: '14px' })">Upload</span>
 					</DropdownMenuItem>
@@ -212,7 +212,7 @@ function handleShowAboutDialog() {
 						@select="handleDownloadSavedDataFile()"
 					>
 						<div
-							:class="pika('i-f7:arrow-down-doc', { fontSize: '20px' })"
+							:class="pika('i-f7:arrow-down-doc')"
 						/>
 						<span :class="pika({ fontSize: '14px' })">Download</span>
 					</DropdownMenuItem>
@@ -231,7 +231,7 @@ function handleShowAboutDialog() {
 						@select="handleCopySavedDataLink()"
 					>
 						<div
-							:class="pika('i-f7:link', { fontSize: '20px' })"
+							:class="pika('i-f7:link')"
 						/>
 						<span :class="pika({ fontSize: '14px' })">Copy Link</span>
 					</DropdownMenuItem>
@@ -253,7 +253,7 @@ function handleShowAboutDialog() {
 			@select="handleResetSavedData()"
 		>
 			<div
-				:class="pika('i-f7:arrow-counterclockwise', { fontSize: '20px' })"
+				:class="pika('i-f7:arrow-counterclockwise')"
 			/>
 			<span :class="pika({ fontSize: '14px' })">Reset</span>
 		</DropdownMenuItem>
@@ -272,7 +272,7 @@ function handleShowAboutDialog() {
 			@select="handleShowAboutDialog()"
 		>
 			<div
-				:class="pika('i-f7:info-circle', { fontSize: '20px' })"
+				:class="pika('i-f7:info-circle')"
 			/>
 			<span :class="pika({ fontSize: '14px' })">About</span>
 		</DropdownMenuItem>

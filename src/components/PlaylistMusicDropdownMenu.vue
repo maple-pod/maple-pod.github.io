@@ -17,7 +17,7 @@ defineProps<{
 
 const musicStore = useMusicStore()
 const { likedPlaylist, savedPlaylists } = storeToRefs(musicStore)
-const { toggleMusicInPlaylist, isAddedInPlaylist } = musicStore
+const { toggleMusicInPlaylist, isAddedInPlaylist, getPlayMusicLink } = musicStore
 
 const { dialog } = useAppDialog()
 function handleStartCreatePlaylist() {
@@ -25,6 +25,17 @@ function handleStartCreatePlaylist() {
 }
 
 const { handleShowMusicInPlaylist } = useAppStore()
+
+const { copy } = useClipboard({ legacy: true })
+const { toast } = useUiToast()
+async function handleCopyMusicLink(musicSrc: string) {
+	const link = getPlayMusicLink(musicSrc)
+	copy(link)
+	toast({
+		title: 'Link Copied!',
+		duration: 2000,
+	})
+}
 </script>
 
 <template>
@@ -153,6 +164,25 @@ const { handleShowMusicInPlaylist } = useAppStore()
 		>
 			<div :class="pika('i-f7:compass')" />
 			<span :class="pika({ fontSize: '14px' })">Show in "All"</span>
+		</DropdownMenuItem>
+
+		<DropdownMenuItem
+			:class="pika('hover-mask', {
+				'display': 'flex',
+				'alignItems': 'center',
+				'gap': '8px',
+				'padding': '8px',
+				'cursor': 'pointer',
+				'$::before': {
+					borderRadius: '4px',
+				},
+			})"
+			@select="handleCopyMusicLink(musicSrc)"
+		>
+			<div
+				:class="pika('i-f7:link')"
+			/>
+			<span :class="pika({ fontSize: '14px' })">Copy Link</span>
 		</DropdownMenuItem>
 	</UiDropdownMenu>
 </template>
