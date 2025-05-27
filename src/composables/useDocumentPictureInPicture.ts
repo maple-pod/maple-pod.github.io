@@ -6,6 +6,7 @@ export function useDocumentPictureInPicture() {
 	const pipBody = computed<HTMLBodyElement | null>(() => (pipWindow.value?.document.body ?? null) as HTMLBodyElement | null)
 	let start: (options?: { width?: number, height?: number }) => Promise<void> = () => Promise.resolve()
 	let stop: () => void = () => {}
+	const isActive = computed(() => pipWindow.value != null)
 
 	const PipBody = defineComponent({
 		name: 'PipBody',
@@ -89,6 +90,7 @@ export function useDocumentPictureInPicture() {
 
 	return {
 		isSupported,
+		isActive,
 		start,
 		stop,
 		PipBody,

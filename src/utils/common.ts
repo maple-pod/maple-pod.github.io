@@ -38,3 +38,9 @@ export function exportToJSONFile(data: any, filename: string) {
 	document.body.removeChild(a)
 	URL.revokeObjectURL(url)
 }
+
+export function formatTime(timeInSeconds: number) {
+	const minutes = String(Math.floor(timeInSeconds / 60))
+	const seconds = String(Math.floor(timeInSeconds % 60)).padStart(2, '0')
+	return `${minutes}:${seconds}`
+}
