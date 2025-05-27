@@ -1,16 +1,9 @@
 <script setup lang="ts">
 import type { PlaylistId } from '@/types'
+import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
 import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
-import {
-	DropdownMenuItem,
-	DropdownMenuPortal,
-	DropdownMenuSeparator,
-	DropdownMenuSub,
-	DropdownMenuSubContent,
-	DropdownMenuSubTrigger,
-} from 'reka-ui'
 
-defineProps<{
+const props = defineProps<{
 	playlistId: PlaylistId
 	musicSrc: string
 }>()
@@ -32,10 +25,55 @@ function handleCopyMusicLink(musicSrc: string) {
 		link: getPlayMusicLink(musicSrc),
 	})
 }
+
+const menuItems = computed<UiDropdownMenuItem[]>(() => [
+	{
+		icon: pika('i-f7:music-note-list'),
+		label: 'Playlists',
+		items: [
+			{
+				icon: pika('i-f7:plus'),
+				label: 'New Playlist',
+				onSelect: handleStartCreatePlaylist,
+			},
+			'separator',
+			{
+				icon: pika('i-f7:heart'),
+				label: likedPlaylist.value.title,
+				onSelect: (event) => {
+					event.preventDefault()
+					toggleMusicInPlaylist('liked', props.musicSrc)
+				},
+			},
+			...savedPlaylists.value.map(playlist => ({
+				icon: isAddedInPlaylist(playlist.id, props.musicSrc)
+					? pika('i-f7:bookmark-fill')
+					: pika('i-f7:bookmark'),
+				label: playlist.title,
+				onSelect: (event: Event) => {
+					event.preventDefault()
+					toggleMusicInPlaylist(playlist.id, props.musicSrc)
+				},
+			})),
+		],
+	},
+	{
+		icon: pika('i-f7:compass'),
+		label: 'Show in "All"',
+		onSelect: () => handleShowMusicInPlaylist(props.musicSrc, 'all'),
+	},
+	{
+		icon: pika('i-f7:link'),
+		label: 'Copy Link',
+		onSelect: () => handleCopyMusicLink(props.musicSrc),
+	},
+])
 </script>
 
 <template>
-	<UiDropdownMenu>
+	<UiDropdownMenu
+		:items="menuItems"
+	>
 		<template #trigger>
 			<button
 				:class="pika('icon-btn', {
@@ -53,132 +91,5 @@ function handleCopyMusicLink(musicSrc: string) {
 				/>
 			</button>
 		</template>
-
-		<DropdownMenuSub>
-			<DropdownMenuSubTrigger
-				:class="pika('hover-mask', {
-					'display': 'flex',
-					'alignItems': 'center',
-					'gap': '8px',
-					'padding': '8px',
-					'cursor': 'pointer',
-
-					'$::before': {
-						borderRadius: '4px',
-					},
-
-					'$[id^=reka-menu-sub-trigger][data-state=open]::before': {
-						opacity: '0.1',
-					},
-				})"
-			>
-				<div :class="pika('i-f7:music-note-list')" />
-				<span :class="pika({ fontSize: '14px' })">Playlists</span>
-
-				<div :class="pika('i-f7:chevron-right', { marginLeft: 'auto' })" />
-			</DropdownMenuSubTrigger>
-			<DropdownMenuPortal>
-				<DropdownMenuSubContent
-					:class="pika('theme', 'card', {
-						padding: '8px',
-						minWidth: '200px',
-						borderRadius: '4px',
-						zIndex: 2,
-					})"
-				>
-					<DropdownMenuItem
-						:class="pika('hover-mask', {
-							'display': 'flex',
-							'alignItems': 'center',
-							'gap': '8px',
-							'padding': '8px',
-							'cursor': 'pointer',
-							'$::before': {
-								borderRadius: '4px',
-							},
-						})"
-						@click="handleStartCreatePlaylist()"
-					>
-						<div :class="pika('i-f7:plus')" />
-						<span :class="pika({ fontSize: '14px' })">New Playlist</span>
-					</DropdownMenuItem>
-
-					<DropdownMenuSeparator
-						:class="pika({
-							margin: '4px',
-							borderBottom: '1px solid var(--color-gray-3)',
-						})"
-					/>
-
-					<DropdownMenuItem
-						v-for="playlist in [likedPlaylist, ...savedPlaylists]"
-						:key="playlist.id"
-						:class="pika('hover-mask', {
-							'display': 'flex',
-							'alignItems': 'center',
-							'gap': '8px',
-							'padding': '8px',
-							'cursor': 'pointer',
-
-							'$::before': {
-								borderRadius: '4px',
-							},
-						})"
-						@click="toggleMusicInPlaylist(playlist.id, musicSrc)"
-						@select.prevent
-					>
-						<div
-							:is-liked-playlist="playlist.id === 'liked'"
-							:data-added="isAddedInPlaylist(playlist.id, musicSrc)"
-							:class="pika({
-								'$[data-added=true]': ['i-f7:bookmark-fill'],
-								'$[data-added=false]': ['i-f7:bookmark'],
-								'$[is-liked-playlist=true][data-added=true]': ['i-f7:heart-fill'],
-								'$[is-liked-playlist=true][data-added=false]': ['i-f7:heart'],
-							})"
-						/>
-						<span :class="pika({ fontSize: '14px' })">{{ playlist.title }}</span>
-					</DropdownMenuItem>
-				</DropdownMenuSubContent>
-			</DropdownMenuPortal>
-		</DropdownMenuSub>
-
-		<DropdownMenuItem
-			v-if="playlistId !== 'all'"
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@select="handleShowMusicInPlaylist(musicSrc, 'all')"
-		>
-			<div :class="pika('i-f7:compass')" />
-			<span :class="pika({ fontSize: '14px' })">Show in "All"</span>
-		</DropdownMenuItem>
-
-		<DropdownMenuItem
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@select="handleCopyMusicLink(musicSrc)"
-		>
-			<div
-				:class="pika('i-f7:link')"
-			/>
-			<span :class="pika({ fontSize: '14px' })">Copy Link</span>
-		</DropdownMenuItem>
 	</UiDropdownMenu>
 </template>

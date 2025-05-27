@@ -1,14 +1,8 @@
 <script setup lang="ts">
 import type { HashActionImportSavedUserData, SavedUserData } from '@/types'
+import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
 import AboutDialog from '@/components/AboutDialog.vue'
 import { SavedUserDataSchema } from '@/schemas'
-import {
-	DropdownMenuItem,
-	DropdownMenuPortal,
-	DropdownMenuSub,
-	DropdownMenuSubContent,
-	DropdownMenuSubTrigger,
-} from 'reka-ui'
 import { safeParse } from 'valibot'
 
 const appStore = useAppStore()
@@ -104,10 +98,54 @@ const { dialog } = useAppDialog()
 function handleShowAboutDialog() {
 	dialog(AboutDialog, {})
 }
+
+const menuItems: UiDropdownMenuItem[] = [
+	{
+		icon: pika('i-f7:sun-max', { '@dark': ['i-f7:moon'] }),
+		label: 'Theme',
+		onSelect: (event) => {
+			event.preventDefault()
+			toggleDark()
+		},
+	},
+	{
+		icon: pika('i-f7:archivebox'),
+		label: 'Saved Data',
+		items: [
+			{
+				icon: pika('i-f7:arrow-up-doc'),
+				label: 'Upload',
+				onSelect: handleUploadSavedDataFile,
+			},
+			{
+				icon: pika('i-f7:arrow-down-doc'),
+				label: 'Download',
+				onSelect: handleDownloadSavedDataFile,
+			},
+			{
+				icon: pika('i-f7:link'),
+				label: 'Copy Link',
+				onSelect: handleCopySavedDataLink,
+			},
+			{
+				icon: pika('i-f7:arrow-counterclockwise'),
+				label: 'Reset',
+				onSelect: handleResetSavedData,
+			},
+		],
+	},
+	{
+		icon: pika('i-f7:info-circle'),
+		label: 'About',
+		onSelect: handleShowAboutDialog,
+	},
+]
 </script>
 
 <template>
-	<UiDropdownMenu>
+	<UiDropdownMenu
+		:items="menuItems"
+	>
 		<template #trigger>
 			<button
 				:class="pika('icon-btn')"
@@ -118,160 +156,5 @@ function handleShowAboutDialog() {
 				/>
 			</button>
 		</template>
-
-		<DropdownMenuItem
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@select.prevent="toggleDark()"
-		>
-			<div
-				:class="pika({
-					'fontSize': '20px',
-					'$': ['i-f7:sun-max'],
-					'@dark': ['i-f7:moon'],
-				})"
-			/>
-			<span :class="pika({ fontSize: '14px' })">Theme</span>
-		</DropdownMenuItem>
-
-		<DropdownMenuSub>
-			<DropdownMenuSubTrigger
-				:class="pika('hover-mask', {
-					'display': 'flex',
-					'alignItems': 'center',
-					'gap': '8px',
-					'padding': '8px',
-					'cursor': 'pointer',
-
-					'$::before': {
-						borderRadius: '4px',
-					},
-
-					'$[id^=reka-menu-sub-trigger][data-state=open]::before': {
-						opacity: '0.1',
-					},
-				})"
-			>
-				<div
-					:class="pika('i-f7:archivebox')"
-				/>
-				<span :class="pika({ fontSize: '14px' })">Saved Data</span>
-
-				<div :class="pika('i-f7:chevron-right', { marginLeft: 'auto' })" />
-			</DropdownMenuSubTrigger>
-			<DropdownMenuPortal>
-				<DropdownMenuSubContent
-					:class="pika('theme', 'card', {
-						padding: '8px',
-						minWidth: '200px',
-						borderRadius: '4px',
-						zIndex: 2,
-					})"
-				>
-					<DropdownMenuItem
-						:class="pika('hover-mask', {
-							'display': 'flex',
-							'alignItems': 'center',
-							'gap': '8px',
-							'padding': '8px',
-							'cursor': 'pointer',
-							'$::before': {
-								borderRadius: '4px',
-							},
-						})"
-						@select="handleUploadSavedDataFile()"
-					>
-						<div
-							:class="pika('i-f7:arrow-up-doc')"
-						/>
-						<span :class="pika({ fontSize: '14px' })">Upload</span>
-					</DropdownMenuItem>
-
-					<DropdownMenuItem
-						:class="pika('hover-mask', {
-							'display': 'flex',
-							'alignItems': 'center',
-							'gap': '8px',
-							'padding': '8px',
-							'cursor': 'pointer',
-							'$::before': {
-								borderRadius: '4px',
-							},
-						})"
-						@select="handleDownloadSavedDataFile()"
-					>
-						<div
-							:class="pika('i-f7:arrow-down-doc')"
-						/>
-						<span :class="pika({ fontSize: '14px' })">Download</span>
-					</DropdownMenuItem>
-
-					<DropdownMenuItem
-						:class="pika('hover-mask', {
-							'display': 'flex',
-							'alignItems': 'center',
-							'gap': '8px',
-							'padding': '8px',
-							'cursor': 'pointer',
-							'$::before': {
-								borderRadius: '4px',
-							},
-						})"
-						@select="handleCopySavedDataLink()"
-					>
-						<div
-							:class="pika('i-f7:link')"
-						/>
-						<span :class="pika({ fontSize: '14px' })">Copy Link</span>
-					</DropdownMenuItem>
-				</DropdownMenuSubContent>
-			</DropdownMenuPortal>
-		</DropdownMenuSub>
-
-		<DropdownMenuItem
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@select="handleResetSavedData()"
-		>
-			<div
-				:class="pika('i-f7:arrow-counterclockwise')"
-			/>
-			<span :class="pika({ fontSize: '14px' })">Reset</span>
-		</DropdownMenuItem>
-
-		<DropdownMenuItem
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@select="handleShowAboutDialog()"
-		>
-			<div
-				:class="pika('i-f7:info-circle')"
-			/>
-			<span :class="pika({ fontSize: '14px' })">About</span>
-		</DropdownMenuItem>
 	</UiDropdownMenu>
 </template>

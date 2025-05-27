@@ -2,16 +2,123 @@
 import {
 	DropdownMenuArrow,
 	DropdownMenuContent,
+	DropdownMenuItem,
 	DropdownMenuPortal,
 	DropdownMenuRoot,
+	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from 'reka-ui'
 
+interface BaseMenuItem {
+	icon?: string
+	label: string
+}
+
+interface NormalMenuItem extends BaseMenuItem {
+	onSelect: (event: Event) => void
+}
+
+interface SubMenu extends BaseMenuItem {
+	items: (NormalMenuItem | 'separator')[]
+}
+
+export type UiDropdownMenuItem = NormalMenuItem | SubMenu | 'separator'
+
+defineProps<{
+	items?: UiDropdownMenuItem[]
+}>()
+
 const open = defineModel<boolean>('open')
+
+const [DefineUiDropdownMenuNormalMenuItem, UiDropdownMenuNormalMenuItem] = createReusableTemplate<{ item: NormalMenuItem }>()
+const [DefineUiDropdownMenuSubMenu, UiDropdownMenuSubMenu] = createReusableTemplate<{ item: SubMenu }>()
+const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableTemplate()
 </script>
 
 <template>
 	<DropdownMenuRoot v-model:open="open">
+		<DefineUiDropdownMenuSeparator>
+			<DropdownMenuSeparator
+				:class="pika({
+					margin: '4px',
+					borderBottom: '1px solid var(--color-gray-3)',
+				})"
+			/>
+		</DefineUiDropdownMenuSeparator>
+
+		<DefineUiDropdownMenuNormalMenuItem v-slot="{ item }">
+			<DropdownMenuItem
+				:class="pika('hover-mask', {
+					'display': 'flex',
+					'alignItems': 'center',
+					'gap': '8px',
+					'padding': '8px',
+					'cursor': 'pointer',
+					'$::before': {
+						borderRadius: '4px',
+					},
+				})"
+				@select="item.onSelect"
+			>
+				<div
+					v-if="item.icon"
+					:class="item.icon"
+				/>
+				<span :class="pika({ fontSize: '14px' })">{{ item.label }}</span>
+			</DropdownMenuItem>
+		</DefineUiDropdownMenuNormalMenuItem>
+
+		<DefineUiDropdownMenuSubMenu v-slot="{ item }">
+			<DropdownMenuSub>
+				<DropdownMenuSubTrigger
+					:class="pika('hover-mask', {
+						'display': 'flex',
+						'alignItems': 'center',
+						'gap': '8px',
+						'padding': '8px',
+						'cursor': 'pointer',
+
+						'$::before': {
+							borderRadius: '4px',
+						},
+
+						'$[id^=reka-menu-sub-trigger][data-state=open]::before': {
+							opacity: '0.1',
+						},
+					})"
+				>
+					<div :class="item.icon" />
+					<span :class="pika({ fontSize: '14px' })">{{ item.label }}</span>
+
+					<div :class="pika('i-f7:chevron-right', { marginLeft: 'auto' })" />
+				</DropdownMenuSubTrigger>
+				<DropdownMenuPortal>
+					<DropdownMenuSubContent
+						:class="pika('theme', 'card', {
+							padding: '8px',
+							minWidth: '200px',
+							borderRadius: '4px',
+							zIndex: 2,
+						})"
+					>
+						<template
+							v-for="(subItem, i) in item.items"
+							:key="`sub-item-${i}`"
+						>
+							<UiDropdownMenuSeparator v-if="subItem === 'separator'" />
+							<UiDropdownMenuNormalMenuItem
+								v-else-if="'onSelect' in subItem"
+								:item="subItem"
+							/>
+						</template>
+					</DropdownMenuSubContent>
+				</DropdownMenuPortal>
+			</DropdownMenuSub>
+		</DefineUiDropdownMenuSubMenu>
+
 		<DropdownMenuTrigger
 			asChild
 		>
@@ -27,32 +134,23 @@ const open = defineModel<boolean>('open')
 					zIndex: 2,
 				})"
 			>
-				<slot />
-				<!-- <DropdownMenuLabel />
-				<DropdownMenuItem />
+				<slot>
+					<template
+						v-for="(item, i) in items"
+						:key="`item-${i}`"
+					>
+						<UiDropdownMenuSeparator v-if="item === 'separator'" />
+						<UiDropdownMenuNormalMenuItem
+							v-else-if="'onSelect' in item"
+							:item="item"
+						/>
+						<UiDropdownMenuSubMenu
+							v-else-if="'items' in item"
+							:item="item"
+						/>
+					</template>
+				</slot>
 
-				<DropdownMenuGroup>
-					<DropdownMenuItem />
-				</DropdownMenuGroup>
-
-				<DropdownMenuCheckboxItem>
-					<DropdownMenuItemIndicator />
-				</DropdownMenuCheckboxItem>
-
-				<DropdownMenuRadioGroup>
-					<DropdownMenuRadioItem>
-						<DropdownMenuItemIndicator />
-					</DropdownMenuRadioItem>
-				</DropdownMenuRadioGroup>
-
-				<DropdownMenuSub>
-					<DropdownMenuSubTrigger />
-					<DropdownMenuPortal>
-						<DropdownMenuSubContent />
-					</DropdownMenuPortal>
-				</DropdownMenuSub>
-
-				<DropdownMenuSeparator /> -->
 				<DropdownMenuArrow
 					:class="pika({
 						'fill': 'var(--color-gray-1)',

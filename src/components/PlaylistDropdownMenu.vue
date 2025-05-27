@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import type { CustomPlaylistId, PlaylistId } from '@/types'
-import {
-	DropdownMenuItem,
-} from 'reka-ui'
+import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
 import EditPlaylistDialog from './EditPlaylistDialog.vue'
 
-defineProps<{
+const props = defineProps<{
 	playlistId: PlaylistId
 }>()
 
@@ -34,10 +32,34 @@ async function handleDeletePlaylist(playlistId: CustomPlaylistId) {
 		deletePlaylist(playlistId)
 	}
 }
+
+const menuItems = computed<UiDropdownMenuItem[]>(() => [
+	{
+		icon: pika('i-f7:play'),
+		label: 'Play',
+		onSelect: () => play(props.playlistId),
+	},
+	...(isCustomPlaylist(props.playlistId)
+		? [
+				{
+					icon: pika('i-f7:pencil'),
+					label: 'Edit Playlist',
+					onSelect: () => handleStartEditPlaylist(props.playlistId as CustomPlaylistId),
+				},
+				{
+					icon: pika('i-f7:trash'),
+					label: 'Delete Playlist',
+					onSelect: () => handleDeletePlaylist(props.playlistId as CustomPlaylistId),
+				},
+			]
+		: []),
+])
 </script>
 
 <template>
-	<UiDropdownMenu>
+	<UiDropdownMenu
+		:items="menuItems"
+	>
 		<template #trigger>
 			<button
 				:class="pika('icon-btn', {
@@ -55,58 +77,5 @@ async function handleDeletePlaylist(playlistId: CustomPlaylistId) {
 				/>
 			</button>
 		</template>
-
-		<DropdownMenuItem
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@click="play(playlistId)"
-		>
-			<div :class="pika('i-f7:play')" />
-			<span :class="pika({ fontSize: '14px' })">Play</span>
-		</DropdownMenuItem>
-
-		<DropdownMenuItem
-			v-if="isCustomPlaylist(playlistId)"
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@click="handleStartEditPlaylist(playlistId)"
-		>
-			<div :class="pika('i-f7:pencil')" />
-			<span :class="pika({ fontSize: '14px' })">Edit Playlist</span>
-		</DropdownMenuItem>
-
-		<DropdownMenuItem
-			v-if="isCustomPlaylist(playlistId)"
-			:class="pika('hover-mask', {
-				'display': 'flex',
-				'alignItems': 'center',
-				'gap': '8px',
-				'padding': '8px',
-				'cursor': 'pointer',
-				'$::before': {
-					borderRadius: '4px',
-				},
-			})"
-			@click="handleDeletePlaylist(playlistId)"
-		>
-			<div :class="pika('i-f7:trash')" />
-			<span :class="pika({ fontSize: '14px' })">Delete Playlist</span>
-		</DropdownMenuItem>
 	</UiDropdownMenu>
 </template>
