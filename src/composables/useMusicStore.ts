@@ -148,6 +148,10 @@ export const useMusicStore = defineStore('music', () => {
 		audioPlayerLogic.currentTime.value = 0
 	}
 
+	function getPlayMusicLink(musicSrc: string) {
+		return `${window.location.origin}${import.meta.env.BASE_URL}play/?musicSrc=${musicSrc}`
+	}
+
 	if (navigator.mediaSession != null) {
 		watch(
 			currentMusic,
@@ -239,6 +243,7 @@ export const useMusicStore = defineStore('music', () => {
 		currentPlaylist,
 		currentMusic,
 		play,
+		getPlayMusicLink,
 		ready,
 	}
 })

@@ -22,6 +22,7 @@ const {
 	toggleRandom,
 	toggleRepeated,
 	toggleMuted,
+	getPlayMusicLink,
 } = musicStore
 
 function formatTime(time: number) {
@@ -63,19 +64,7 @@ const { copy } = useClipboard({ legacy: true })
 const { toast } = useUiToast()
 async function handleCopyMusicLink() {
 	if (currentMusic.value) {
-		const link = await makeHashActionLink({
-			type: 'play-music',
-			data: {
-				musicSrc: currentMusic.value.src,
-			},
-		})
-		if (link == null) {
-			toast({
-				title: 'Failed to create link',
-				duration: 2000,
-			})
-			return
-		}
+		const link = getPlayMusicLink(currentMusic.value.src)
 		copy(link)
 		toast({
 			title: 'Link Copied!',

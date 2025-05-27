@@ -1,13 +1,15 @@
-import type { HashActionImportSavedUserData, PlaylistId } from '@/types'
-import { HashActionImportSavedUserDataSchema, HashActionPlayMusicSchema } from '@/schemas'
+import type { HashActionImportSavedUserData, PlaylistId, SavedUserData } from '@/types'
+import { HashActionImportSavedUserDataSchema } from '@/schemas'
 import { getRecord } from '@/utils/cfWorker'
 import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
-import { type ObjectSchema, safeParse } from 'valibot'
+import { safeParse } from 'valibot'
 import { createRouter, createWebHistory, RouterView } from 'vue-router'
 
 export const Routes = {
 	Root: 'Root',
 	Link: 'Link',
+	Setup: 'Setup',
+	DirectlyPlay: 'DirectlyPlay',
 	Playlists: 'Playlists',
 	Playlist: 'Playlist',
 } as const
@@ -17,56 +19,41 @@ const middlewares = {
 		const appStore = useAppStore()
 		await appStore.ready
 	},
-	executeHashAction: async (to) => {
+	resolveRecord: async (to) => {
+		const { recordId, ...restQuery } = to.query as { recordId: string | undefined }
+		if (recordId == null) {
+			return true
+		}
+
+		const hash = await getRecord(recordId)
+		if (hash == null) {
+			// Invalid recordId, redirect to root
+			return { name: Routes.Root }
+		}
+
+		return {
+			...to,
+			query: restQuery,
+			hash,
+		}
+	},
+	importSavedUserData: async (to) => {
 		const data = urlHashToData(to.hash)
 		if (data == null)
 			return true
 
-		const actions: [schema: ObjectSchema<any, any>, handler: (data: any) => any][] = [
-			[
-				HashActionImportSavedUserDataSchema,
-				async ({ data }: HashActionImportSavedUserData) => {
-					const { confirm } = useUiConfirmDialog()
+		const result = safeParse(HashActionImportSavedUserDataSchema, data)
+		if (result.success) {
+			const { confirm } = useUiConfirmDialog()
 
-					const agreed = await confirm({
-						title: 'Import Saved User Data',
-						description: 'Are you sure you want to import this saved user data?',
-					})
+			const agreed = await confirm({
+				title: 'Import Saved User Data',
+				description: 'Are you sure you want to import this saved user data?',
+			})
 
-					if (agreed) {
-						const { savedUserData } = useSavedUserData()
-						savedUserData.value = data
-					}
-				},
-			],
-			[
-				HashActionPlayMusicSchema,
-				async ({ data }) => {
-					const { confirm } = useUiConfirmDialog()
-					const musicStore = useMusicStore()
-					const musicData = musicStore.getMusicData(data.musicSrc)!
-
-					const agreed = await confirm({
-						title: 'Play Music From Link',
-						description: `Are you sure you want to play "${musicData.title}" from link?`,
-					})
-
-					if (agreed) {
-						const musicStore = useMusicStore()
-						musicStore.play('all', data.musicSrc)
-					}
-				},
-			],
-		]
-
-		for (const [schema, handler] of actions) {
-			const result = safeParse(schema, data)
-			if (result.success) {
-				await handler(result.output)
-				return {
-					...to,
-					hash: '',
-				}
+			if (agreed) {
+				const { savedUserData } = useSavedUserData()
+				savedUserData.value = (result.output as HashActionImportSavedUserData).data
 			}
 		}
 
@@ -80,28 +67,55 @@ const middlewares = {
 		}
 		return true
 	},
+	directlyPlay: async (to) => {
+		const { musicSrc } = to.query as { musicSrc: string | undefined }
+		const { confirm } = useUiConfirmDialog()
+		const musicStore = useMusicStore()
+		const musicData = musicStore.getMusicData(musicSrc!)
+
+		if (musicData == null) {
+			return { name: Routes.Root }
+		}
+
+		const agreed = await confirm({
+			title: 'Play Music From Link',
+			description: `Are you sure you want to play "${musicData.title}" from link?`,
+		})
+
+		if (agreed) {
+			const musicStore = useMusicStore()
+			musicStore.play('all', musicSrc)
+		}
+
+		return { name: Routes.Root }
+	},
 } satisfies Record<string, Middleware>
 
 const router = createRouter({
 	history: createWebHistory(import.meta.env.BASE_URL),
 	routes: [
 		{
-			name: Routes.Link,
-			path: '/link/:recordId',
+			name: Routes.Setup,
+			path: '/setup',
 			component: RouterView,
 			meta: {
-				middleware: async (to) => {
-					const { recordId } = to.params as { recordId: string }
-					const hash = await getRecord(recordId)
-					if (hash == null) {
-						return { name: Routes.Root }
-					}
-
-					return {
-						name: Routes.Root,
-						hash,
-					}
-				},
+				middleware: [
+					middlewares.waitUntilReady,
+					middlewares.resolveRecord,
+					middlewares.importSavedUserData,
+					() => ({ name: Routes.Root }),
+				],
+			},
+		},
+		{
+			name: Routes.DirectlyPlay,
+			path: '/play',
+			component: RouterView,
+			meta: {
+				middleware: [
+					middlewares.waitUntilReady,
+					middlewares.directlyPlay,
+				],
 			},
 		},
 		{
@@ -111,7 +125,6 @@ const router = createRouter({
 			meta: {
 				middleware: [
 					middlewares.waitUntilReady,
-					middlewares.executeHashAction,
 				],
 			},
 			component: () => import('@/components/DefaultLayout.vue'),

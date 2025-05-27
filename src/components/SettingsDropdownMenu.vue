@@ -86,14 +86,16 @@ async function handleCopySavedDataLink() {
 		type: 'import-saved-user-data',
 		data: savedUserData.value,
 	}
-	const link = await makeHashActionLink(data)
-	if (link == null) {
-		toast({
-			title: 'Failed to create link',
-			duration: 2000,
-		})
+
+	const hash = dataToUrlHash(data)
+	let link = `${window.location.origin}${import.meta.env.BASE_URL}setup/${hash}`
+
+	const recordId = await createRecord(hash)
+	if (recordId != null) {
+		link = `${window.location.origin}${import.meta.env.BASE_URL}setup/?recordId=${recordId}`
 		return
 	}
+
 	copy(link)
 	toast({
 		title: 'Link Copied!',

@@ -1,6 +1,5 @@
 import { decompressSync, deflateSync, strFromU8, strToU8 } from 'fflate'
 import { mergeProps } from 'vue'
-import { createRecord } from './cfWorker'
 
 export function mergeClasses(...classes: any[]) {
 	return mergeProps(...classes.map(cls => ({ class: cls }))).class as any
@@ -38,15 +37,4 @@ export function exportToJSONFile(data: any, filename: string) {
 	a.click()
 	document.body.removeChild(a)
 	URL.revokeObjectURL(url)
-}
-
-export async function makeHashActionLink(data: any) {
-	const hash = dataToUrlHash(data)
-	const recordId = await createRecord(hash)
-
-	if (recordId == null) {
-		return `${window.location.origin}${import.meta.env.BASE_URL}${hash}`
-	}
-
-	return `${window.location.origin}${import.meta.env.BASE_URL}link/${recordId}`
 }
