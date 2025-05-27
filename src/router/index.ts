@@ -1,4 +1,4 @@
-import type { HashActionImportSavedUserData, PlaylistId, SavedUserData } from '@/types'
+import type { HashActionImportSavedUserData, PlaylistId } from '@/types'
 import { HashActionImportSavedUserDataSchema } from '@/schemas'
 import { getRecord } from '@/utils/cfWorker'
 import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
