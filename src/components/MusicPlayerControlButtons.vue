@@ -75,7 +75,7 @@ defineEmits<{
 					<div
 						:data-is-paused="isPaused"
 						:class="pika({
-							'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
+							'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(calc(var(--size) / 20))' }],
 							'$[data-is-paused=false]': ['i-f7:pause-fill'],
 						})"
 					/>

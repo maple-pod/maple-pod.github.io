@@ -7,11 +7,10 @@ import { Routes } from '@/router'
 		:class="pika('theme', {
 			display: 'flex',
 			justifyContent: 'center',
-			gap: '16px',
 			width: '100%',
 			height: '100%',
 			minHeight: '100%',
-			padding: '0 16px',
+			padding: '0 12px',
 		})"
 	>
 		<div
@@ -21,7 +20,7 @@ import { Routes } from '@/router'
 				width: '100%',
 				maxWidth: '768px',
 				height: '100%',
-				gap: '16px',
+				gap: '12px',
 			})"
 		>
 			<div
@@ -29,19 +28,14 @@ import { Routes } from '@/router'
 					display: 'flex',
 					flexDirection: 'column',
 					gap: '16px',
-					padding: '0 16px 16px 16px',
+					padding: '16px',
 					borderRadius: '0 0 16px 16px',
 				})"
 			>
 				<div
 					:class="pika({
-						'display': 'flex',
-						'alignItems': 'center',
-						'padding': '32px 0',
-
-						'$:not(:last-child)': {
-							borderBottom: '1px solid var(--color-gray-3)',
-						},
+						display: 'flex',
+						alignItems: 'center',
 					})"
 				>
 					<RouterLink

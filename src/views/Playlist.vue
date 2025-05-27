@@ -37,7 +37,7 @@ function goBackToPlaylists() {
 
 <template>
 	<div
-		:class="pika({
+		:class="pika('card', {
 			display: 'flex',
 			flexDirection: 'column',
 			gap: '16px',
@@ -45,96 +45,95 @@ function goBackToPlaylists() {
 			height: '100%',
 		})"
 	>
-		<DefaultLayoutHeaderSlot>
+		<div
+			:class="pika({
+				display: 'flex',
+				alignItems: 'center',
+				gap: '16px',
+				fontWeight: '100',
+				height: '60px',
+			})"
+		>
+			<UiTooltip>
+				<template #trigger>
+					<button
+						:class="pika('icon-btn')"
+						@click="goBackToPlaylists()"
+					>
+						<div :class="pika('i-f7:chevron-left')" />
+					</button>
+				</template>
+
+				<template #content>
+					Back to playlists
+				</template>
+			</UiTooltip>
+			<UiMarquee
+				:class="pika({
+					maxWidth: '250px',
+					fontSize: '24px',
+					fontWeight: '100',
+				})"
+			>
+				{{ title }}
+			</UiMarquee>
 			<div
 				:class="pika({
-					display: 'flex',
-					alignItems: 'center',
-					gap: '16px',
-					fontWeight: '100',
+					'display': 'flex',
+					'alignItems': 'center',
+					'gap': '4px',
+
+					'padding': '8px 12px',
+					'borderRadius': '9999px',
+					'backgroundColor': 'var(--color-gray-2)',
+					'@dark': {
+						backgroundColor: 'var(--color-gray-5)',
+					},
+
 				})"
 			>
 				<UiTooltip>
 					<template #trigger>
 						<button
-							:class="pika('icon-btn')"
-							@click="goBackToPlaylists()"
+							:data-state="random"
+							:data-toggle="random"
+							:class="pika('icon-btn-toggle')"
+							@click="toggleRandom()"
 						>
-							<div :class="pika('i-f7:chevron-left')" />
+							<div
+								:class="pika('i-f7:shuffle')"
+							/>
 						</button>
 					</template>
-
 					<template #content>
-						Back to playlists
+						{{ random === true ? 'Disable Random' : 'Enable Random' }}
 					</template>
 				</UiTooltip>
-				<UiMarquee
-					:class="pika({
-						maxWidth: '250px',
-						fontSize: '24px',
-						fontWeight: '100',
-					})"
-				>
-					{{ title }}
-				</UiMarquee>
-				<div
-					:class="pika({
-						'display': 'flex',
-						'alignItems': 'center',
-						'gap': '4px',
-
-						'padding': '8px 12px',
-						'borderRadius': '9999px',
-						'backgroundColor': 'var(--color-gray-2)',
-						'@dark': {
-							backgroundColor: 'var(--color-gray-5)',
-						},
-
-					})"
-				>
-					<UiTooltip>
-						<template #trigger>
-							<button
-								:data-state="random"
-								:data-toggle="random"
-								:class="pika('icon-btn-toggle')"
-								@click="toggleRandom()"
-							>
-								<div
-									:class="pika('i-f7:shuffle')"
-								/>
-							</button>
-						</template>
-						<template #content>
-							{{ random === true ? 'Disable Random' : 'Enable Random' }}
-						</template>
-					</UiTooltip>
-					<UiTooltip>
-						<template #trigger>
-							<button
-								:class="pika('icon-btn')"
-								:disabled="playlist.list.length === 0"
-								@click="handlePlayPlaylist()"
-							>
-								<div
-									:data-is-paused="isPaused || playlist.id !== currentPlaylist?.id"
-									:class="pika({
-										'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
-										'$[data-is-paused=false]': ['i-f7:pause-fill'],
-									})"
-								/>
-							</button>
-						</template>
-						<template #content>
-							{{ isPaused === true ? 'Play' : 'Pause' }}
-						</template>
-					</UiTooltip>
-				</div>
+				<UiTooltip>
+					<template #trigger>
+						<button
+							:class="pika('icon-btn')"
+							:disabled="playlist.list.length === 0"
+							@click="handlePlayPlaylist()"
+						>
+							<div
+								:data-is-paused="isPaused || playlist.id !== currentPlaylist?.id"
+								:class="pika({
+									'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
+									'$[data-is-paused=false]': ['i-f7:pause-fill'],
+								})"
+							/>
+						</button>
+					</template>
+					<template #content>
+						{{ isPaused === true ? 'Play' : 'Pause' }}
+					</template>
+				</UiTooltip>
 			</div>
-		</DefaultLayoutHeaderSlot>
+		</div>
 
 		<div
-			:class="pika('card', {
+			:class="pika({
 				flex: '1 0 0',
 				minHeight: '0',
 			})"

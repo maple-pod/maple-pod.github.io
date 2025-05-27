@@ -17,7 +17,7 @@ function handleStartCreatePlaylist() {
 
 <template>
 	<div
-		:class="pika({
+		:class="pika('card', {
 			display: 'flex',
 			flexDirection: 'column',
 			gap: '16px',
@@ -25,43 +25,43 @@ function handleStartCreatePlaylist() {
 			height: '100%',
 		})"
 	>
-		<DefaultLayoutHeaderSlot>
+		<div
+			:class="pika({
+				display: 'flex',
+				alignItems: 'center',
+				fontWeight: '100',
+				padding: '0 16px',
+				height: '60px',
+			})"
+		>
 			<div
 				:class="pika({
-					display: 'flex',
-					alignItems: 'center',
+					fontSize: '24px',
 					fontWeight: '100',
+					marginRight: '4px',
 				})"
 			>
-				<div
-					:class="pika({
-						fontSize: '24px',
-						fontWeight: '100',
-						marginRight: '4px',
-					})"
-				>
-					Playlists
-				</div>
-
-				<UiTooltip>
-					<template #trigger>
-						<button
-							:class="pika('icon-btn')"
-							@click="handleStartCreatePlaylist"
-						>
-							<div :class="pika('i-f7:plus')" />
-						</button>
-					</template>
-
-					<template #content>
-						Create new playlist
-					</template>
-				</UiTooltip>
+				Playlists
 			</div>
-		</DefaultLayoutHeaderSlot>
+
+			<UiTooltip>
+				<template #trigger>
+					<button
+						:class="pika('icon-btn')"
+						@click="handleStartCreatePlaylist"
+					>
+						<div :class="pika('i-f7:plus')" />
+					</button>
+				</template>
+
+				<template #content>
+					Create new playlist
+				</template>
+			</UiTooltip>
+		</div>
 
 		<div
-			:class="pika('card', {
+			:class="pika({
 				flex: '1 0 0',
 				minHeight: '0',
 			})"
