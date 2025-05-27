@@ -54,16 +54,12 @@ function handleCopyMusicLink() {
 					justifyContent: 'center',
 					alignItems: 'center',
 					width: '100%',
-					height: '150px',
+					height: '120px',
 				})"
 			>
 				<button
 					data-toggle="true"
-					:class="pika('icon-btn-toggle', {
-						'@docpip': {
-							display: 'none',
-						},
-					})"
+					:class="pika('icon-btn-toggle', { '--size': '64px' })"
 					@click="stopPip()"
 				>
 					<div
