@@ -20,6 +20,7 @@ export default defineEngineConfig({
 			['--color-gray-4', '#222222'],
 			['--color-gray-5', '#111111'],
 			['--color-primary-1', '#E36262'],
+			['--color-secondary-1', '#FFC15F'],
 			['--color-danger-1', '#FF5252'],
 		],
 	},
@@ -92,7 +93,7 @@ export default defineEngineConfig({
 						pointerEvents: 'none',
 					},
 					'$:not(:disabled):hover::before': {
-						opacity: '0.1',
+						opacity: '0.05',
 					},
 				},
 			],

@@ -78,7 +78,7 @@ import { Routes } from '@/router'
 										padding: '4px',
 										borderRadius: '4px',
 										fontSize: '14px',
-										background: '#ffc15f',
+										backgroundColor: 'var(--color-secondary-1)',
 									})"
 								>
 									DEV
