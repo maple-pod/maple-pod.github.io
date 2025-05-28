@@ -11,6 +11,8 @@ import simpleGit, { type SimpleGit } from 'simple-git'
 
 process.env.YTDL_NO_UPDATE = 'true'
 
+const currentDir = fileURLToPath(new URL('.', import.meta.url))
+
 interface MapleBgmItem {
 	description: string
 	filename: string
@@ -33,7 +35,6 @@ interface MapleBgmItem {
 interface OutputDataItem {
 	title: string
 	cover: string
-	duration: number
 	src: string
 
 	data: MapleBgmItem
@@ -41,7 +42,7 @@ interface OutputDataItem {
 
 const CLEAR = false
 
-const outputDir = fileURLToPath(new URL('../maplebgm', import.meta.url))
+const outputDir = path.join(currentDir, '../resources')
 const dataDir = path.join(outputDir, 'data')
 const bgmDir = path.join(outputDir, 'bgm')
 const markDir = path.join(outputDir, 'mark')
@@ -71,9 +72,11 @@ async function downloadMark(item: OutputDataItem) {
 	const markPath = path.join(markDir, markFilename)
 
 	if (downloadedMarks.has(markFilename)) {
+		console.log(`Mark already downloaded: ${markFilename}`)
 		return
 	}
 
+	console.log(`Downloading mark: ${markFilename}`)
 	const response = await ofetch(markUrl, { responseType: 'arrayBuffer' })
 	await writeFile(markPath, Buffer.from(response))
 	downloadedMarks.add(markFilename)
@@ -85,6 +88,7 @@ async function downloadBgm(item: OutputDataItem) {
 	const bgmPath = path.join(bgmDir, bgmFilename)
 
 	if (downloadedBgms.has(bgmFilename) === false) {
+		console.log(`Downloading BGM: ${bgmFilename}`)
 		await delay(5000) // To avoid hitting YouTube's rate limit
 		await new Promise<void>((resolve, reject) => {
 			const stream = ytdl(bgmYoutubeId, { quality: 'highestaudio', filter: 'audioonly' })
@@ -95,18 +99,12 @@ async function downloadBgm(item: OutputDataItem) {
 		})
 		downloadedBgms.add(bgmFilename)
 	}
-
-	const duration = await new Promise<number>((resolve, reject) => {
-		ffmpeg.ffprobe(bgmPath, (err, metadata) => {
-			if (err)
-				return reject(err)
-			resolve(metadata.format.duration || 0)
-		})
-	})
-	item.duration = duration
+	else {
+		console.log(`BGM already downloaded: ${bgmFilename}`)
+	}
 }
 
-async function pushToRemote(target: 'bgm' | 'mark' | 'data') {
+export async function pushToRemote(target: 'bgm' | 'mark' | 'data') {
 	const dir = path.join(outputDir, target)
 	await rm(path.join(dir, '.git'))
 	const git: SimpleGit = simpleGit(dir)
@@ -133,7 +131,6 @@ async function main() {
 		.map<OutputDataItem>(item => ({
 			title: item.metadata.title,
 			cover: `/mark/${item.mark}.png`,
-			duration: 0, // Duration will be set after downloading the audio
 			src: `/bgm/${item.filename}.mp3`,
 			data: item,
 		}))
@@ -165,9 +162,9 @@ async function main() {
 
 	await delay(1000) // Wait for a second before pushing to remote
 
-	await pushToRemote('data')
-	await pushToRemote('mark')
-	await pushToRemote('bgm')
+	// await pushToRemote('data')
+	// await pushToRemote('mark')
+	// await pushToRemote('bgm')
 }
 
 main()
