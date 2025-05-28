@@ -77,17 +77,14 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 		<template #trigger>
 			<button
 				:class="pika('icon-btn', {
-					'@screen 769 to *': {
+					'@screen-md-and-up': {
 						':not(:has([id^=reka-dropdown-menu-trigger-][data-state=open])):not(:hover) $': { visibility: 'hidden' },
 					},
 				})"
 				@click.stop
 			>
 				<div
-					:class="pika({
-						'$': ['i-f7:ellipsis-vertical'],
-						'@screen 769 to *': ['i-f7:ellipsis'],
-					})"
+					:class="pika('i-f7:ellipsis-vertical', { '@screen-md-and-up': ['i-f7:ellipsis'] })"
 				/>
 			</button>
 		</template>

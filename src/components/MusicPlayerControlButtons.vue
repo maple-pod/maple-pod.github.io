@@ -22,12 +22,12 @@ defineEmits<{
 		:class="pika({
 			'display': 'flex',
 			'alignItems': 'center',
-			'justifyContent': 'center',
-			'gap': '16px',
+			'justifyContent': 'space-between',
 			'width': '100%',
 
-			'@screen * to 500': {
-				gap: '8px',
+			'@container music-player 420 to *': {
+				justifyContent: 'center',
+				gap: '24px',
 			},
 		})"
 	>

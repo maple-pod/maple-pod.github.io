@@ -91,34 +91,50 @@ function handleCopyMusicLink() {
 					'@docpip': ['card', {
 						display: 'block',
 						transform: 'scale(0.8)',
-						width: '450px',
+						width: '100%',
+						minWidth: '400px',
+						maxWidth: '640px',
 					}],
 				})"
 			>
 				<div
 					:class="pika({
-						display: 'flex',
-						gap: '16px',
 						width: '100%',
 						height: '120px',
+						container: 'music-player / inline-size',
 					})"
 				>
 					<div
 						:class="pika({
-							display: 'flex',
-							flexDirection: 'column',
-							gap: '16px',
-							flex: '1 1 0',
-							minWidth: '0',
+							'display': 'grid',
+							'gridTemplateColumns': '42px 1fr 42px',
+							'gridTemplateRows': 'auto auto',
+							'gap': '12px',
+							'width': '100%',
+							'height': '100%',
+
+							'@container music-player 420 to *': {
+								gridTemplateColumns: '56px 1fr 56px',
+							},
+
+							'@container music-player 640 to *': {
+								gridTemplateColumns: '72px 1fr 72px',
+							},
 						})"
 					>
 						<!-- Header -->
 						<div
 							:class="pika({
-								display: 'flex',
-								alignItems: 'center',
-								gap: '32px',
-								width: '100%',
+								'gridColumn': '2 / 4',
+								'gridRow': '1 / 2',
+								'display': 'flex',
+								'alignItems': 'center',
+								'gap': '32px',
+								'width': '100%',
+								'paddingRight': '52px',
+								'@container music-player 420 to *': {
+									gridColumn: '1 / 4',
+								},
 							})"
 						>
 							<div
@@ -177,28 +193,52 @@ function handleCopyMusicLink() {
 								@startPip="startPip({ width: 480, height: 180 })"
 							/>
 						</div>
-						<!-- Cover & Controls -->
 						<div
 							:class="pika({
-								display: 'flex',
-								gap: '16px',
-								width: '100%',
-								flex: '1 1 0',
-								minHeight: '0',
+								'gridColumn': '1 / 2',
+								'gridRow': '1 / 2',
+								'display': 'flex',
+								'alignItems': 'center',
+
+								'@container music-player 420 to *': {
+									gridRow: '2 / 3',
+								},
 							})"
 						>
 							<MusicPlayerThumbnail
+								:class="pika({
+									width: '100%',
+								})"
 								:currentMusic="currentMusic"
 							/>
+						</div>
+						<div
+							:class="pika({
+								'gridColumn': '1 / 3',
+								'gridRow': '2 / 3',
+								'display': 'flex',
+								'justifyContent': 'center',
+								'@container music-player 420 to *': {
+									gridColumn: '2 / 3',
+								},
+							})"
+						>
 							<div
 								:class="pika({
-									display: 'flex',
-									flexDirection: 'column',
-									justifyContent: 'center',
-									alignItems: 'center',
-									gap: '8px',
-									flex: '1 1 0',
-									minWidth: '0',
+									'display': 'flex',
+									'flexDirection': 'column',
+									'justifyContent': 'center',
+									'alignItems': 'center',
+									'width': '100%',
+
+									'@container music-player 420 to *': {
+										gap: '4px',
+										maxWidth: '480px',
+									},
+
+									'@container music-player 640 to *': {
+										gap: '8px',
+									},
 								})"
 							>
 								<MusicPlayerControlButtons
@@ -219,13 +259,22 @@ function handleCopyMusicLink() {
 								/>
 							</div>
 						</div>
+						<!-- Volume Control -->
+						<div
+							:class="pika({
+								gridColumn: '3 / 4',
+								gridRow: '1 / 3',
+								display: 'flex',
+								justifyContent: 'end',
+							})"
+						>
+							<MusicPlayerVolume
+								v-model:volume="volume"
+								:muted
+								@toggleMuted="toggleMuted"
+							/>
+						</div>
 					</div>
-					<!-- Volume Control -->
-					<MusicPlayerVolume
-						v-model:volume="volume"
-						:muted
-						@toggleMuted="toggleMuted"
-					/>
 				</div>
 			</div>
 		</div>

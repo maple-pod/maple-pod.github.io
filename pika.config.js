@@ -42,6 +42,37 @@ export default defineEngineConfig({
 				// never
 				return ''
 			}],
+			['@screen-xs-and-up', '@screen 360 to *'],
+			['@screen-sm-and-up', '@screen 640 to *'],
+			['@screen-md-and-up', '@screen 768 to *'],
+			['@screen-lg-and-up', '@screen 1024 to *'],
+			['@screen-xl-and-up', '@screen 1280 to *'],
+			[/^@container (\*|\d+) to (\*|\d+)$/, ([, min, max]) => {
+				if (min === '*' && max !== '*') {
+					return `@container (max-width: ${(max)}px)`
+				}
+				if (min !== '*' && max === '*') {
+					return `@container (min-width: ${min}px)`
+				}
+				if (min !== '*' && max !== '*') {
+					return `@container (min-width: ${min}px) and (max-width: ${max}px)`
+				}
+				// never
+				return ''
+			}],
+			[/^@container (.*) (\*|\d+) to (\*|\d+)$/, ([, name, min, max]) => {
+				if (min === '*' && max !== '*') {
+					return `@container ${name} (max-width: ${(max)}px)`
+				}
+				if (min !== '*' && max === '*') {
+					return `@container ${name} (min-width: ${min}px)`
+				}
+				if (min !== '*' && max !== '*') {
+					return `@container ${name} (min-width: ${min}px) and (max-width: ${max}px)`
+				}
+				// never
+				return ''
+			}],
 		],
 	},
 
@@ -152,7 +183,7 @@ export default defineEngineConfig({
 					'base-btn',
 					'hover-mask',
 					{
-						'--size': '36px',
+						'--size': '28px',
 						'width': 'var(--size)',
 						'height': 'var(--size)',
 						'padding': 'calc(var(--size) / 5)',
@@ -167,6 +198,10 @@ export default defineEngineConfig({
 
 						'$::before': {
 							borderRadius: '50%',
+						},
+
+						'@screen-sm-and-up': {
+							'--size': '32px',
 						},
 					},
 				],

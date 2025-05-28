@@ -37,7 +37,7 @@ function goBackToPlaylists() {
 
 <template>
 	<div
-		:class="pika('card', {
+		:class="pika({
 			display: 'flex',
 			flexDirection: 'column',
 			gap: '16px',
@@ -213,7 +213,7 @@ function goBackToPlaylists() {
 							<button
 								:data-liked="isMusicLiked(item.src)"
 								:class="pika('icon-btn', {
-									'@screen 501 to *': {
+									'@screen-md-and-up': {
 										'[data-music-src]:not(:hover) [data-liked=false]$': { visibility: 'hidden' },
 									},
 								})"
@@ -238,19 +238,16 @@ function goBackToPlaylists() {
 								loading="lazy"
 							>
 
-							<div
+							<UiMarquee
+								:key="item.title"
+								:title="item.title"
 								:class="pika({
-									flex: '1 1 0',
+									flex: '1 2 0',
 									minWidth: '0',
-									display: 'flex',
-									whiteSpace: 'nowrap',
-									textOverflow: 'ellipsis',
-									overflow: 'hidden',
 								})"
-								:title="currentMusic?.title"
 							>
-								<UiMarquee>{{ item.title }}</UiMarquee>
-							</div>
+								{{ item.title }}
+							</UiMarquee>
 						</div>
 
 						<PlaylistMusicDropdownMenu

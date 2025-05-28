@@ -17,7 +17,7 @@ function handleStartCreatePlaylist() {
 
 <template>
 	<div
-		:class="pika('card', {
+		:class="pika({
 			display: 'flex',
 			flexDirection: 'column',
 			gap: '16px',

@@ -10,7 +10,6 @@ defineProps<{
 	<div
 		:class="pika({
 			'aspectRatio': '1 / 1',
-			'height': '100%',
 			'overflow': 'hidden',
 			'borderRadius': '4px',
 			'backgroundColor': 'var(--color-gray-2)',
@@ -20,25 +19,34 @@ defineProps<{
 		})"
 	>
 		<div
+			v-if="currentMusic == null"
 			:class="pika({
-				'display': 'flex',
-				'alignItems': 'center',
-				'justifyContent': 'center',
-				'width': '100%',
-				'height': '100%',
-				'[data-music-loaded=true] $': { display: 'none' },
+				display: 'flex',
+				alignItems: 'center',
+				justifyContent: 'center',
+				width: '100%',
+				height: '100%',
 			})"
 		>
-			<div :class="pika('i-f7:music-note', { fontSize: '56px', color: 'var(--color-gray-3)' })" />
+			<div
+				:class="pika('i-f7:music-note', {
+					'fontSize': '24px',
+					'color': 'var(--color-gray-3)',
+
+					'@container music-player 420 to *': {
+						fontSize: '36px',
+					},
+				})"
+			/>
 		</div>
 		<img
-			:src="currentMusic?.cover"
-			:alt="currentMusic?.title"
-			:title="currentMusic?.title"
+			v-else
+			:src="currentMusic.cover"
+			:alt="currentMusic.title"
+			:title="currentMusic.title"
 			:class="pika({
-				'width': '100%',
-				'height': '100%',
-				'[data-music-loaded=false] $': { display: 'none' },
+				width: '100%',
+				height: '100%',
 			})"
 		>
 	</div>
