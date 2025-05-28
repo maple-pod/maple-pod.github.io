@@ -8,6 +8,7 @@ export interface SavedUserData {
 	}
 	liked: Playlist<'liked'>
 	playlists: Playlist<CustomPlaylistId>[]
+	history: string[]
 }
 
 export interface MusicData {

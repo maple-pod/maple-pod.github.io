@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { Routes } from '@/router'
+
+const staticRightSidePanelContainerRef = useTemplateRef('staticRightSidePanelContainerRef')
+const isRightSidePanelVisible = useElementVisibility(staticRightSidePanelContainerRef)
+watch(
+	() => isRightSidePanelVisible.value,
+	() => {},
+)
 </script>
 
 <template>
@@ -109,7 +116,7 @@ import { Routes } from '@/router'
 				'height': '100%',
 
 				'@screen-md-and-up': {
-					gridTemplateColumns: '1fr 320px',
+					gridTemplateColumns: 'minmax(400px, 1fr) minmax(300px, 400px)',
 				},
 			})"
 		>
@@ -122,6 +129,7 @@ import { Routes } from '@/router'
 			</div>
 
 			<div
+				ref="staticRightSidePanelContainerRef"
 				:class="pika('card', {
 					'minWidth': '0',
 					'display': 'none',
@@ -130,7 +138,7 @@ import { Routes } from '@/router'
 					},
 				})"
 			>
-				wa
+				<RightSidePanel />
 			</div>
 		</div>
 
