@@ -15,6 +15,26 @@ export interface MusicData {
 	title: string
 	cover: string
 	src: string
+	duration: number
+
+	data: {
+		description: string
+		filename: string
+		mark: string
+		metadata: {
+			albumArtist: string
+			artist: string
+			title: string
+			year: string
+		}
+		source: {
+			client: string
+			date: string
+			structure: string
+			version: string
+		}
+		youtube: string
+	}
 }
 
 export type LikedPlaylistId = 'liked'

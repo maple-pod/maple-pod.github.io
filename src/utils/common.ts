@@ -44,3 +44,12 @@ export function formatTime(timeInSeconds: number) {
 	const seconds = String(Math.floor(timeInSeconds % 60)).padStart(2, '0')
 	return `${minutes}:${seconds}`
 }
+
+export async function decodeMarkImg(binStr: string) {
+	const compressed = Uint8Array.from(binStr, c => c.charCodeAt(0))
+	const decompressed = decompressSync(compressed)
+	const blob = new Blob([decompressed], { type: 'image/png' })
+	const url = URL.createObjectURL(blob)
+
+	return url
+}

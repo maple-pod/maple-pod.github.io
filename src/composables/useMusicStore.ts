@@ -1,4 +1,5 @@
 import type { CustomPlaylistId, MusicData, Playlist, PlaylistId } from '@/types'
+import { decodeMarkImg } from '@/utils/common'
 import { ofetch } from 'ofetch'
 
 function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playlist {
@@ -30,20 +31,33 @@ function groupByCover(data: MusicData[]): Map<string, MusicData[]> {
 
 export const useMusicStore = defineStore('music', () => {
 	const {
-		state: dataList,
+		state: data,
 		isReady: isDataReady,
 	} = useAsyncState(
-		async () => (await ofetch<MusicData[]>('/data/data.json')),
-		[],
+		async () => {
+			const res = await ofetch<{
+				bgms: MusicData[]
+				marks: Record<string, string>
+			}>('/resources/data.json')
+
+			for (const bgm of res.bgms) {
+				bgm.src = `/resources${bgm.src}`
+				bgm.cover = await decodeMarkImg(res.marks[bgm.data.mark]!)
+			}
+
+			return res
+		},
+		null,
 	)
-	const dataMap = computed(() => new Map<string, MusicData>(dataList.value.map(item => [item.src, item])))
-	const dataGroupedByCover = computed(() => groupByCover(dataList.value))
+	const bgmList = computed(() => data.value?.bgms ?? [])
+	const bgmMap = computed(() => new Map<string, MusicData>(bgmList.value.map(item => [item.src, item])))
+	const bgmsGroupedByCover = computed(() => groupByCover(bgmList.value))
 
 	function getMusicData(src: string): MusicData | undefined {
-		return dataMap.value.get(src)
+		return bgmMap.value.get(src)
 	}
 
-	const playlistAll = computed(() => createAllPlaylist(dataGroupedByCover.value))
+	const playlistAll = computed(() => createAllPlaylist(bgmsGroupedByCover.value))
 	const { likedPlaylist, savedPlaylists } = useSavedUserData()
 	const savedPlaylistsMap = computed(() => new Map(savedPlaylists.value.map(playlist => [playlist.id, playlist])))
 	const playlistList = computed(() => [

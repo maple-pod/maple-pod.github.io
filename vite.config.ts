@@ -58,15 +58,15 @@ export default defineConfig(async () => ({
 	},
 	server: {
 		proxy: {
-			'/data/data.json': {
+			'/resources/data.json': {
 				target: 'https://maple-pod.deviltea.me',
 				changeOrigin: true,
 			},
-			'/mark': {
+			'/resources/mark': {
 				target: 'https://maple-pod.deviltea.me',
 				changeOrigin: true,
 			},
-			'/bgm': {
+			'/resources/bgm': {
 				target: 'https://maple-pod.deviltea.me',
 				changeOrigin: true,
 			},
