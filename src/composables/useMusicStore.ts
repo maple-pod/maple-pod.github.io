@@ -50,11 +50,11 @@ export const useMusicStore = defineStore('music', () => {
 		null,
 	)
 	const bgmList = computed(() => data.value?.bgms ?? [])
-	const bgmMap = computed(() => new Map<string, MusicData>(bgmList.value.map(item => [item.src, item])))
+	const bgmMap = computed(() => new Map<string, MusicData>(bgmList.value.map(item => [item.src.split('/').pop()!, item])))
 	const bgmsGroupedByCover = computed(() => groupByCover(bgmList.value))
 
 	function getMusicData(src: string): MusicData | undefined {
-		return bgmMap.value.get(src)
+		return bgmMap.value.get(src.split('/').pop()!)
 	}
 
 	const playlistAll = computed(() => createAllPlaylist(bgmsGroupedByCover.value))
@@ -144,7 +144,7 @@ export const useMusicStore = defineStore('music', () => {
 
 	const audioPlayerLogic = useAudioPlayer()
 	const currentPlaylist = ref<Playlist | null>(null)
-	const currentMusic = computed(() => getMusicData(audioPlayerLogic.currentAudioSrc.value!) ?? null)
+	const currentMusic = computed(() => getMusicData(audioPlayerLogic.currentAudioSrc.value || '') ?? null)
 	function play(playlistId: PlaylistId, musicSrc?: string): void
 	function play(playlist: Playlist, musicSrc?: string): void
 	function play(playlistOrId: Playlist | PlaylistId, musicSrc?: string) {
