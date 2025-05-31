@@ -138,7 +138,7 @@ whenever(
 						position: 'absolute',
 						top: '12px',
 						right: '12px',
-						zIndex: '10',
+						zIndex: '2',
 					})"
 				>
 					<button
