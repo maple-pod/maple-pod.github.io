@@ -3,15 +3,22 @@ import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewpor
 
 const props = defineProps<{
 	items: T[]
-	itemHeight: number
+	itemHeight: number | ((item: T, index: number) => number)
 }>()
+
+function itemHeight(index: number): number {
+	if (typeof props.itemHeight === 'number') {
+		return props.itemHeight
+	}
+	return props.itemHeight(props.items[index]!, index)
+}
 
 const {
 	list,
 	containerProps,
 	wrapperProps,
 	scrollTo,
-} = useVirtualList(toRef(() => props.items), { itemHeight: () => props.itemHeight })
+} = useVirtualList(toRef(() => props.items), { itemHeight })
 
 const scrollAreaViewportRef = useTemplateRef('scrollAreaViewportRef')
 const scrollAreaViewportEl = computed<HTMLElement | null>(() => (unrefElement(scrollAreaViewportRef)?.parentElement ?? null))

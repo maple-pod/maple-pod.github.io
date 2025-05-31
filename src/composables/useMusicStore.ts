@@ -148,6 +148,28 @@ export const useMusicStore = defineStore('music', () => {
 		audioPlayerLogic.currentTime.value = 0
 	}
 
+	const MAX_HISTORY_LENGTH = 50
+	const RECORD_AFTER = 3000
+	const { history } = useSavedUserData()
+	let historyTimer = 0
+	watch(
+		currentMusic,
+		(newMusic) => {
+			if (historyTimer) {
+				window.clearTimeout(historyTimer)
+			}
+			historyTimer = window.setTimeout(() => {
+				if (newMusic != null) {
+					history.value.unshift(newMusic.src)
+					history.value = history.value.slice(0, MAX_HISTORY_LENGTH)
+				}
+			}, RECORD_AFTER)
+		},
+	)
+	tryOnScopeDispose(() => {
+		window.clearTimeout(historyTimer)
+	})
+
 	function getPlayMusicLink(musicSrc: string) {
 		return `${window.location.origin}${import.meta.env.BASE_URL}play/?musicSrc=${musicSrc}`
 	}
@@ -243,6 +265,7 @@ export const useMusicStore = defineStore('music', () => {
 		currentPlaylist,
 		currentMusic,
 		play,
+		history,
 		getPlayMusicLink,
 		ready,
 	}

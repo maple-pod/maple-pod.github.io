@@ -25,11 +25,18 @@ function createInitialSavedUserData(): SavedUserData {
 			list: [],
 		},
 		playlists: [],
+		history: [],
 	}
 }
 
 export const useSavedUserData = createSharedComposable(() => {
-	const savedUserData = useLocalStorage<SavedUserData>('maple-pod', createInitialSavedUserData)
+	const savedUserData = useLocalStorage<SavedUserData>(
+		'maple-pod',
+		createInitialSavedUserData,
+		{
+			mergeDefaults: true,
+		},
+	)
 
 	const theme = toSavedPreferenceRef(savedUserData, 'theme')
 	const volume = toSavedPreferenceRef(savedUserData, 'volume')
@@ -44,6 +51,10 @@ export const useSavedUserData = createSharedComposable(() => {
 		get: () => savedUserData.value.playlists,
 		set: value => savedUserData.value.playlists = value,
 	})
+	const history = computed({
+		get: () => savedUserData.value.history,
+		set: value => savedUserData.value.history = value,
+	})
 
 	return {
 		savedUserData,
@@ -54,5 +65,6 @@ export const useSavedUserData = createSharedComposable(() => {
 		repeated,
 		likedPlaylist,
 		savedPlaylists,
+		history,
 	}
 })

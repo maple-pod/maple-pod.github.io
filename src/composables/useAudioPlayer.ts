@@ -79,7 +79,7 @@ export function useAudioPlayer() {
 	const random = audioQueueLogic.random
 	const toggleRandom = audioQueueLogic.toggleRandom
 
-	const currentAudioSrc = audioQueueLogic.currentAudioSrc
+	const currentAudioSrc = audioQueueLogic.current
 	watch(
 		currentAudioSrc,
 		(audioSrc) => {
@@ -121,11 +121,7 @@ export function useAudioPlayer() {
 		}
 	})
 
-	const displayQueue = audioQueueLogic.displayQueue
-	const addToTemporaryQueue = audioQueueLogic.addToTemporaryQueue
-	const removeFromTemporaryQueue = audioQueueLogic.removeFromTemporaryQueue
-	const clearTemporaryQueue = audioQueueLogic.clearTemporaryQueue
-	const playTempQueueItem = audioQueueLogic.playTempQueueItem
+	const toPlayQueue = audioQueueLogic.toPlayQueue
 	const playToPlayQueueItem = audioQueueLogic.playToPlayQueueItem
 
 	watch(
@@ -196,11 +192,7 @@ export function useAudioPlayer() {
 
 		play,
 
-		displayQueue,
-		addToTemporaryQueue,
-		removeFromTemporaryQueue,
-		clearTemporaryQueue,
-		playTempQueueItem,
+		toPlayQueue,
 		playToPlayQueueItem,
 	}
 }

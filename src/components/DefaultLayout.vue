@@ -1,5 +1,18 @@
 <script setup lang="ts">
 import { Routes } from '@/router'
+
+const staticRightSidePanelContainerRef = useTemplateRef('staticRightSidePanelContainerRef')
+const isRightSidePanelContainerVisible = useElementVisibility(staticRightSidePanelContainerRef)
+watch(
+	() => isRightSidePanelContainerVisible.value,
+	() => {},
+)
+
+const rightSidePanelOpen = ref(false)
+whenever(
+	() => isRightSidePanelContainerVisible.value === false,
+	() => rightSidePanelOpen.value = false,
+)
 </script>
 
 <template>
@@ -109,19 +122,48 @@ import { Routes } from '@/router'
 				'height': '100%',
 
 				'@screen-md-and-up': {
-					gridTemplateColumns: '1fr 320px',
+					gridTemplateColumns: 'minmax(400px, 1fr) minmax(300px, 400px)',
 				},
 			})"
 		>
 			<div
 				:class="pika('card', {
 					minWidth: '0',
+					position: 'relative',
 				})"
 			>
-				<RouterView />
+				<div
+					v-if="isRightSidePanelContainerVisible === false"
+					:class="pika({
+						position: 'absolute',
+						top: '12px',
+						right: '12px',
+						zIndex: '10',
+					})"
+				>
+					<button
+						:data-toggle="rightSidePanelOpen"
+						:class="pika('icon-btn-toggle', {
+							'$::after': {
+								display: 'none',
+							},
+						})"
+						@click="rightSidePanelOpen = !rightSidePanelOpen"
+					>
+						<div :class="pika('i-f7:sidebar-right')" />
+					</button>
+				</div>
+				<RightSidePanel
+					v-if="
+						(isRightSidePanelContainerVisible === false)
+							&& (rightSidePanelOpen === true)
+					"
+				/>
+				<RouterView v-else />
 			</div>
 
 			<div
+				ref="staticRightSidePanelContainerRef"
 				:class="pika('card', {
 					'minWidth': '0',
 					'display': 'none',
@@ -130,7 +172,7 @@ import { Routes } from '@/router'
 					},
 				})"
 			>
-				wa
+				<RightSidePanel v-if="isRightSidePanelContainerVisible" />
 			</div>
 		</div>
 

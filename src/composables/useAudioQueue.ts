@@ -1,36 +1,17 @@
 export interface UseAudioQueueOptions {
 	random?: boolean
 }
-export interface AudioQueueItem {
-	type: 'regular' | 'temporary'
-	audioSrc: string
-}
-
-function makeAudioQueueItem(type: 'regular' | 'temporary', audioSrc: string): AudioQueueItem {
-	return {
-		type,
-		audioSrc,
-	}
-}
 
 function shuffle<T>(array: T[]): T[] {
 	return [...array].sort(() => Math.random() - 0.5)
 }
 
 export function useAudioQueue(options: UseAudioQueueOptions = {}) {
-	const currentAudioSrcList = ref<string[]>([])
-	const playedQueue = ref<AudioQueueItem[]>([])
-	const current = ref<AudioQueueItem | null>(null)
-	const tempQueue = ref<AudioQueueItem[]>([])
-	const toPlayQueue = ref<AudioQueueItem[]>([])
+	const originalAudioSrcList = ref<string[]>([])
+	const playedQueue = ref<string[]>([])
+	const current = ref<string | null>(null)
+	const toPlayQueue = ref<string[]>([])
 	const [random, toggleRandom] = useToggle(options.random ?? false)
-
-	const currentAudioSrc = computed(() => current.value?.audioSrc ?? null)
-	const displayQueue = computed(() => ({
-		current: currentAudioSrc,
-		tempQueue: tempQueue.value.map(item => item.audioSrc),
-		toPlayQueue: toPlayQueue.value.map(item => item.audioSrc),
-	}))
 
 	function initQueue(audioSrcList: string[], audioSrc?: string | null | undefined) {
 		if (
@@ -40,48 +21,45 @@ export function useAudioQueue(options: UseAudioQueueOptions = {}) {
 			return
 		}
 
-		currentAudioSrcList.value = audioSrcList
+		originalAudioSrcList.value = audioSrcList
 		let list = [...audioSrcList]
 		if (random.value === false && audioSrc != null) {
-			current.value = makeAudioQueueItem('regular', audioSrc)
+			current.value = audioSrc
 			const index = list.indexOf(audioSrc)
-			playedQueue.value = list.slice(0, index).map(src => makeAudioQueueItem('regular', src))
-			toPlayQueue.value = list.slice(index + 1).map(src => makeAudioQueueItem('regular', src))
+			playedQueue.value = list.slice(0, index).map(src => src)
+			toPlayQueue.value = list.slice(index + 1).map(src => src)
 		}
 		else if (random.value === false && audioSrc == null) {
-			current.value = makeAudioQueueItem('regular', list.shift()!)
+			current.value = list.shift()!
 			playedQueue.value = []
-			toPlayQueue.value = list.map(src => makeAudioQueueItem('regular', src))
+			toPlayQueue.value = list.map(src => src)
 		}
 		else if (random.value === true && audioSrc != null) {
-			current.value = makeAudioQueueItem('regular', list.splice(list.indexOf(audioSrc), 1)[0]!)
+			current.value = list.splice(list.indexOf(audioSrc), 1)[0]!
 			playedQueue.value = []
-			toPlayQueue.value = shuffle(list).map(src => makeAudioQueueItem('regular', src))
+			toPlayQueue.value = shuffle(list).map(src => src)
 		}
 		else {
 			list = shuffle(list)
-			current.value = makeAudioQueueItem('regular', list.shift()!)
+			current.value = list.shift()!
 			playedQueue.value = []
-			toPlayQueue.value = list.map(src => makeAudioQueueItem('regular', src))
+			toPlayQueue.value = list.map(src => src)
 		}
 	}
 
 	watch(
 		random,
-		() => initQueue(currentAudioSrcList.value, currentAudioSrc.value),
+		() => initQueue(originalAudioSrcList.value, current.value),
 		{ flush: 'sync' },
 	)
 
-	const hasReachedEnd = computed(() => toPlayQueue.value.length === 0 && tempQueue.value.length === 0)
+	const hasReachedEnd = computed(() => toPlayQueue.value.length === 0)
 
 	function goNext() {
-		if (current.value != null && current.value.type === 'regular')
+		if (current.value != null)
 			playedQueue.value.push(current.value)
 
-		if (tempQueue.value.length > 0) {
-			current.value = tempQueue.value.shift()!
-		}
-		else if (toPlayQueue.value.length > 0) {
+		if (toPlayQueue.value.length > 0) {
 			current.value = toPlayQueue.value.shift()!
 		}
 		else if (playedQueue.value.length > 0) {
@@ -93,7 +71,7 @@ export function useAudioQueue(options: UseAudioQueueOptions = {}) {
 	}
 
 	function goPrevious() {
-		if (current.value != null && current.value.type === 'regular') {
+		if (current.value != null) {
 			toPlayQueue.value.unshift(current.value)
 		}
 
@@ -108,32 +86,8 @@ export function useAudioQueue(options: UseAudioQueueOptions = {}) {
 		}
 	}
 
-	function addToTemporaryQueue(audioSrc: string) {
-		tempQueue.value.push(makeAudioQueueItem('temporary', audioSrc))
-	}
-
-	function removeFromTemporaryQueue(index: number) {
-		if (index >= 0 && index < tempQueue.value.length) {
-			tempQueue.value.splice(index, 1)
-		}
-	}
-
-	function clearTemporaryQueue() {
-		tempQueue.value = []
-	}
-
-	function playTempQueueItem(index: number) {
-		if (index >= 0 && index < tempQueue.value.length) {
-			const item = tempQueue.value.splice(index, 1)[0]!
-
-			if (current.value != null && current.value.type === 'regular')
-				playedQueue.value.push(current.value)
-
-			current.value = item
-		}
-	}
-
-	function playToPlayQueueItem(index: number) {
+	function playToPlayQueueItem(audioSrc: string) {
+		const index = toPlayQueue.value.indexOf(audioSrc)
 		if (index >= 0 && index < toPlayQueue.value.length) {
 			playedQueue.value.push(current.value!, ...toPlayQueue.value.slice(0, index))
 			const list = toPlayQueue.value.slice(index)
@@ -145,16 +99,12 @@ export function useAudioQueue(options: UseAudioQueueOptions = {}) {
 	return {
 		random,
 		toggleRandom,
-		currentAudioSrc,
-		displayQueue,
+		current,
+		toPlayQueue,
 		hasReachedEnd,
 		initQueue,
 		goNext,
 		goPrevious,
-		addToTemporaryQueue,
-		removeFromTemporaryQueue,
-		clearTemporaryQueue,
-		playTempQueueItem,
 		playToPlayQueueItem,
 	}
 }
