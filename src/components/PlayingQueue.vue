@@ -11,7 +11,7 @@ const displayList = computed(() => {
 
 		...toPlayQueue.value.length === 0
 			? []
-			: ['Next To Play', ...toPlayQueue.value.map(src => musicStore.getMusicData(src)!)],
+			: ['Next To Play', ...toPlayQueue.value.map(id => musicStore.getMusicData(id)!)],
 	]
 })
 </script>
@@ -56,7 +56,7 @@ const displayList = computed(() => {
 					</div>
 					<div
 						v-else
-						:data-is-playing="currentMusic?.src === item.src"
+						:data-is-playing="currentMusic?.id === item.id"
 						:class="pika('hover-mask', {
 							'width': '100%',
 							'height': '48px',
@@ -73,7 +73,7 @@ const displayList = computed(() => {
 							},
 						})"
 						role="button"
-						@click="playToPlayQueueItem(item.src)"
+						@click="playToPlayQueueItem(item.id)"
 					>
 						<img
 							:src="item.cover"

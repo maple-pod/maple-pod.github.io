@@ -68,10 +68,10 @@ const middlewares = {
 		return true
 	},
 	directlyPlay: async (to) => {
-		const { musicSrc } = to.query as { musicSrc: string | undefined }
+		const { musicId } = to.query as { musicId: string | undefined }
 		const { confirm } = useUiConfirmDialog()
 		const musicStore = useMusicStore()
-		const musicData = musicStore.getMusicData(musicSrc!)
+		const musicData = musicStore.getMusicData(musicId!)
 
 		if (musicData == null) {
 			return { name: Routes.Root }
@@ -84,7 +84,7 @@ const middlewares = {
 
 		if (agreed) {
 			const musicStore = useMusicStore()
-			musicStore.play('all', musicSrc)
+			musicStore.play('all', musicId)
 		}
 
 		return { name: Routes.Root }

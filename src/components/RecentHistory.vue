@@ -4,7 +4,7 @@ const { history } = storeToRefs(musicStore)
 const { getMusicData, play } = musicStore
 
 const displayList = computed(() => {
-	return history.value.map(src => getMusicData(src)!)
+	return history.value.map(id => getMusicData(id)!)
 })
 </script>
 
@@ -43,7 +43,7 @@ const displayList = computed(() => {
 							cursor: 'pointer',
 						})"
 						role="button"
-						@click="play('all', item.src)"
+						@click="play('all', item.id)"
 					>
 						<img
 							:src="item.cover"

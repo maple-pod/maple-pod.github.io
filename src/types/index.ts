@@ -11,30 +11,39 @@ export interface SavedUserData {
 	history: string[]
 }
 
+export interface ResourceBgm {
+	description: string
+	filename: string
+	mark: string
+	duration: number
+	metadata: {
+		albumArtist: string
+		artist: string
+		title: string
+		year: string
+	}
+	source: {
+		client: string
+		date: string
+		structure: string
+		version: string
+	}
+	youtube: string
+}
+
+export interface Resources {
+	bgms: ResourceBgm[]
+	marks: Record<string, string>
+}
+
 export interface MusicData {
+	id: string
 	title: string
 	cover: string
 	src: string
 	duration: number
 
-	data: {
-		description: string
-		filename: string
-		mark: string
-		metadata: {
-			albumArtist: string
-			artist: string
-			title: string
-			year: string
-		}
-		source: {
-			client: string
-			date: string
-			structure: string
-			version: string
-		}
-		youtube: string
-	}
+	data: ResourceBgm
 }
 
 export type LikedPlaylistId = 'liked'

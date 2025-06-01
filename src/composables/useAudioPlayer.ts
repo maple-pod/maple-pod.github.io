@@ -1,4 +1,8 @@
-export function useAudioPlayer() {
+export function useAudioPlayer({
+	getAudioSrc,
+}: {
+	getAudioSrc: (id: string | null) => string | null
+}) {
 	const {
 		volume: savedVolume,
 		muted: savedMuted,
@@ -79,7 +83,7 @@ export function useAudioPlayer() {
 	const random = audioQueueLogic.random
 	const toggleRandom = audioQueueLogic.toggleRandom
 
-	const currentAudioSrc = audioQueueLogic.current
+	const currentAudioSrc = computed(() => getAudioSrc(audioQueueLogic.current.value))
 	watch(
 		currentAudioSrc,
 		(audioSrc) => {
@@ -185,6 +189,7 @@ export function useAudioPlayer() {
 		isWaiting,
 		canPlay,
 
+		currentAudioId: audioQueueLogic.current,
 		currentAudioSrc,
 		togglePlay,
 		goNext,

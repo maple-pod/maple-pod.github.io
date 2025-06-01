@@ -7,49 +7,49 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 export function useAudioQueue(options: UseAudioQueueOptions = {}) {
-	const originalAudioSrcList = ref<string[]>([])
+	const originalAudioIdList = ref<string[]>([])
 	const playedQueue = ref<string[]>([])
 	const current = ref<string | null>(null)
 	const toPlayQueue = ref<string[]>([])
 	const [random, toggleRandom] = useToggle(options.random ?? false)
 
-	function initQueue(audioSrcList: string[], audioSrc?: string | null | undefined) {
+	function initQueue(audioIdList: string[], audioId?: string | null | undefined) {
 		if (
-			(audioSrcList.length === 0)
-			|| (audioSrc != null && (audioSrcList.includes(audioSrc!) === false))
+			(audioIdList.length === 0)
+			|| (audioId != null && (audioIdList.includes(audioId!) === false))
 		) {
 			return
 		}
 
-		originalAudioSrcList.value = audioSrcList
-		let list = [...audioSrcList]
-		if (random.value === false && audioSrc != null) {
-			current.value = audioSrc
-			const index = list.indexOf(audioSrc)
-			playedQueue.value = list.slice(0, index).map(src => src)
-			toPlayQueue.value = list.slice(index + 1).map(src => src)
+		originalAudioIdList.value = audioIdList
+		let list = [...audioIdList]
+		if (random.value === false && audioId != null) {
+			current.value = audioId
+			const index = list.indexOf(audioId)
+			playedQueue.value = list.slice(0, index)
+			toPlayQueue.value = list.slice(index + 1)
 		}
-		else if (random.value === false && audioSrc == null) {
+		else if (random.value === false && audioId == null) {
 			current.value = list.shift()!
 			playedQueue.value = []
-			toPlayQueue.value = list.map(src => src)
+			toPlayQueue.value = list
 		}
-		else if (random.value === true && audioSrc != null) {
-			current.value = list.splice(list.indexOf(audioSrc), 1)[0]!
+		else if (random.value === true && audioId != null) {
+			current.value = list.splice(list.indexOf(audioId), 1)[0]!
 			playedQueue.value = []
-			toPlayQueue.value = shuffle(list).map(src => src)
+			toPlayQueue.value = shuffle(list)
 		}
 		else {
 			list = shuffle(list)
 			current.value = list.shift()!
 			playedQueue.value = []
-			toPlayQueue.value = list.map(src => src)
+			toPlayQueue.value = list
 		}
 	}
 
 	watch(
 		random,
-		() => initQueue(originalAudioSrcList.value, current.value),
+		() => initQueue(originalAudioIdList.value, current.value),
 		{ flush: 'sync' },
 	)
 
@@ -86,8 +86,8 @@ export function useAudioQueue(options: UseAudioQueueOptions = {}) {
 		}
 	}
 
-	function playToPlayQueueItem(audioSrc: string) {
-		const index = toPlayQueue.value.indexOf(audioSrc)
+	function playToPlayQueueItem(audioId: string) {
+		const index = toPlayQueue.value.indexOf(audioId)
 		if (index >= 0 && index < toPlayQueue.value.length) {
 			playedQueue.value.push(current.value!, ...toPlayQueue.value.slice(0, index))
 			const list = toPlayQueue.value.slice(index)

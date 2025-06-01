@@ -145,8 +145,8 @@ function goBackToPlaylists() {
 			>
 				<template #item="{ item, index }">
 					<div
-						:key="item.src"
-						:data-is-current-music="item.src === currentMusic?.src && playlist.id === currentPlaylist?.id"
+						:key="item.id"
+						:data-is-current-music="item.id === currentMusic?.id && playlist.id === currentPlaylist?.id"
 						:data-is-paused="isPaused"
 						:data-music-src="item.src"
 						:class="pika('hover-mask', {
@@ -166,7 +166,7 @@ function goBackToPlaylists() {
 								color: 'var(--color-primary-1)',
 							},
 						})"
-						@click="play(playlist, item.src)"
+						@click="play(playlist, item.id)"
 					>
 						<div
 							:class="pika({
@@ -211,13 +211,13 @@ function goBackToPlaylists() {
 							</div>
 
 							<button
-								:data-liked="isMusicLiked(item.src)"
+								:data-liked="isMusicLiked(item.id)"
 								:class="pika('icon-btn', {
 									'@screen-md-and-up': {
 										'[data-music-src]:not(:hover) [data-liked=false]$': { visibility: 'hidden' },
 									},
 								})"
-								@click.stop="toggleMusicLike(item.src)"
+								@click.stop="toggleMusicLike(item.id)"
 							>
 								<div
 									:class="pika({
@@ -252,7 +252,7 @@ function goBackToPlaylists() {
 
 						<PlaylistMusicDropdownMenu
 							:playlistId
-							:musicSrc="item.src"
+							:musicId="item.id"
 						/>
 					</div>
 				</template>

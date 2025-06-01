@@ -39,7 +39,7 @@ const { copyLink } = useCopyLink()
 function handleCopyMusicLink() {
 	if (currentMusic.value) {
 		copyLink({
-			link: getPlayMusicLink(currentMusic.value.src),
+			link: getPlayMusicLink(currentMusic.value.id),
 		})
 	}
 }
@@ -147,11 +147,11 @@ function handleCopyMusicLink() {
 								})"
 							>
 								<button
-									:data-liked="isMusicLiked(currentMusic?.src || '')"
+									:data-liked="isMusicLiked(currentMusic?.id || '')"
 									:class="pika('icon-btn', {
 										'[data-music-loaded=false] $': { display: 'none' },
 									})"
-									@click="toggleMusicLike(currentMusic?.src || '')"
+									@click="toggleMusicLike(currentMusic?.id || '')"
 								>
 									<div
 										:class="pika({

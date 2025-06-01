@@ -1,4 +1,4 @@
-import type { CustomPlaylistId, MusicData, Playlist, PlaylistId } from '@/types'
+import type { CustomPlaylistId, MusicData, Playlist, PlaylistId, Resources } from '@/types'
 import { decodeMarkImg } from '@/utils/common'
 import { ofetch } from 'ofetch'
 
@@ -8,7 +8,7 @@ function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playli
 		title: 'All',
 		list: Array.from(
 			dataGroupedByCover.values(),
-			list => list.map(item => item.src),
+			list => list.map(item => item.id),
 		).flat(),
 	}
 }
@@ -31,33 +31,32 @@ function groupByCover(data: MusicData[]): Map<string, MusicData[]> {
 
 export const useMusicStore = defineStore('music', () => {
 	const {
-		state: data,
+		state: musicDataList,
 		isReady: isDataReady,
 	} = useAsyncState(
 		async () => {
-			const res = await ofetch<{
-				bgms: MusicData[]
-				marks: Record<string, string>
-			}>('/resources/data.json')
+			const res = await ofetch<Resources>('/resources/data.json')
 
-			for (const bgm of res.bgms) {
-				bgm.src = `/resources${bgm.src}`
-				bgm.cover = await decodeMarkImg(res.marks[bgm.data.mark]!)
-			}
-
-			return res
+			const marks = res.marks
+			return Promise.all<MusicData>(res.bgms.map(async bgm => ({
+				id: bgm.filename,
+				title: bgm.metadata.title,
+				cover: await decodeMarkImg(marks[bgm.mark]!),
+				src: `/resources/bgm/${bgm.filename}.mp3`,
+				duration: bgm.duration,
+				data: bgm,
+			})))
 		},
-		null,
+		[],
 	)
-	const bgmList = computed(() => data.value?.bgms ?? [])
-	const bgmMap = computed(() => new Map<string, MusicData>(bgmList.value.map(item => [item.src.split('/').pop()!, item])))
-	const bgmsGroupedByCover = computed(() => groupByCover(bgmList.value))
+	const musicMap = computed(() => new Map<string, MusicData>(musicDataList.value.map(item => [item.id, item])))
+	const musicsGroupedByCover = computed(() => groupByCover(musicDataList.value))
 
-	function getMusicData(src: string): MusicData | undefined {
-		return bgmMap.value.get(src.split('/').pop()!)
+	function getMusicData(id: string): MusicData | undefined {
+		return musicMap.value.get(id)
 	}
 
-	const playlistAll = computed(() => createAllPlaylist(bgmsGroupedByCover.value))
+	const playlistAll = computed(() => createAllPlaylist(musicsGroupedByCover.value))
 	const { likedPlaylist, savedPlaylists } = useSavedUserData()
 	const savedPlaylistsMap = computed(() => new Map(savedPlaylists.value.map(playlist => [playlist.id, playlist])))
 	const playlistList = computed(() => [
@@ -70,11 +69,11 @@ export const useMusicStore = defineStore('music', () => {
 		return id.startsWith('custom:')
 	}
 
-	function isAddedInPlaylist(playlistId: PlaylistId, musicSrc: string) {
+	function isAddedInPlaylist(playlistId: PlaylistId, musicId: string) {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null)
 			return false
-		return playlist.list.includes(musicSrc)
+		return playlist.list.includes(musicId)
 	}
 
 	function validatePlaylistTitle(title: string): string | undefined {
@@ -113,50 +112,57 @@ export const useMusicStore = defineStore('music', () => {
 			return likedPlaylist.value
 		return savedPlaylistsMap.value.get(id) ?? null
 	}
-	function findMusicInPlaylistIndex(playlistId: PlaylistId, musicSrc: string) {
+	function findMusicInPlaylistIndex(playlistId: PlaylistId, musicId: string) {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null)
 			return -1
-		return playlist.list.indexOf(musicSrc)
+		return playlist.list.indexOf(musicId)
 	}
-	function toggleMusicInPlaylist(playlistId: PlaylistId, musicSrc: string, action?: 'add' | 'remove') {
+	function toggleMusicInPlaylist(playlistId: PlaylistId, musicId: string, action?: 'add' | 'remove') {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null || playlist.id === 'all')
 			return
 
-		const index = playlist.list.indexOf(musicSrc)
+		const index = playlist.list.indexOf(musicId)
 		if (index !== -1 && (action === 'remove' || action == null)) {
 			playlist.list.splice(index, 1)
 			return
 		}
 
 		if (index === -1 && (action === 'add' || action == null)) {
-			playlist.list.push(musicSrc)
+			playlist.list.push(musicId)
 		}
 	}
 
-	function isMusicLiked(musicSrc: string) {
-		return findMusicInPlaylistIndex('liked', musicSrc) !== -1
+	function isMusicLiked(musicId: string) {
+		return findMusicInPlaylistIndex('liked', musicId) !== -1
 	}
-	function toggleMusicLike(musicSrc: string) {
-		toggleMusicInPlaylist('liked', musicSrc)
+	function toggleMusicLike(musicId: string) {
+		toggleMusicInPlaylist('liked', musicId)
 	}
 
-	const audioPlayerLogic = useAudioPlayer()
+	const audioPlayerLogic = useAudioPlayer({
+		getAudioSrc: (id) => {
+			if (id == null)
+				return null
+			const musicData = getMusicData(id)
+			return musicData?.src ?? null
+		},
+	})
 	const currentPlaylist = ref<Playlist | null>(null)
-	const currentMusic = computed(() => getMusicData(audioPlayerLogic.currentAudioSrc.value || '') ?? null)
-	function play(playlistId: PlaylistId, musicSrc?: string): void
-	function play(playlist: Playlist, musicSrc?: string): void
-	function play(playlistOrId: Playlist | PlaylistId, musicSrc?: string) {
+	const currentMusic = computed(() => getMusicData(audioPlayerLogic.currentAudioId.value || '') ?? null)
+	function play(playlistId: PlaylistId, musicId?: string): void
+	function play(playlist: Playlist, musicId?: string): void
+	function play(playlistOrId: Playlist | PlaylistId, musicId?: string) {
 		const playlist = typeof playlistOrId === 'string' ? getPlaylist(playlistOrId) : playlistOrId
 		if (playlist == null)
 			return
 
-		if (musicSrc != null && (playlist.list.includes(musicSrc) === false))
+		if (musicId != null && (playlist.list.includes(musicId) === false))
 			return
 
 		currentPlaylist.value = playlist
-		audioPlayerLogic.play(playlist.list, musicSrc)
+		audioPlayerLogic.play(playlist.list, musicId)
 
 		// ensure the audio is reset
 		audioPlayerLogic.currentTime.value = 0
@@ -174,7 +180,7 @@ export const useMusicStore = defineStore('music', () => {
 			}
 			historyTimer = window.setTimeout(() => {
 				if (newMusic != null) {
-					history.value.unshift(newMusic.src)
+					history.value.unshift(newMusic.id)
 					history.value = history.value.slice(0, MAX_HISTORY_LENGTH)
 				}
 			}, RECORD_AFTER)
@@ -184,8 +190,8 @@ export const useMusicStore = defineStore('music', () => {
 		window.clearTimeout(historyTimer)
 	})
 
-	function getPlayMusicLink(musicSrc: string) {
-		return `${window.location.origin}${import.meta.env.BASE_URL}play/?musicSrc=${musicSrc}`
+	function getPlayMusicLink(musicId: string) {
+		return `${window.location.origin}${import.meta.env.BASE_URL}play/?musicId=${musicId}`
 	}
 
 	if (navigator.mediaSession != null) {
@@ -253,11 +259,17 @@ export const useMusicStore = defineStore('music', () => {
 						return false
 					}
 
-					// Ensure all music srcs in the playlist exist in the data
-					playlist.list = playlist.list.filter(getMusicData)
+					playlist.list = playlist.list
+						// Process old data
+						.map(src => src.split('/').pop()!.replace('.mp3', ''))
+						.filter(getMusicData)
 
 					return true
 				})
+			likedPlaylist.value.list = likedPlaylist.value.list
+				// Process old data
+				.map(src => src.split('/').pop()!.replace('.mp3', ''))
+				.filter(getMusicData)
 		})
 
 	return {

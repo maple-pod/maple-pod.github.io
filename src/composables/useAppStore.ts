@@ -35,14 +35,14 @@ export const useAppStore = defineStore('app', () => {
 	const scrollPlaylistToIndex = shallowRef<((index: number) => void) | null>(null)
 	const isHandlingShowMusicInPlaylist = ref(false)
 	const router = useRouter()
-	async function handleShowMusicInPlaylist(musicSrc?: string, playlistId?: PlaylistId) {
-		const theMusicSrc = musicSrc || musicStore.currentMusic?.src
+	async function handleShowMusicInPlaylist(musicId?: string, playlistId?: PlaylistId) {
+		const theMusicId = musicId || musicStore.currentMusic?.id
 		const thePlaylistId = playlistId || musicStore.currentPlaylist?.id
 
 		if (
 			isHandlingShowMusicInPlaylist.value
 			|| thePlaylistId == null
-			|| theMusicSrc == null
+			|| theMusicId == null
 		) {
 			isHandlingShowMusicInPlaylist.value = false
 			return
@@ -55,7 +55,7 @@ export const useAppStore = defineStore('app', () => {
 		}
 
 		isHandlingShowMusicInPlaylist.value = true
-		const scrollToIndex = thePlaylist.list.indexOf(theMusicSrc)
+		const scrollToIndex = thePlaylist.list.indexOf(theMusicId)
 		if (scrollToIndex === -1) {
 			isHandlingShowMusicInPlaylist.value = false
 			return

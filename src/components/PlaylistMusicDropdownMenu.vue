@@ -5,7 +5,7 @@ import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
 
 const props = defineProps<{
 	playlistId: PlaylistId
-	musicSrc: string
+	musicId: string
 }>()
 
 const musicStore = useMusicStore()
@@ -20,9 +20,9 @@ function handleStartCreatePlaylist() {
 const { handleShowMusicInPlaylist } = useAppStore()
 
 const { copyLink } = useCopyLink()
-function handleCopyMusicLink(musicSrc: string) {
+function handleCopyMusicLink(musicId: string) {
 	copyLink({
-		link: getPlayMusicLink(musicSrc),
+		link: getPlayMusicLink(musicId),
 	})
 }
 
@@ -42,17 +42,17 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 				label: likedPlaylist.value.title,
 				onSelect: (event) => {
 					event.preventDefault()
-					toggleMusicInPlaylist('liked', props.musicSrc)
+					toggleMusicInPlaylist('liked', props.musicId)
 				},
 			},
 			...savedPlaylists.value.map(playlist => ({
-				icon: isAddedInPlaylist(playlist.id, props.musicSrc)
+				icon: isAddedInPlaylist(playlist.id, props.musicId)
 					? pika('i-f7:bookmark-fill')
 					: pika('i-f7:bookmark'),
 				label: playlist.title,
 				onSelect: (event: Event) => {
 					event.preventDefault()
-					toggleMusicInPlaylist(playlist.id, props.musicSrc)
+					toggleMusicInPlaylist(playlist.id, props.musicId)
 				},
 			})),
 		],
@@ -60,12 +60,12 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
 		icon: pika('i-f7:compass'),
 		label: 'Show in "All"',
-		onSelect: () => handleShowMusicInPlaylist(props.musicSrc, 'all'),
+		onSelect: () => handleShowMusicInPlaylist(props.musicId, 'all'),
 	},
 	{
 		icon: pika('i-f7:link'),
 		label: 'Copy Link',
-		onSelect: () => handleCopyMusicLink(props.musicSrc),
+		onSelect: () => handleCopyMusicLink(props.musicId),
 	},
 ])
 </script>
