@@ -87,13 +87,13 @@ export const useMusicStore = defineStore('music', () => {
 				return undefined
 		}
 	}
-	function createPlaylist(title: string): [id: CustomPlaylistId, error: null] | [null, error: string] {
+	function createPlaylist(title: string, list: string[] = []): [id: CustomPlaylistId, error: null] | [null, error: string] {
 		const id = `custom:${Date.now()}` as CustomPlaylistId
 
 		const playlist: Playlist<CustomPlaylistId> = {
 			id,
 			title,
-			list: [],
+			list,
 		}
 		savedPlaylists.value.push(playlist)
 

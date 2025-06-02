@@ -1,5 +1,6 @@
-import type { HashActionImportSavedUserData, PlaylistId } from '@/types'
-import { HashActionImportSavedUserDataSchema } from '@/schemas'
+import type { HashActionImportSaveablePlaylist, HashActionImportSavedUserData, PlaylistId } from '@/types'
+import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
+import { HashActionImportSaveablePlaylistSchema, HashActionImportSavedUserDataSchema } from '@/schemas'
 import { getRecord } from '@/utils/cfWorker'
 import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
 import { safeParse } from 'valibot'
@@ -10,6 +11,7 @@ export const Routes = {
 	Link: 'Link',
 	Setup: 'Setup',
 	DirectlyPlay: 'DirectlyPlay',
+	ImportPlaylist: 'ImportPlaylist',
 	Playlists: 'Playlists',
 	Playlist: 'Playlist',
 } as const
@@ -89,6 +91,33 @@ const middlewares = {
 
 		return { name: Routes.Root }
 	},
+	importPlaylist: async (to) => {
+		const data = urlHashToData(to.hash)
+		if (data == null)
+			return true
+
+		const result = safeParse(HashActionImportSaveablePlaylistSchema, data)
+		if (result.success) {
+			const playlist = (result.output as HashActionImportSaveablePlaylist).data
+
+			const { confirm } = useUiConfirmDialog()
+			const agreed = await confirm({
+				title: 'Import Playlist',
+				description: `Are you sure you want to import this playlist, "${playlist.title}"?`,
+			})
+
+			if (agreed === false) {
+				return true
+			}
+
+			const { dialog } = useAppDialog()
+			await dialog(CreatePlaylistDialog, {
+				importFrom: playlist,
+			})
+		}
+
+		return true
+	},
 } satisfies Record<string, Middleware>
 
 const router = createRouter({
@@ -115,6 +144,19 @@ const router = createRouter({
 				middleware: [
 					middlewares.waitUntilReady,
 					middlewares.directlyPlay,
+				],
+			},
+		},
+		{
+			name: Routes.ImportPlaylist,
+			path: '/import-playlist',
+			component: RouterView,
+			meta: {
+				middleware: [
+					middlewares.waitUntilReady,
+					middlewares.resolveRecord,
+					middlewares.importPlaylist,
+					() => ({ name: Routes.Root }),
 				],
 			},
 		},

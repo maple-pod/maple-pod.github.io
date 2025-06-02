@@ -1,10 +1,16 @@
 <script setup lang="ts">
+import type { Playlist, SaveablePlaylistId } from '@/types'
+
+const props = defineProps<{
+	importFrom?: Playlist<SaveablePlaylistId>
+}>()
+
 const emit = defineEmits<{
 	resolve: []
 }>()
 
-const validating = ref(false)
-const title = ref('')
+const validating = ref(props.importFrom != null)
+const title = ref(props.importFrom == null ? '' : `(Imported) ${props.importFrom.title}`)
 const stop = watch(
 	title,
 	() => {
@@ -27,7 +33,7 @@ function handleCreate() {
 	if (error.value)
 		return
 
-	createPlaylist(title.value)
+	createPlaylist(title.value, props.importFrom?.list)
 	emit('resolve')
 }
 </script>

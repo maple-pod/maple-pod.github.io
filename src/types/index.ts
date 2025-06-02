@@ -61,3 +61,8 @@ export interface HashActionImportSavedUserData {
 	type: 'import-saved-user-data'
 	data: SavedUserData
 }
+
+export interface HashActionImportSaveablePlaylist {
+	type: 'import-saveable-playlist'
+	data: Playlist<SaveablePlaylistId>
+}

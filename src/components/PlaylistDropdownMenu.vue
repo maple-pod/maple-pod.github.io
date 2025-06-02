@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CustomPlaylistId, PlaylistId } from '@/types'
+import type { CustomPlaylistId, HashActionImportSaveablePlaylist, Playlist, PlaylistId, SaveablePlaylistId } from '@/types'
 import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
 import EditPlaylistDialog from './EditPlaylistDialog.vue'
 
@@ -33,6 +33,30 @@ async function handleDeletePlaylist(playlistId: CustomPlaylistId) {
 	}
 }
 
+const { copyLink } = useCopyLink()
+async function handleCopyPlaylistLink(playlistId: PlaylistId) {
+	const playlist = getPlaylist(playlistId)
+	if (playlist == null)
+		return
+
+	const data: HashActionImportSaveablePlaylist = {
+		type: 'import-saveable-playlist',
+		data: playlist as Playlist<SaveablePlaylistId>,
+	}
+
+	const hash = dataToUrlHash(data)
+	let link = `${window.location.origin}${import.meta.env.BASE_URL}import-playlist/${hash}`
+
+	const recordId = await createRecord(hash)
+	if (recordId != null) {
+		link = `${window.location.origin}${import.meta.env.BASE_URL}import-playlist/?recordId=${recordId}`
+	}
+
+	copyLink({
+		link,
+	})
+}
+
 const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
 		icon: pika('i-f7:play'),
@@ -50,6 +74,16 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 					icon: pika('i-f7:trash'),
 					label: 'Delete Playlist',
 					onSelect: () => handleDeletePlaylist(props.playlistId as CustomPlaylistId),
+				},
+			]
+		: []),
+	...(isCustomPlaylist(props.playlistId) || props.playlistId === 'liked'
+		? [
+
+				{
+					icon: pika('i-f7:link'),
+					label: 'Copy Link',
+					onSelect: () => handleCopyPlaylistLink(props.playlistId),
 				},
 			]
 		: []),
