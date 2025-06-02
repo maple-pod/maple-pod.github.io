@@ -107,11 +107,6 @@ whenever(
 
 				<SettingsDropdownMenu />
 			</div>
-
-			<div
-				id="default-layout-header-slot"
-				:class="pika({ display: 'contents' })"
-			/>
 		</div>
 
 		<div
