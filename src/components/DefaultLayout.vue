@@ -125,20 +125,23 @@ whenever(
 				:class="pika('card', {
 					minWidth: '0',
 					position: 'relative',
+					paddingBottom: '38px',
 				})"
 			>
 				<div
 					v-if="isRightSidePanelContainerVisible === false"
 					:class="pika({
 						position: 'absolute',
-						top: '12px',
-						right: '12px',
+						bottom: '4px',
+						left: '50%',
+						transform: 'translateX(-50%)',
 						zIndex: '2',
 					})"
 				>
 					<button
 						:data-toggle="rightSidePanelOpen"
 						:class="pika('icon-btn-toggle', {
+							'--size': '20px',
 							'$::after': {
 								display: 'none',
 							},
