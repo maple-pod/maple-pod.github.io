@@ -183,10 +183,9 @@ export default defineEngineConfig({
 					'base-btn',
 					'hover-mask',
 					{
-						'--size': '28px',
-						'width': 'var(--size)',
-						'height': 'var(--size)',
-						'padding': 'calc(var(--size) / 5)',
+						'--size': '24px',
+						'--padding': 'calc(var(--size) / 4)',
+						'padding': 'var(--padding)',
 						'fontSize': 'var(--size)',
 						'color': 'var(--color-gray-3)',
 						'backgroundColor': 'transparent',
@@ -201,7 +200,7 @@ export default defineEngineConfig({
 						},
 
 						'@screen-sm-and-up': {
-							'--size': '32px',
+							'--size': '20px',
 						},
 					},
 				],
