@@ -118,6 +118,11 @@ function handleStartCreatePlaylist() {
 						</div>
 
 						<PlaylistDropdownMenu
+							:class="pika({
+								'@screen-md-and-up': {
+									':not(:has([id^=reka-dropdown-menu-trigger-][data-state=open])):not(:hover) $': { visibility: 'hidden' },
+								},
+							})"
 							:playlistId="playlist.id"
 						/>
 					</div>

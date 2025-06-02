@@ -82,7 +82,7 @@ function goBackToPlaylists() {
 					'display': 'flex',
 					'alignItems': 'center',
 					'gap': '4px',
-
+					'marginRight': 'auto',
 					'padding': '8px 12px',
 					'borderRadius': '9999px',
 					'backgroundColor': 'var(--color-gray-2)',
@@ -130,6 +130,9 @@ function goBackToPlaylists() {
 					</template>
 				</UiTooltip>
 			</div>
+			<PlaylistDropdownMenu
+				:playlistId="playlist.id"
+			/>
 		</div>
 
 		<div

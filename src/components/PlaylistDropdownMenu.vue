@@ -96,11 +96,8 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	>
 		<template #trigger>
 			<button
-				:class="pika('icon-btn', {
-					'@screen-md-and-up': {
-						':not(:has([id^=reka-dropdown-menu-trigger-][data-state=open])):not(:hover) $': { visibility: 'hidden' },
-					},
-				})"
+				:class="pika('icon-btn')"
+				v-bind="$attrs"
 				@click.stop
 			>
 				<div
