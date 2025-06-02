@@ -13,13 +13,13 @@ function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playli
 	}
 }
 
-function groupByCover(data: MusicData[]): Map<string, MusicData[]> {
+function groupByMark(data: MusicData[]): Map<string, MusicData[]> {
 	const map = new Map<string, MusicData[]>()
 	for (const item of data) {
-		if (!map.has(item.cover)) {
-			map.set(item.cover, [])
+		if (!map.has(item.data.mark)) {
+			map.set(item.data.mark, [])
 		}
-		map.get(item.cover)!.push(item)
+		map.get(item.data.mark)!.push(item)
 	}
 	const temp = map.get('/logo.png')
 	map.delete('/logo.png')
@@ -50,7 +50,7 @@ export const useMusicStore = defineStore('music', () => {
 		[],
 	)
 	const musicMap = computed(() => new Map<string, MusicData>(musicDataList.value.map(item => [item.id, item])))
-	const musicsGroupedByCover = computed(() => groupByCover(musicDataList.value))
+	const musicsGroupedByCover = computed(() => groupByMark(musicDataList.value))
 
 	function getMusicData(id: string): MusicData | undefined {
 		return musicMap.value.get(id)
