@@ -86,7 +86,6 @@ async function handleCopySavedDataLink() {
 	const recordId = await createRecord(hash)
 	if (recordId != null) {
 		link = `${window.location.origin}${import.meta.env.BASE_URL}setup/?recordId=${recordId}`
-		return
 	}
 
 	copyLink({
