@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PlaylistId } from '@/types'
+import { formatTime } from '@/utils/common'
 
 const props = defineProps<{
 	playlistId: PlaylistId
@@ -241,16 +242,35 @@ function goBackToPlaylists() {
 								loading="lazy"
 							>
 
-							<UiMarquee
-								:key="item.title"
-								:title="item.title"
+							<div
 								:class="pika({
+									display: 'flex',
+									flexDirection: 'column',
+									gap: '2px',
 									flex: '1 2 0',
 									minWidth: '0',
 								})"
 							>
-								{{ item.title }}
-							</UiMarquee>
+								<UiMarquee
+									:key="item.title"
+									:title="item.title"
+									:class="pika({ width: '100%' })"
+								>
+									{{ item.title }}
+								</UiMarquee>
+								<div
+									:class="pika({
+										'fontSize': '12px',
+										'color': 'var(--color-gray-5)',
+										'opacity': '0.5',
+										'@dark': {
+											color: 'var(--color-gray-1)',
+										},
+									})"
+								>
+									{{ formatTime(item.duration) }}
+								</div>
+							</div>
 						</div>
 
 						<PlaylistMusicDropdownMenu
