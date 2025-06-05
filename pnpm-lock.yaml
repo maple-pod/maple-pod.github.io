@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@deviltea/tiny-state-machine':
+        specifier: ^0.0.5
+        version: 0.0.5
       '@deviltea/vue-router-middleware':
         specifier: ^0.0.3
         version: 0.0.3(vue-router@4.5.1(vue@3.5.16(typescript@5.8.3)))(vue@3.5.16(typescript@5.8.3))
@@ -309,6 +312,9 @@ packages:
   '@deviltea/eslint-config@4.0.0':
     resolution: {integrity: sha512-qxxGeIuyScEqi0FUoBI4LWB4OfGS7LOnaqFJuUa0NocJONhv1y4Z3Wi07iBqwqMhVSP0hHx/uv4RJQXfeefT9A==}
     engines: {node: '>=20.9.0'}
+
+  '@deviltea/tiny-state-machine@0.0.5':
+    resolution: {integrity: sha512-GYOEm6TKSPc3uOBgul/yUFRbUof/sfJg7tsBGXBg+3gOxOH7clKrKUS9CbgdEkiC1miI/UT/Sb14mhR3SWNF3Q==}
 
   '@deviltea/tsconfig@0.0.7':
     resolution: {integrity: sha512-21JTLxmtnoTsr0sNK+/tYpg5KcR6MlTFilr3aSuy39UkdPmi3VgRxvbDmJ34qhxGAkSR6jbCVRU3IYZS1+z9nA==}
@@ -3171,6 +3177,8 @@ snapshots:
       - svelte-eslint-parser
       - typescript
       - vitest
+
+  '@deviltea/tiny-state-machine@0.0.5': {}
 
   '@deviltea/tsconfig@0.0.7(@types/node@22.15.15)(typescript@5.8.3)':
     dependencies:

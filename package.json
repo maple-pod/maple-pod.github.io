@@ -13,6 +13,7 @@
 		"type-check": "vue-tsc --build --noEmit"
 	},
 	"dependencies": {
+		"@deviltea/tiny-state-machine": "^0.0.5",
 		"@deviltea/vue-router-middleware": "^0.0.3",
 		"@unhead/vue": "^2.0.10",
 		"@vueuse/core": "^13.3.0",
