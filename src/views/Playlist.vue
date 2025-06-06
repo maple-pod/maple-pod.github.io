@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PlaylistId } from '@/types'
+import type { MusicData, PlaylistId } from '@/types'
 import { formatTime } from '@/utils/common'
 
 const props = defineProps<{
@@ -13,7 +13,8 @@ const { getPlaylist, getMusicData, play, togglePlay, isMusicLiked, toggleMusicLi
 const playlist = computed(() => getPlaylist(props.playlistId)!)
 const title = computed(() => playlist.value.title)
 const list = toRef(() => playlist.value.list)
-const items = computed(() => list.value.map(getMusicData).filter(data => data != null))
+const items = computed(() => list.value.map(id => getMusicData(id)).filter<MusicData>(item => item != null))
+const localItems = ref([...items.value])
 const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
 
 useAppStore().scrollPlaylistToIndex = (index: number) => uiVerticalListRef.value?.scrollToIndex(index)
@@ -34,6 +35,40 @@ const router = useRouter()
 function goBackToPlaylists() {
 	return router.push({ name: Routes.Playlists })
 }
+
+const canDragAndSort = computed(() => playlist.value.id !== 'all')
+
+const draggingItemIndex = ref<number | null>(null)
+useDragAndDrop({
+	onDragStart(_, { draggableElement }) {
+		if (draggableElement == null)
+			return
+		const index = Number(draggableElement.dataset.index ?? -1)
+		if (index < 0 || index >= items.value.length)
+			return
+		draggingItemIndex.value = index
+	},
+	onDragMove(event) {
+		if (draggingItemIndex.value == null)
+			return
+		const targetElement = event.target?.closest('[data-index]')
+		if (!(targetElement instanceof HTMLElement))
+			return
+		const targetIndex = Number(targetElement.dataset.index ?? -1)
+		if (targetIndex < 0 || targetIndex >= items.value.length)
+			return
+
+		const newItems: (MusicData | null)[] = [...items.value]
+		const item = newItems[draggingItemIndex.value]!
+		newItems[draggingItemIndex.value] = null
+		newItems.splice(targetIndex + 1, 0, item)
+		localItems.value = newItems.filter((item): item is MusicData => item != null)
+	},
+	onDragEnd() {
+		draggingItemIndex.value = null
+		playlist.value.list = localItems.value.map(item => item.id)
+	},
+})
 </script>
 
 <template>
@@ -141,10 +176,11 @@ function goBackToPlaylists() {
 				flex: '1 0 0',
 				minHeight: '0',
 			})"
+			@contextmenu.prevent
 		>
 			<UiVerticalList
 				ref="uiVerticalListRef"
-				:items
+				:items="localItems"
 				:itemHeight="72"
 			>
 				<template #item="{ item, index }">
@@ -153,6 +189,8 @@ function goBackToPlaylists() {
 						:data-is-current-music="item.id === currentMusic?.id && playlist.id === currentPlaylist?.id"
 						:data-is-paused="isPaused"
 						:data-music-src="item.src"
+						:data-draggable="canDragAndSort"
+						:data-index="index"
 						:class="pika('hover-mask', {
 							'width': '100%',
 							'height': '64px',

@@ -1,115 +1,127 @@
-import { createMachine } from '@deviltea/tiny-state-machine'
-
-interface UseDragAndDropOptions {
-	threshold?: MaybeRefOrGetter<number>
-	isDraggable?: (el: HTMLElement) => boolean
+interface DragAndDropContext {
+	draggableElement: HTMLElement | null
+	ghostElement: HTMLElement | null
 }
 
-export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
-	const threshold = computed(() => toValue(options.threshold ?? 10))
-	const isDraggable = (el: HTMLElement) => {
-		if (options.isDraggable == null)
-			return true
-		return options.isDraggable(el)
+interface UseDragAndDropOptions {
+	onDragStart?: (event: PointerEvent, context: DragAndDropContext) => void
+	onDragEnd?: (event: PointerEvent, context: DragAndDropContext) => void
+	onDragMove?: (event: PointerEvent, context: DragAndDropContext) => void
+}
+
+export function useDragAndDrop({
+	onDragStart,
+	onDragEnd,
+	onDragMove,
+}: UseDragAndDropOptions = {}) {
+	const ghostElement = shallowRef<HTMLElement | null>(null)
+	let _stopDragging: (() => void) | null = null
+	function pointerDown(event: PointerEvent) {
+		_stopDragging?.()
+
+		const draggableElement = event.target instanceof HTMLElement
+			? event.target.closest('[data-draggable=true]') as HTMLElement | null
+			: null
+		if (draggableElement == null)
+			return
+
+		draggableElement.addEventListener('contextmenu', preventDefault)
+
+		const startX = event.clientX
+		const startY = event.clientY
+
+		function getContext(): DragAndDropContext {
+			return {
+				draggableElement,
+				ghostElement: ghostElement.value,
+			}
+		}
+
+		function pointerMove(moveEvent: PointerEvent) {
+			if (ghostElement.value) {
+				ghostElement.value.style.setProperty('--translateX', `${moveEvent.clientX - startX}px`)
+				ghostElement.value.style.setProperty('--translateY', `${moveEvent.clientY - startY}px`)
+
+				onDragMove?.(moveEvent, getContext())
+			}
+		}
+
+		function pointerUp(upEvent: PointerEvent) {
+			onDragEnd?.(upEvent, getContext())
+			stopDragging()
+		}
+
+		function stopDragging() {
+			document.removeEventListener('pointermove', stopDragging)
+			document.removeEventListener('pointermove', pointerMove)
+			document.removeEventListener('pointerup', pointerUp)
+			draggableElement?.removeEventListener('contextmenu', preventDefault)
+			draggableElement?.removeAttribute('data-dragging')
+			ghostElement.value?.remove()
+			ghostElement.value = null
+		}
+
+		_stopDragging = stopDragging
+		document.removeEventListener('pointermove', stopDragging)
+		document.addEventListener('pointermove', pointerMove, { capture: true, passive: true })
+		document.addEventListener('pointerup', pointerUp, { capture: true, passive: true })
+		draggableElement.setAttribute('data-dragging', 'true')
+		ghostElement.value = createGhostElement(draggableElement)
+		document.body.appendChild(ghostElement.value)
+		onDragStart?.(event, getContext())
 	}
 
-	const machine = createMachine({
-		initial: 'idle',
-		states: {
-			idle: {
-				on: {
-					POINTER_DOWN: 'pressing',
-				},
-			},
-			pressing: {
-				on: {
-					POINTER_UP: 'idle',
-					START_DRAG: 'dragging',
-				},
-			},
-			dragging: {
-				on: {
-					POINTER_UP: 'idle',
-					MOVE: 'dragging',
-				},
-			},
-		},
-	})
+	function preventDefault(event: Event) {
+		event.preventDefault()
+	}
+
+	document.addEventListener('pointerdown', pointerDown, { passive: true })
+
 	tryOnScopeDispose(() => {
-		machine.destroy()
+		document.removeEventListener('pointerdown', pointerDown)
+		_stopDragging?.()
 	})
+}
 
-	const dragging = {
-		startPos: ref<{ x: number, y: number } | null>(null),
-		currentPos: ref<{ x: number, y: number } | null>(null),
-		draggingElement: ref<HTMLElement | null>(null),
+function createGhostElement(sourceEl: HTMLElement): HTMLElement {
+	const clone = sourceEl.cloneNode(true) as HTMLElement
+	const sourceRect = sourceEl.getBoundingClientRect()
+
+	// copyComputedStyle(sourceEl, clone)
+
+	// Recursively copy computed styles for all child elements
+	// const sourceChildren = sourceEl.querySelectorAll('*')
+	// const cloneChildren = clone.querySelectorAll('*')
+	// for (let i = 0; i < sourceChildren.length; i++) {
+	// 	copyComputedStyle(sourceChildren[i] as HTMLElement, cloneChildren[i] as HTMLElement)
+	// }
+
+	Object.assign(clone.style, {
+		'--translateX': '0',
+		'--translateY': '0',
+		'position': 'fixed',
+		'top': `${sourceRect.top}px`,
+		'left': `${sourceRect.left}px`,
+		'width': `${sourceRect.width}px`,
+		'height': `${sourceRect.height}px`,
+		'margin': '0',
+		'pointerEvents': 'none',
+		'zIndex': '9999',
+		'transform': `translate(var(--translateX, 0), var(--translateY, 0))`,
+	})
+	clone.dataset.ghost = 'true'
+
+	return clone
+}
+
+function copyComputedStyle(source: HTMLElement, target: HTMLElement) {
+	const computed = getComputedStyle(source)
+	for (const key of computed) {
+		try {
+			target.style.setProperty(key, computed.getPropertyValue(key), computed.getPropertyPriority(key))
+		}
+		catch {
+			// Ignore errors when setting styles that are not applicable
+		}
 	}
-
-	const { pressure, x, y } = usePointer()
-	machine.onTransition(
-		{ target: 'idle' },
-		() => {
-			dragging.startPos.value = null
-			dragging.currentPos.value = null
-			dragging.draggingElement.value = null
-		},
-	)
-	machine.onTransition(
-		{ source: 'idle', target: 'pressing' },
-		() => {
-			dragging.startPos.value = { x: x.value, y: y.value }
-		},
-	)
-	machine.onTransition(
-		{ source: 'pressing', target: 'dragging' },
-		() => {
-			dragging.currentPos.value = { x: x.value, y: y.value }
-		},
-	)
-	machine.onTransition(
-		{ source: 'dragging', event: 'MOVE', target: 'dragging' },
-		() => {
-			dragging.currentPos.value = { x: x.value, y: y.value }
-		},
-	)
-
-	watch(
-		pressure,
-		(value) => {
-			const isPointerDown = value >= 0.5
-			const el = document.elementFromPoint(x.value, y.value) as HTMLElement | null
-			const isDraggableEl = el != null && isDraggable(el)
-			if (machine.currentState === 'idle' && isPointerDown && isDraggableEl) {
-				dragging.draggingElement.value = el
-				machine.send('POINTER_DOWN')
-			}
-			else if (
-				isPointerDown === false
-				&& (
-					machine.currentState === 'pressing'
-					|| machine.currentState === 'dragging'
-				)
-			) {
-				machine.send('POINTER_UP')
-			}
-		},
-	)
-	watch(
-		[x, y],
-		() => {
-			if (dragging.startPos.value == null)
-				return
-
-			if (machine.currentState === 'pressing') {
-				const dx = x.value - dragging.startPos.value.x
-				const dy = y.value - dragging.startPos.value.y
-				if (Math.sqrt(dx * dx + dy * dy) > threshold.value) {
-					machine.send('START_DRAG')
-				}
-			}
-			else if (machine.currentState === 'dragging') {
-				machine.send('MOVE')
-			}
-		},
-	)
 }
