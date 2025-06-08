@@ -14,7 +14,7 @@ const playlist = computed(() => getPlaylist(props.playlistId)!)
 const title = computed(() => playlist.value.title)
 const list = toRef(() => playlist.value.list)
 const items = computed(() => list.value.map(id => getMusicData(id)).filter<MusicData>(item => item != null))
-const localItems = ref([...items.value])
+const indexList = ref(items.value.map((_, index) => index))
 const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
 
 useAppStore().scrollPlaylistToIndex = (index: number) => uiVerticalListRef.value?.scrollToIndex(index)
@@ -37,38 +37,6 @@ function goBackToPlaylists() {
 }
 
 const canDragAndSort = computed(() => playlist.value.id !== 'all')
-
-const draggingItemIndex = ref<number | null>(null)
-useDragAndDrop({
-	onDragStart(_, { draggableElement }) {
-		if (draggableElement == null)
-			return
-		const index = Number(draggableElement.dataset.index ?? -1)
-		if (index < 0 || index >= items.value.length)
-			return
-		draggingItemIndex.value = index
-	},
-	onDragMove(event) {
-		if (draggingItemIndex.value == null)
-			return
-		const targetElement = event.target?.closest('[data-index]')
-		if (!(targetElement instanceof HTMLElement))
-			return
-		const targetIndex = Number(targetElement.dataset.index ?? -1)
-		if (targetIndex < 0 || targetIndex >= items.value.length)
-			return
-
-		const newItems: (MusicData | null)[] = [...items.value]
-		const item = newItems[draggingItemIndex.value]!
-		newItems[draggingItemIndex.value] = null
-		newItems.splice(targetIndex + 1, 0, item)
-		localItems.value = newItems.filter((item): item is MusicData => item != null)
-	},
-	onDragEnd() {
-		draggingItemIndex.value = null
-		playlist.value.list = localItems.value.map(item => item.id)
-	},
-})
 </script>
 
 <template>
@@ -180,142 +148,143 @@ useDragAndDrop({
 		>
 			<UiVerticalList
 				ref="uiVerticalListRef"
-				:items="localItems"
+				:items="indexList"
 				:itemHeight="72"
 			>
-				<template #item="{ item, index }">
-					<div
-						:key="item.id"
-						:data-is-current-music="item.id === currentMusic?.id && playlist.id === currentPlaylist?.id"
-						:data-is-paused="isPaused"
-						:data-music-src="item.src"
-						:data-draggable="canDragAndSort"
-						:data-index="index"
-						:class="pika('hover-mask', {
-							'width': '100%',
-							'height': '64px',
-							'display': 'flex',
-							'alignItems': 'center',
-							'gap': '16px',
-							'padding': '0 16px 0 4px',
-							'marginBottom': '8px',
-							'cursor': 'pointer',
-							'userSelect': 'none',
-							'$:has([id^=reka-dropdown-menu-trigger-][data-state=open])::before': {
-								opacity: '0.1',
-							},
-							'$[data-is-current-music=true]': {
-								color: 'var(--color-primary-1)',
-							},
-						})"
-						@click="play(playlist, item.id)"
+				<template #item="{ item: index }">
+					<TempVar
+						v-slot="{ item }"
+						:define="{
+							item: items[index]!,
+						}"
 					>
 						<div
-							:class="pika({
-								flex: '1 1 0',
-								minWidth: '0',
-								display: 'flex',
-								alignItems: 'center',
-								gap: '8px',
+							:key="item.id"
+							:data-is-current-music="item.id === currentMusic?.id && playlist.id === currentPlaylist?.id"
+							:data-is-paused="isPaused"
+							:data-music-src="item.src"
+							:data-draggable="canDragAndSort"
+							:data-index="index"
+							:class="pika('hover-mask', {
+								'width': '100%',
+								'height': '64px',
+								'display': 'flex',
+								'alignItems': 'center',
+								'gap': '16px',
+								'padding': '0 16px 0 4px',
+								'marginBottom': '8px',
+								'cursor': 'pointer',
+								'userSelect': 'none',
+								'$:has([id^=reka-dropdown-menu-trigger-][data-state=open])::before': {
+									opacity: '0.1',
+								},
+								'$[data-is-current-music=true]': {
+									color: 'var(--color-primary-1)',
+								},
 							})"
+							@click="play(playlist, item.id)"
 						>
 							<div
 								:class="pika({
-									display: 'flex',
-									justifyContent: 'end',
-									width: '40px',
-								})"
-							>
-								<span
-									:class="pika({
-										'fontSize': '12px',
-										'color': 'var(--color-gray-5)',
-										'opacity': '0.5',
-										'@dark': {
-											color: 'var(--color-gray-1)',
-										},
-
-										'[data-is-current-music=true][data-is-paused=false] $': { display: 'none' },
-										'[data-is-current-music=true][data-is-paused=true] $, [data-is-current-music=false]:hover $': { display: 'none' },
-									})"
-								>
-									#{{ index + 1 }}
-								</span>
-
-								<div
-									:class="pika({
-										'fontSize': '24px',
-										'transition': 'opacity 0.1s',
-										'[data-is-current-music=true][data-is-paused=false] $': ['i-svg-spinners:bars-scale-middle', { opacity: '1' }],
-										'[data-is-current-music=true][data-is-paused=true] $, [data-is-current-music=false]:hover $': ['i-f7:play-fill', { opacity: '1', color: 'var(--color-primary-1)' }],
-									})"
-								/>
-							</div>
-
-							<button
-								:data-liked="isMusicLiked(item.id)"
-								:class="pika('icon-btn', {
-									'@screen-md-and-up': {
-										'[data-music-src]:not(:hover) [data-liked=false]$': { visibility: 'hidden' },
-									},
-								})"
-								@click.stop="toggleMusicLike(item.id)"
-							>
-								<div
-									:class="pika({
-										'[data-liked=true] $': ['i-f7:heart-fill', { color: 'var(--color-primary-1)' }],
-										'[data-liked=false] $': ['i-f7:heart'],
-									})"
-								/>
-							</button>
-
-							<img
-								:src="item.cover"
-								:alt="item.title"
-								:title="item.title"
-								:class="pika({
-									width: '50px',
-									height: '50px',
-								})"
-								loading="lazy"
-							>
-
-							<div
-								:class="pika({
-									display: 'flex',
-									flexDirection: 'column',
-									gap: '2px',
-									flex: '1 2 0',
+									flex: '1 1 0',
 									minWidth: '0',
+									display: 'flex',
+									alignItems: 'center',
+									gap: '8px',
 								})"
 							>
-								<UiMarquee
-									:key="item.title"
-									:title="item.title"
-									:class="pika({ width: '100%' })"
-								>
-									{{ item.title }}
-								</UiMarquee>
 								<div
 									:class="pika({
-										'fontSize': '12px',
-										'color': 'var(--color-gray-5)',
-										'opacity': '0.5',
-										'@dark': {
-											color: 'var(--color-gray-1)',
-										},
+										display: 'flex',
+										justifyContent: 'end',
+										width: '40px',
 									})"
 								>
-									{{ formatTime(item.duration) }}
+									<span
+										:class="pika({
+											'fontSize': '12px',
+											'color': 'var(--color-gray-5)',
+											'opacity': '0.5',
+											'@dark': {
+												color: 'var(--color-gray-1)',
+											},
+											'[data-is-current-music=true][data-is-paused=false] $': { display: 'none' },
+											'[data-is-current-music=true][data-is-paused=true] $, [data-is-current-music=false]:hover $': { display: 'none' },
+										})"
+									>
+										#{{ index + 1 }}
+									</span>
+									<div
+										:class="pika({
+											'fontSize': '24px',
+											'transition': 'opacity 0.1s',
+											'[data-is-current-music=true][data-is-paused=false] $': ['i-svg-spinners:bars-scale-middle', { opacity: '1' }],
+											'[data-is-current-music=true][data-is-paused=true] $, [data-is-current-music=false]:hover $': ['i-f7:play-fill', { opacity: '1', color: 'var(--color-primary-1)' }],
+										})"
+									/>
+								</div>
+								<button
+									:data-liked="isMusicLiked(item.id)"
+									:class="pika('icon-btn', {
+										'@screen-md-and-up': {
+											'[data-music-src]:not(:hover) [data-liked=false]$': { visibility: 'hidden' },
+										},
+									})"
+									@click.stop="toggleMusicLike(item.id)"
+								>
+									<div
+										:class="pika({
+											'[data-liked=true] $': ['i-f7:heart-fill', { color: 'var(--color-primary-1)' }],
+											'[data-liked=false] $': ['i-f7:heart'],
+										})"
+									/>
+								</button>
+								<img
+									:src="item.cover"
+									:alt="item.title"
+									:title="item.title"
+									:class="pika({
+										width: '50px',
+										height: '50px',
+									})"
+									loading="lazy"
+								>
+								<div
+									:class="pika({
+										display: 'flex',
+										flexDirection: 'column',
+										gap: '2px',
+										flex: '1 2 0',
+										minWidth: '0',
+									})"
+								>
+									<UiMarquee
+										:key="item.title"
+										:title="item.title"
+										:class="pika({ width: '100%' })"
+									>
+										{{ item.title }}
+									</UiMarquee>
+									<div
+										:class="pika({
+											'fontSize': '12px',
+											'color': 'var(--color-gray-5)',
+											'opacity': '0.5',
+											'@dark': {
+												color: 'var(--color-gray-1)',
+											},
+										})"
+									>
+										{{ formatTime(item.duration) }}
+									</div>
 								</div>
 							</div>
+							<PlaylistMusicDropdownMenu
+								:playlistId
+								:musicId="item.id"
+							/>
 						</div>
-
-						<PlaylistMusicDropdownMenu
-							:playlistId
-							:musicId="item.id"
-						/>
-					</div>
+					</TempVar>
 				</template>
 			</UiVerticalList>
 		</div>
