@@ -17,7 +17,7 @@ const {
 	list,
 	containerProps,
 	wrapperProps,
-	scrollTo,
+	scrollTo: scrollToIndex,
 } = useVirtualList(toRef(() => props.items), { itemHeight })
 
 const scrollAreaViewportRef = useTemplateRef('scrollAreaViewportRef')
@@ -34,8 +34,13 @@ useEventListener(
 	{ passive: true },
 )
 
+function scrollBy(y: number): void {
+	scrollAreaViewportEl.value?.scrollBy({ top: y })
+}
+
 defineExpose({
-	scrollToIndex: scrollTo,
+	scrollToIndex,
+	scrollBy,
 })
 </script>
 

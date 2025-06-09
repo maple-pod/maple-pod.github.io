@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PlaylistId } from '@/types'
+import type { MusicData, PlaylistId } from '@/types'
 import { formatTime } from '@/utils/common'
 
 const props = defineProps<{
@@ -12,8 +12,6 @@ const { currentPlaylist, currentMusic, isPaused, random } = storeToRefs(musicSto
 const { getPlaylist, getMusicData, play, togglePlay, isMusicLiked, toggleMusicLike, toggleRandom } = musicStore
 const playlist = computed(() => getPlaylist(props.playlistId)!)
 const title = computed(() => playlist.value.title)
-const list = toRef(() => playlist.value.list)
-const items = computed(() => list.value.map(getMusicData).filter(data => data != null))
 const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
 
 useAppStore().scrollPlaylistToIndex = (index: number) => uiVerticalListRef.value?.scrollToIndex(index)
@@ -34,6 +32,43 @@ const router = useRouter()
 function goBackToPlaylists() {
 	return router.push({ name: Routes.Playlists })
 }
+
+const canDragAndSort = computed(() => playlist.value.id !== 'all')
+const { pointerPosition, isDragging, items } = useDragAndSort({
+	draggableElementHandlerSelector: '[data-draggable-handler]',
+	draggableElementSelector: '[data-draggable=true]',
+	items: computed({
+		get: () => playlist.value.list
+			.map(id => getMusicData(id))
+			.filter<MusicData>(item => item != null),
+		set: (newItems) => {
+			playlist.value.list = newItems.map(item => item.id)
+		},
+	}),
+})
+function calcScrollSpeed(pointerY: number, scrollZoneTop: number, scrollZoneBottom: number): number {
+	if (pointerY < scrollZoneTop) {
+		return -(scrollZoneTop - pointerY) / 5
+	}
+	else if (pointerY > scrollZoneBottom) {
+		return (pointerY - scrollZoneBottom) / 5
+	}
+	return 0
+}
+useRafFn(() => {
+	if (isDragging.value === false || uiVerticalListRef.value == null)
+		return
+
+	const rect = useElementBounding(uiVerticalListRef as any)
+	const scrollUpZoneTop = rect.top.value
+	const scrollDownZoneBottom = rect.bottom.value
+	const pointerY = pointerPosition.value.y
+
+	const scrollSpeed = calcScrollSpeed(pointerY, scrollUpZoneTop, scrollDownZoneBottom)
+	if (scrollSpeed !== 0) {
+		uiVerticalListRef.value.scrollBy(scrollSpeed)
+	}
+}, { immediate: true })
 </script>
 
 <template>
@@ -153,6 +188,8 @@ function goBackToPlaylists() {
 						:data-is-current-music="item.id === currentMusic?.id && playlist.id === currentPlaylist?.id"
 						:data-is-paused="isPaused"
 						:data-music-src="item.src"
+						:data-index="index"
+						:data-draggable="canDragAndSort"
 						:class="pika('hover-mask', {
 							'width': '100%',
 							'height': '64px',
@@ -172,6 +209,14 @@ function goBackToPlaylists() {
 						})"
 						@click="play(playlist, item.id)"
 					>
+						<div
+							v-if="canDragAndSort"
+							data-draggable-handler
+							:class="pika('i-f7:equal', {
+								color: 'var(--color-gray-3)',
+							})"
+							@click.capture.stop
+						/>
 						<div
 							:class="pika({
 								flex: '1 1 0',
@@ -196,14 +241,12 @@ function goBackToPlaylists() {
 										'@dark': {
 											color: 'var(--color-gray-1)',
 										},
-
 										'[data-is-current-music=true][data-is-paused=false] $': { display: 'none' },
 										'[data-is-current-music=true][data-is-paused=true] $, [data-is-current-music=false]:hover $': { display: 'none' },
 									})"
 								>
 									#{{ index + 1 }}
 								</span>
-
 								<div
 									:class="pika({
 										'fontSize': '24px',
@@ -213,7 +256,6 @@ function goBackToPlaylists() {
 									})"
 								/>
 							</div>
-
 							<button
 								:data-liked="isMusicLiked(item.id)"
 								:class="pika('icon-btn', {
@@ -230,7 +272,6 @@ function goBackToPlaylists() {
 									})"
 								/>
 							</button>
-
 							<img
 								:src="item.cover"
 								:alt="item.title"
@@ -241,7 +282,6 @@ function goBackToPlaylists() {
 								})"
 								loading="lazy"
 							>
-
 							<div
 								:class="pika({
 									display: 'flex',
@@ -272,7 +312,6 @@ function goBackToPlaylists() {
 								</div>
 							</div>
 						</div>
-
 						<PlaylistMusicDropdownMenu
 							:playlistId
 							:musicId="item.id"
