@@ -24,9 +24,7 @@ export function useDragAndDrop({
 	let _stopDragging: (() => void) | null = null
 	function pointerDown(event: PointerEvent) {
 		_stopDragging?.()
-		const eventTarget = event.target instanceof HTMLElement
-			? event.target
-			: null
+		const eventTarget = event.target instanceof HTMLElement ? event.target : null
 		if (eventTarget == null)
 			return
 
@@ -82,15 +80,19 @@ export function useDragAndDrop({
 			_stopDragging = null
 		}
 
-		_stopDragging = stopDragging
-		document.removeEventListener('pointermove', stopDragging)
-		document.addEventListener('pointermove', pointerMove, { capture: true })
-		document.addEventListener('pointerup', pointerUp, { capture: true })
-		draggableElement.setAttribute('data-dragging', 'true')
-		ghostElement.value = createGhostElement(draggableElement)
-		document.body.appendChild(ghostElement.value)
-		isDragging.value = true
-		onDragStart?.(event, getContext())
+		function startDragging() {
+			_stopDragging = stopDragging
+			document.removeEventListener('pointermove', stopDragging)
+			document.addEventListener('pointermove', pointerMove, { capture: true })
+			document.addEventListener('pointerup', pointerUp, { capture: true })
+			draggableElement.setAttribute('data-dragging', 'true')
+			ghostElement.value = createGhostElement(draggableElement)
+			document.body.appendChild(ghostElement.value)
+			isDragging.value = true
+			onDragStart?.(event, getContext())
+		}
+
+		startDragging()
 	}
 
 	document.addEventListener('pointerdown', pointerDown, { capture: true })

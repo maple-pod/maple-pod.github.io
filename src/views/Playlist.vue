@@ -195,11 +195,17 @@ useRafFn(() => {
 							'height': '64px',
 							'display': 'flex',
 							'alignItems': 'center',
-							'gap': '16px',
 							'padding': '0 16px 0 4px',
 							'marginBottom': '8px',
+							'borderRadius': '8px',
+							'backgroundColor': 'var(--color-gray-1)',
 							'cursor': 'pointer',
 							'userSelect': 'none',
+
+							'@dark': {
+								backgroundColor: 'var(--color-gray-4)',
+							},
+
 							'$:has([id^=reka-dropdown-menu-trigger-][data-state=open])::before': {
 								opacity: '0.1',
 							},
@@ -212,11 +218,19 @@ useRafFn(() => {
 						<div
 							v-if="canDragAndSort"
 							data-draggable-handler
-							:class="pika('i-f7:equal', {
+							:class="pika({
+								display: 'flex',
+								alignItems: 'center',
+								height: '100%',
+								padding: '8px',
 								color: 'var(--color-gray-3)',
 							})"
 							@click.capture.stop
-						/>
+						>
+							<div
+								:class="pika('i-f7:equal')"
+							/>
+						</div>
 						<div
 							:class="pika({
 								flex: '1 1 0',
@@ -224,6 +238,7 @@ useRafFn(() => {
 								display: 'flex',
 								alignItems: 'center',
 								gap: '8px',
+								marginRight: '16px',
 							})"
 						>
 							<div

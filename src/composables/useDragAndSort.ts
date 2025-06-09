@@ -23,13 +23,6 @@ export function useDragAndSort<T>(options: UseDragAndSortOptions<T>) {
 			const index = Number(draggableElement.dataset.index ?? -1)
 			if (index < 0 || index >= items.value.length)
 				return
-			ghostElement.classList.add(...pika.arr({
-				'backgroundColor': 'var(--color-gray-1)',
-				'@dark': {
-					backgroundColor: 'var(--color-gray-4)',
-				},
-				'borderRadius': '8px',
-			}))
 			preview.items.value = [...items.value]
 			preview.draggingIndex.value = index
 			preview.targetIndex.value = null
