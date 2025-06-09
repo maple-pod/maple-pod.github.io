@@ -42,6 +42,16 @@ export function useDragAndDrop({
 		const startX = event.clientX
 		const startY = event.clientY
 
+		_stopDragging = stopDragging
+		document.removeEventListener('pointermove', stopDragging)
+		document.addEventListener('pointermove', pointerMove, { capture: true })
+		document.addEventListener('pointerup', pointerUp, { capture: true })
+		draggableElement!.setAttribute('data-dragging', 'true')
+		ghostElement.value = createGhostElement(draggableElement!)
+		document.body.appendChild(ghostElement.value)
+		isDragging.value = true
+		onDragStart?.(event, getContext())
+
 		function getContext(): DragAndDropContext {
 			return {
 				draggableElement,
@@ -79,20 +89,6 @@ export function useDragAndDrop({
 			pointerPosition.value.y = 0
 			_stopDragging = null
 		}
-
-		function startDragging() {
-			_stopDragging = stopDragging
-			document.removeEventListener('pointermove', stopDragging)
-			document.addEventListener('pointermove', pointerMove, { capture: true })
-			document.addEventListener('pointerup', pointerUp, { capture: true })
-			draggableElement.setAttribute('data-dragging', 'true')
-			ghostElement.value = createGhostElement(draggableElement)
-			document.body.appendChild(ghostElement.value)
-			isDragging.value = true
-			onDragStart?.(event, getContext())
-		}
-
-		startDragging()
 	}
 
 	document.addEventListener('pointerdown', pointerDown, { capture: true })
