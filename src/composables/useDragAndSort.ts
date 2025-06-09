@@ -6,11 +6,9 @@ interface UseDragAndSortOptions<T> {
 
 export function useDragAndSort<T>(options: UseDragAndSortOptions<T>) {
 	const { items } = options
-	const preview = {
-		items: ref<T[]>([]),
-		draggingIndex: ref<number | null>(null),
-		targetIndex: ref<number | null>(null),
-	}
+	const originalItems = ref<T[]>([])
+	const draggingIndex = ref<number | null>(null)
+	const targetIndex = ref<number | null>(null)
 	const {
 		pointerPosition,
 		isDragging,
@@ -23,12 +21,12 @@ export function useDragAndSort<T>(options: UseDragAndSortOptions<T>) {
 			const index = Number(draggableElement.dataset.index ?? -1)
 			if (index < 0 || index >= items.value.length)
 				return
-			preview.items.value = [...items.value]
-			preview.draggingIndex.value = index
-			preview.targetIndex.value = null
+			originalItems.value = [...items.value]
+			draggingIndex.value = index
+			targetIndex.value = null
 		},
 		onDragMove(event) {
-			if (preview.draggingIndex.value == null)
+			if (draggingIndex.value == null)
 				return
 			const targetElement = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-index]')
 			if (!(targetElement instanceof HTMLElement))
@@ -42,26 +40,26 @@ export function useDragAndSort<T>(options: UseDragAndSortOptions<T>) {
 			) {
 				return
 			}
-			_targetIndex = preview.draggingIndex.value < _targetIndex
+			_targetIndex = draggingIndex.value < _targetIndex
 				? _targetIndex + 1
 				: _targetIndex
-			if (preview.targetIndex.value === _targetIndex)
+			if (targetIndex.value === _targetIndex)
 				return
-			preview.targetIndex.value = _targetIndex
-			const item = preview.items.value[preview.draggingIndex.value]!
-			let newItems = [...preview.items.value]
-			newItems[preview.draggingIndex.value] = null!
+			targetIndex.value = _targetIndex
+			const item = originalItems.value[draggingIndex.value]!
+			let newItems = [...originalItems.value]
+			newItems[draggingIndex.value] = null!
 			newItems = [
-				...newItems.slice(0, preview.targetIndex.value),
+				...newItems.slice(0, targetIndex.value),
 				item,
-				...newItems.slice(preview.targetIndex.value),
+				...newItems.slice(targetIndex.value),
 			].filter(item => item != null)
 			items.value = newItems as T[]
 			event.preventDefault()
 		},
 		onDragEnd() {
-			preview.draggingIndex.value = null
-			preview.targetIndex.value = null
+			draggingIndex.value = null
+			targetIndex.value = null
 		},
 	})
 
