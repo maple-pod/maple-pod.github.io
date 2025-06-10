@@ -5,6 +5,7 @@ import simpleGit from 'simple-git'
 import Imports from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
 import VueDevTools from 'vite-plugin-vue-devtools'
 
 async function getGitCommitHash() {
@@ -22,6 +23,66 @@ async function getGitCommitHash() {
 // https://vite.dev/config/
 export default defineConfig(async () => ({
 	plugins: [
+
+		VitePWA({
+			registerType: 'autoUpdate',
+			devOptions: {
+				enabled: true,
+				type: 'module',
+				navigateFallback: 'index.html',
+				suppressWarnings: true,
+			},
+			manifest: {
+				theme_color: '#E36262',
+			},
+			workbox: {
+				globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+				runtimeCaching: [
+					{
+						urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: 'google-fonts-cache',
+							expiration: {
+								maxEntries: 10,
+								maxAgeSeconds: 60 * 60 * 24 * 365, // <== 365 days
+							},
+							cacheableResponse: {
+								statuses: [0, 200],
+							},
+						},
+					},
+					{
+						urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: 'gstatic-fonts-cache',
+							expiration: {
+								maxEntries: 10,
+								maxAgeSeconds: 60 * 60 * 24 * 365, // <== 365 days
+							},
+							cacheableResponse: {
+								statuses: [0, 200],
+							},
+						},
+					},
+					{
+						urlPattern: /\/resources\/data\.json$/,
+						handler: 'NetworkFirst',
+						options: {
+							cacheName: 'maple-pod-data-cache',
+							expiration: {
+								maxEntries: 10,
+								maxAgeSeconds: 60 * 60 * 24 * 365, // <== 365 days
+							},
+							cacheableResponse: {
+								statuses: [0, 200],
+							},
+						},
+					},
+				],
+			},
+		}),
 		PikaCSS({
 			target: ['**/*.vue', '**/*.ts'],
 		}),
