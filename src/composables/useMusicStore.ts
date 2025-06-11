@@ -1,5 +1,6 @@
 import type { CustomPlaylistId, MusicData, Playlist, PlaylistId, Resources } from '@/types'
 import { decodeMarkImg } from '@/utils/common'
+import localforage from 'localforage'
 import { ofetch } from 'ofetch'
 
 function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playlist {
@@ -141,13 +142,46 @@ export const useMusicStore = defineStore('music', () => {
 		toggleMusicInPlaylist('liked', musicId)
 	}
 
+	const offlineMusicStorage = localforage.createInstance({
+		name: 'maple-pod',
+	})
+	const offlineReadyMusics = ref(new Set<string>())
+	async function loadOfflineMusics() {
+		const keys = await offlineMusicStorage.keys()
+		offlineReadyMusics.value = new Set<string>(keys)
+	}
+	async function saveMusicForOffline(musicId: string) {
+		const musicData = getMusicData(musicId)
+
+		if (musicData == null)
+			return
+
+		const src = `/resources/bgm/${musicData.data.filename}.mp3`
+		const blob = await ofetch(src, { responseType: 'blob' })
+		await offlineMusicStorage.setItem(musicId, blob)
+		offlineReadyMusics.value.add(musicId)
+	}
+
+	const objUrls: string[] = []
 	const audioPlayerLogic = useAudioPlayer({
-		getAudioSrc: (id) => {
+		getAudioSrc: async (id) => {
 			if (id == null)
 				return null
+
+			const blob = await offlineMusicStorage.getItem<Blob>(id)
+			if (blob != null) {
+				const toRevoke = [...objUrls]
+				objUrls.length = 0
+				toRevoke.forEach(url => URL.revokeObjectURL(url))
+				const objUrl = URL.createObjectURL(blob)
+				objUrls.push(objUrl)
+				return objUrl
+			}
+
 			const musicData = getMusicData(id)
 			return musicData?.src ?? null
 		},
+		isMusicDisabled: id => isMusicDisabled(id ?? ''),
 	})
 	const currentPlaylist = ref<Playlist | null>(null)
 	const currentMusic = computed(() => getMusicData(audioPlayerLogic.currentAudioId.value || '') ?? null)
@@ -192,6 +226,14 @@ export const useMusicStore = defineStore('music', () => {
 
 	function getPlayMusicLink(musicId: string) {
 		return `${window.location.origin}${import.meta.env.BASE_URL}play/?musicId=${musicId}`
+	}
+
+	const isOnline = useOnline()
+	function isMusicDisabled(musicId: string) {
+		if (isOnline.value)
+			return false
+
+		return offlineReadyMusics.value.has(musicId) === false
 	}
 
 	if (navigator.mediaSession != null) {
@@ -246,7 +288,8 @@ export const useMusicStore = defineStore('music', () => {
 
 	const ready = until(isDataReady)
 		.toBe(true)
-		.then(() => {
+		.then(async () => {
+			await loadOfflineMusics()
 			// ensure the saved playlists are valid
 			savedPlaylists.value = savedPlaylists.value
 				.filter((playlist) => {
@@ -293,6 +336,9 @@ export const useMusicStore = defineStore('music', () => {
 		play,
 		history,
 		getPlayMusicLink,
+		offlineReadyMusics,
+		saveMusicForOffline,
+		isMusicDisabled,
 		ready,
 	}
 })

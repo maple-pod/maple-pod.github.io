@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useDocumentPictureInPicture } from '@/composables/useDocumentPictureInPicture'
+import { onKeyDown } from '@vueuse/core'
 
 const musicStore = useMusicStore()
 const {
+	currentPlaylist,
 	currentMusic,
 	canPlay,
 	duration,
@@ -24,6 +26,12 @@ const {
 	toggleMuted,
 	getPlayMusicLink,
 } = musicStore
+
+const magicKeys = useMagicKeys()
+whenever(
+	() => magicKeys.Space!.value && magicKeys.current.size === 1,
+	() => canPlay.value && togglePlay(),
+)
 
 const {
 	isSupported: isPipSupported,
@@ -185,6 +193,7 @@ function handleCopyMusicLink() {
 								</div>
 							</div>
 							<MusicPlayerActionButtons
+								:currentPlaylistId="currentPlaylist?.id"
 								:currentMusic="currentMusic"
 								:isPipSupported="isPipSupported"
 								:isPipActive="isPipActive"

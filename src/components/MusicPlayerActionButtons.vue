@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { MusicData } from '@/types'
+import type { MusicData, PlaylistId } from '@/types'
 
 defineProps<{
-	currentMusic: MusicData | null
+	currentPlaylistId: PlaylistId | null | undefined
+	currentMusic: MusicData | null | undefined
 	isPipSupported: boolean
 	isPipActive: boolean
 }>()
@@ -69,5 +70,10 @@ defineEmits<{
 				Open in Picture-in-Picture
 			</template>
 		</UiTooltip>
+		<MusicDropdownMenu
+			v-if="(currentMusic != null) && (currentPlaylistId != null) && (isPipActive === false)"
+			:playlistId="currentPlaylistId"
+			:musicId="currentMusic.id"
+		/>
 	</div>
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const musicStore = useMusicStore()
 const { currentMusic, toPlayQueue } = storeToRefs(musicStore)
-const { playToPlayQueueItem } = musicStore
+const { playToPlayQueueItem, isMusicDisabled } = musicStore
 
 const displayList = computed(() => {
 	return [
@@ -11,7 +11,7 @@ const displayList = computed(() => {
 
 		...toPlayQueue.value.length === 0
 			? []
-			: ['Next To Play', ...toPlayQueue.value.map(id => musicStore.getMusicData(id)!)],
+			: ['Next To Play', ...toPlayQueue.value.filter(id => !isMusicDisabled(id)).map(id => musicStore.getMusicData(id)!)],
 	]
 })
 </script>
@@ -54,45 +54,55 @@ const displayList = computed(() => {
 					>
 						{{ item }}
 					</div>
-					<div
+					<TempVar
 						v-else
-						:data-is-playing="currentMusic?.id === item.id"
-						:class="pika('hover-mask', {
-							'width': '100%',
-							'height': '48px',
-							'display': 'flex',
-							'alignItems': 'center',
-							'gap': '8px',
-							'padding': '0 24px',
-							'fontWeight': '300',
-							'color': 'var(--color-gray-3)',
-							'cursor': 'pointer',
-
-							'$[data-is-playing=true]': {
-								color: 'var(--color-primary-1)',
-							},
-						})"
-						role="button"
-						@click="playToPlayQueueItem(item.id)"
+						v-slot="{ isDisabled }"
+						:define="{
+							isDisabled: isMusicDisabled(item.id),
+						}"
 					>
-						<img
-							:src="item.cover"
-							:alt="item.title"
-							:title="item.title"
-							:class="pika({
-								width: '24px',
-								height: '24px',
-								borderRadius: '4px',
+						<div
+							:data-is-playing="currentMusic?.id === item.id"
+							:class="pika('hover-mask', {
+								'width': '100%',
+								'height': '48px',
+								'display': 'flex',
+								'alignItems': 'center',
+								'gap': '8px',
+								'padding': '0 24px',
+								'fontWeight': '300',
+								'color': 'var(--color-gray-3)',
+								'cursor': 'pointer',
+								'$[data-is-playing=true]': {
+									color: 'var(--color-primary-1)',
+								},
+								'$[data-disabled]': {
+									opacity: '0.5',
+									cursor: 'not-allowed',
+								},
 							})"
+							:data-disabled="isDisabled || void 0"
+							role="button"
+							@click="isDisabled || playToPlayQueueItem(item.id)"
 						>
-
-						<UiMarquee
-							:key="item.title"
-							:title="item.title"
-						>
-							{{ item.title }}
-						</UiMarquee>
-					</div>
+							<img
+								:src="item.cover"
+								:alt="item.title"
+								:title="item.title"
+								:class="pika({
+									width: '24px',
+									height: '24px',
+									borderRadius: '4px',
+								})"
+							>
+							<UiMarquee
+								:key="item.title"
+								:title="item.title"
+							>
+								{{ item.title }}
+							</UiMarquee>
+						</div>
+					</TempVar>
 				</template>
 			</UiVerticalList>
 		</div>

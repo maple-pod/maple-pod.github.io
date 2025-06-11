@@ -15,6 +15,7 @@ import {
 interface BaseMenuItem {
 	icon?: string
 	label: string
+	disabled?: boolean
 }
 
 interface NormalMenuItem extends BaseMenuItem {
@@ -60,7 +61,13 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 					'$::before': {
 						borderRadius: '4px',
 					},
+
+					'$[data-disabled]': {
+						opacity: '0.5',
+						cursor: 'not-allowed',
+					},
 				})"
+				:disabled="item.disabled"
 				@select="item.onSelect"
 			>
 				<div
@@ -88,7 +95,13 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 						'$[id^=reka-menu-sub-trigger][data-state=open]::before': {
 							opacity: '0.1',
 						},
+
+						'$[data-disabled]': {
+							opacity: '0.5',
+							cursor: 'not-allowed',
+						},
 					})"
+					:disabled="item.disabled"
 				>
 					<div :class="item.icon" />
 					<span :class="pika({ fontSize: '14px' })">{{ item.label }}</span>

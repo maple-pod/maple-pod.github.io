@@ -25,5 +25,6 @@ if (firstVisit.value) {
 
 		<AppDialog />
 		<UiToast />
+		<PwaReloadPrompt />
 	</div>
 </template>
