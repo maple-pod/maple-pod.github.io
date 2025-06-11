@@ -33,7 +33,34 @@ export default defineConfig(async () => ({
 				suppressWarnings: true,
 			},
 			manifest: {
-				theme_color: '#E36262',
+				name: 'Maple Pod',
+				short_name: 'Maple Pod',
+				description: 'A MapleStory music player',
+				theme_color: '#000000',
+				icons: [
+					{
+						src: 'pwa-192x192.png',
+						sizes: '192x192',
+						type: 'image/png',
+					},
+					{
+						src: 'pwa-512x512.png',
+						sizes: '512x512',
+						type: 'image/png',
+					},
+					{
+						src: 'pwa-512x512.png',
+						sizes: '512x512',
+						type: 'image/png',
+						purpose: 'any',
+					},
+					{
+						src: 'pwa-512x512.png',
+						sizes: '512x512',
+						type: 'image/png',
+						purpose: 'maskable',
+					},
+				],
 			},
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
