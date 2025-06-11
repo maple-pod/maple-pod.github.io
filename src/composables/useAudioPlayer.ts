@@ -1,7 +1,9 @@
 export function useAudioPlayer({
 	getAudioSrc,
+	isMusicDisabled,
 }: {
-	getAudioSrc: (id: string | null) => string | null
+	getAudioSrc: (id: string | null) => string | null | Promise<string | null>
+	isMusicDisabled: (id: string | null) => boolean
 }) {
 	const {
 		volume: savedVolume,
@@ -77,21 +79,24 @@ export function useAudioPlayer({
 	const load = useDebounceFn(audioLogic.load, 300)
 
 	const audioQueueLogic = useAudioQueue({
+		isMusicDisabled,
 		random: savedRandom.value,
 	})
 
 	const random = audioQueueLogic.random
 	const toggleRandom = audioQueueLogic.toggleRandom
 
-	const currentAudioSrc = computed(() => getAudioSrc(audioQueueLogic.current.value))
+	const currentAudioId = audioQueueLogic.current
 	watch(
-		currentAudioSrc,
-		(audioSrc) => {
+		currentAudioId,
+		async (audioId) => {
+			// stop the current playing audio first
+			audioLogic.load('')
+
+			const audioSrc = await getAudioSrc(audioId)
 			if (audioSrc == null)
 				return
 
-			// stop the current playing audio first
-			audioLogic.load('')
 			load(audioSrc)
 		},
 	)
@@ -105,7 +110,7 @@ export function useAudioPlayer({
 	}
 	const goNext = audioQueueLogic.goNext
 	function goPrevious() {
-		if (currentAudioSrc.value == null)
+		if (currentAudioId.value == null)
 			return
 
 		if (currentTime.value > 3) {
@@ -189,8 +194,7 @@ export function useAudioPlayer({
 		isWaiting,
 		canPlay,
 
-		currentAudioId: audioQueueLogic.current,
-		currentAudioSrc,
+		currentAudioId,
 		togglePlay,
 		goNext,
 		goPrevious,

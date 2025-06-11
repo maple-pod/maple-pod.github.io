@@ -13,6 +13,8 @@ whenever(
 	() => isRightSidePanelContainerVisible.value === false,
 	() => rightSidePanelOpen.value = false,
 )
+
+const isOnline = useOnline()
 </script>
 
 <template>
@@ -74,7 +76,7 @@ whenever(
 						Maple Pod
 					</span>
 
-					<UiTooltip>
+					<UiTooltip v-if="isOnline === false">
 						<template #trigger>
 							<span
 								:class="pika('font-comfortaa-700', {
@@ -85,7 +87,7 @@ whenever(
 									backgroundColor: 'var(--color-secondary-1)',
 								})"
 							>
-								DEV
+								Offline
 							</span>
 						</template>
 
@@ -99,7 +101,7 @@ whenever(
 									lineHeight: '2',
 								})"
 							>
-								Work in progress, some features may not work as expected and breaking changes may occur.
+								You are currently offline. Some features may not be available.
 							</span>
 						</template>
 					</UiTooltip>

@@ -123,7 +123,7 @@ export default defineEngineConfig({
 						transition: 'opacity 0.1s',
 						pointerEvents: 'none',
 					},
-					'$:not(:disabled):hover::before': {
+					'$:not(:disabled,[data-disabled]):hover::before': {
 						opacity: '0.05',
 					},
 				},

@@ -8,13 +8,12 @@ const props = defineProps<{
 }>()
 
 const musicStore = useMusicStore()
-const { getPlaylist, deletePlaylist, isCustomPlaylist, play } = musicStore
+const { getPlaylist, deletePlaylist, isCustomPlaylist, play, isMusicDisabled } = musicStore
+
+const playlist = computed(() => getPlaylist(props.playlistId)!)
 
 const { dialog } = useAppDialog()
 function handleStartEditPlaylist(playlistId: CustomPlaylistId) {
-	const playlist = getPlaylist(playlistId)
-	if (playlist == null)
-		return
 	dialog(EditPlaylistDialog, { playlistId })
 }
 
@@ -61,6 +60,7 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
 		icon: pika('i-f7:play'),
 		label: 'Play',
+		disabled: playlist.value.list.every(isMusicDisabled),
 		onSelect: () => play(props.playlistId),
 	},
 	...(isCustomPlaylist(props.playlistId)

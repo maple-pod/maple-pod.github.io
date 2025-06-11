@@ -9,8 +9,8 @@ const props = defineProps<{
 }>()
 
 const musicStore = useMusicStore()
-const { likedPlaylist, savedPlaylists } = storeToRefs(musicStore)
-const { toggleMusicInPlaylist, isAddedInPlaylist, getPlayMusicLink } = musicStore
+const { likedPlaylist, savedPlaylists, offlineReadyMusics } = storeToRefs(musicStore)
+const { toggleMusicInPlaylist, isAddedInPlaylist, getPlayMusicLink, saveMusicForOffline } = musicStore
 
 const { dialog } = useAppDialog()
 function handleStartCreatePlaylist() {
@@ -25,6 +25,8 @@ function handleCopyMusicLink(musicId: string) {
 		link: getPlayMusicLink(musicId),
 	})
 }
+
+const isReadyForOffline = computed(() => offlineReadyMusics.value.has(props.musicId))
 
 const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
@@ -67,6 +69,13 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 		label: 'Copy Link',
 		onSelect: () => handleCopyMusicLink(props.musicId),
 	},
+	{
+		// download for offline
+		icon: isReadyForOffline.value ? pika('i-f7:checkmark-circle') : pika('i-f7:cloud-download'),
+		label: isReadyForOffline.value ? 'Downloaded for Offline' : 'Download for Offline',
+		onSelect: () => isReadyForOffline.value ? undefined : saveMusicForOffline(props.musicId),
+		disabled: isReadyForOffline.value,
+	},
 ])
 </script>
 
@@ -75,18 +84,16 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 		:items="menuItems"
 	>
 		<template #trigger>
-			<button
-				:class="pika('icon-btn', {
-					'@screen-md-and-up': {
-						':not(:has([id^=reka-dropdown-menu-trigger-][data-state=open])):not(:hover) $': { visibility: 'hidden' },
-					},
-				})"
-				@click.stop
-			>
-				<div
-					:class="pika('i-f7:ellipsis-vertical', { '@screen-md-and-up': ['i-f7:ellipsis'] })"
-				/>
-			</button>
+			<slot name="trigger">
+				<button
+					:class="pika('icon-btn')"
+					@click.stop
+				>
+					<div
+						:class="pika('i-f7:ellipsis-vertical', { '@screen-md-and-up': ['i-f7:ellipsis'] })"
+					/>
+				</button>
+			</slot>
 		</template>
 	</UiDropdownMenu>
 </template>
