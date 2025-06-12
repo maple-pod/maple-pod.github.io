@@ -2,6 +2,7 @@ interface UseDragAndSortOptions<T> {
 	draggableElementSelector?: string
 	draggableElementHandlerSelector?: string
 	items: Ref<T[]>
+	modifyGhostElement?: (ghostElement: HTMLElement) => void
 }
 
 export function useDragAndSort<T>(options: UseDragAndSortOptions<T>) {
@@ -9,6 +10,7 @@ export function useDragAndSort<T>(options: UseDragAndSortOptions<T>) {
 	const originalItems = ref<T[]>([])
 	const draggingIndex = ref<number | null>(null)
 	const targetIndex = ref<number | null>(null)
+	const placeholderIndex = ref<number | null>(null)
 	const {
 		pointerPosition,
 		isDragging,
@@ -24,6 +26,8 @@ export function useDragAndSort<T>(options: UseDragAndSortOptions<T>) {
 			originalItems.value = [...items.value]
 			draggingIndex.value = index
 			targetIndex.value = null
+			placeholderIndex.value = index
+			options.modifyGhostElement?.(ghostElement)
 		},
 		onDragMove(event) {
 			if (draggingIndex.value == null)
@@ -49,22 +53,23 @@ export function useDragAndSort<T>(options: UseDragAndSortOptions<T>) {
 			const item = originalItems.value[draggingIndex.value]!
 			let newItems = [...originalItems.value]
 			newItems[draggingIndex.value] = null!
-			newItems = [
-				...newItems.slice(0, targetIndex.value),
-				item,
-				...newItems.slice(targetIndex.value),
-			].filter(item => item != null)
+			const before = newItems.slice(0, targetIndex.value).filter(item => item != null)
+			const after = newItems.slice(targetIndex.value).filter(item => item != null)
+			newItems = [...before, item, ...after]
 			items.value = newItems as T[]
+			placeholderIndex.value = before.length
 			event.preventDefault()
 		},
 		onDragEnd() {
 			draggingIndex.value = null
 			targetIndex.value = null
+			placeholderIndex.value = null
 		},
 	})
 
 	return {
 		pointerPosition,
+		placeholderIndex,
 		isDragging,
 		items,
 	}

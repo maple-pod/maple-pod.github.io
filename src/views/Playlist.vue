@@ -34,7 +34,7 @@ function goBackToPlaylists() {
 }
 
 const canDragAndSort = computed(() => playlist.value.id !== 'all')
-const { pointerPosition, isDragging, items } = useDragAndSort({
+const { pointerPosition, placeholderIndex, isDragging, items } = useDragAndSort({
 	draggableElementHandlerSelector: '[data-draggable-handler]',
 	draggableElementSelector: '[data-draggable=true]',
 	items: computed({
@@ -45,6 +45,9 @@ const { pointerPosition, isDragging, items } = useDragAndSort({
 			playlist.value.list = newItems.map(item => item.id)
 		},
 	}),
+	modifyGhostElement(ghostElement) {
+		ghostElement.classList.add(...pika.arr('card', { padding: '0' }))
+	},
 })
 function calcScrollSpeed(pointerY: number, scrollZoneTop: number, scrollZoneBottom: number): number {
 	if (pointerY < scrollZoneTop) {
@@ -196,6 +199,7 @@ useRafFn(() => {
 							:data-music-src="item.src"
 							:data-index="index"
 							:data-draggable="canDragAndSort"
+							:data-dragging="(placeholderIndex === index) || void 0"
 							:data-disabled="isDisabled || void 0"
 							:class="pika('hover-mask', {
 								'width': '100%',
@@ -205,12 +209,8 @@ useRafFn(() => {
 								'padding': '0 16px 0 4px',
 								'marginBottom': '8px',
 								'borderRadius': '8px',
-								'backgroundColor': 'var(--color-gray-1)',
 								'cursor': 'pointer',
 								'userSelect': 'none',
-								'@dark': {
-									backgroundColor: 'var(--color-gray-4)',
-								},
 								'$:has([id^=reka-dropdown-menu-trigger-][data-state=open])::before': {
 									opacity: '0.1',
 								},
@@ -220,6 +220,9 @@ useRafFn(() => {
 								'$[data-disabled]': {
 									opacity: '0.5',
 									cursor: 'not-allowed',
+								},
+								'$[data-dragging]': {
+									opacity: '0.2',
 								},
 							})"
 							role="button"

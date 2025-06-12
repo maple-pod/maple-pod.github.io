@@ -79,28 +79,40 @@ export default defineEngineConfig({
 	shortcuts: {
 		shortcuts: [
 			[
-				'theme',
+				'theme-color',
 				{
 					'color': 'var(--color-gray-5)',
-					'backgroundColor': 'var(--color-gray-2)',
 
 					'@dark': {
 						color: 'var(--color-gray-1)',
+					},
+				},
+			],
+			[
+				'theme-bg',
+				{
+					'backgroundColor': 'var(--color-gray-2)',
+
+					'@dark': {
 						backgroundColor: 'var(--color-gray-5)',
 					},
 				},
 			],
 			[
+				'theme',
+				['theme-color', 'theme-bg'],
+			],
+			[
 				'card',
 				{
 					'padding': '16px',
-					'backgroundColor': 'var(--color-gray-1)',
 					'borderRadius': '16px',
-					'boxShadow': '0 0 8px rgba(0, 0, 0, 0.1)',
+					'backgroundColor': 'rgba(255, 255, 255, 0.05)',
+					'backdropFilter': 'blur(8px)',
+					'border': '1px solid rgba(0, 0, 0, 0.1)',
 
 					'@dark': {
-						backgroundColor: 'var(--color-gray-4)',
-						boxShadow: '0 0 8px rgba(128, 128, 128, 0.1)',
+						border: '1px solid rgba(255, 255, 255, 0.1)',
 					},
 				},
 			],

@@ -110,7 +110,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 				</DropdownMenuSubTrigger>
 				<DropdownMenuPortal>
 					<DropdownMenuSubContent
-						:class="pika('theme', 'card', {
+						:class="pika('theme-color', 'card', {
 							padding: '8px',
 							minWidth: '200px',
 							borderRadius: '4px',
@@ -140,7 +140,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 
 		<DropdownMenuPortal>
 			<DropdownMenuContent
-				:class="pika('theme', 'card', {
+				:class="pika('theme-color', 'card', {
 					padding: '8px',
 					minWidth: '200px',
 					borderRadius: '4px',

@@ -46,7 +46,6 @@ export function useDragAndDrop({
 		document.removeEventListener('pointermove', stopDragging)
 		document.addEventListener('pointermove', pointerMove, { capture: true })
 		document.addEventListener('pointerup', pointerUp, { capture: true })
-		draggableElement!.setAttribute('data-dragging', 'true')
 		ghostElement.value = createGhostElement(draggableElement!)
 		document.body.appendChild(ghostElement.value)
 		isDragging.value = true
@@ -81,7 +80,6 @@ export function useDragAndDrop({
 			document.removeEventListener('pointermove', stopDragging)
 			document.removeEventListener('pointermove', pointerMove)
 			document.removeEventListener('pointerup', pointerUp)
-			draggableElement?.removeAttribute('data-dragging')
 			ghostElement.value?.remove()
 			ghostElement.value = null
 			isDragging.value = false

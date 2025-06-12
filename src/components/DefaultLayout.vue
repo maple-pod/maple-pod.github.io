@@ -19,7 +19,7 @@ const isOnline = useOnline()
 
 <template>
 	<div
-		:class="pika('theme', {
+		:class="pika({
 			'display': 'grid',
 			'gridTemplateRows': 'auto 1fr auto',
 			'rowGap': '12px',

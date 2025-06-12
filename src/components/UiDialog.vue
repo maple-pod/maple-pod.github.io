@@ -47,13 +47,13 @@ whenever(
 				:class="pika({
 					position: 'fixed',
 					inset: '0',
-					backgroundColor: 'rgba(0, 0, 0, 0.5)',
+					backdropFilter: 'blur(8px)',
 					zIndex: '10',
 				})"
 			/>
 			<DialogContent
 				:class="mergeClasses(
-					pika('theme', 'card', {
+					pika('theme-color', 'card', {
 						position: 'fixed',
 						top: '50%',
 						left: '50%',
