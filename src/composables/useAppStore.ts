@@ -2,7 +2,7 @@ import type { PlaylistId } from '@/types'
 import { useHead } from '@unhead/vue'
 
 export const useAppStore = defineStore('app', () => {
-	const { theme } = useSavedUserData()
+	const { theme, bgImage } = useSavedUserData()
 
 	const isDark = useDark({
 		selector: 'body',
@@ -80,6 +80,7 @@ export const useAppStore = defineStore('app', () => {
 	return {
 		isDark,
 		toggleDark,
+		bgImage,
 		scrollPlaylistToIndex,
 		handleShowMusicInPlaylist,
 		ready,

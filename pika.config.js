@@ -107,11 +107,12 @@ export default defineEngineConfig({
 				{
 					'padding': '16px',
 					'borderRadius': '16px',
-					'backgroundColor': 'rgba(255, 255, 255, 0.05)',
+					'backgroundColor': 'rgba(255, 255, 255, 0.6)',
 					'backdropFilter': 'blur(8px)',
 					'border': '1px solid rgba(0, 0, 0, 0.1)',
 
 					'@dark': {
+						backgroundColor: 'rgba(30, 30, 30, 0.6)',
 						border: '1px solid rgba(255, 255, 255, 0.1)',
 					},
 				},

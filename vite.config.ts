@@ -158,6 +158,14 @@ export default defineConfig(async () => ({
 				target: 'https://maple-pod.deviltea.me',
 				changeOrigin: true,
 			},
+			'/resources/bg.json': {
+				target: 'https://maple-pod.deviltea.me',
+				changeOrigin: true,
+			},
+			'/resources/bg': {
+				target: 'https://maple-pod.deviltea.me',
+				changeOrigin: true,
+			},
 		},
 	},
 }))

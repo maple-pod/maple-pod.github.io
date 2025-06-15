@@ -20,6 +20,7 @@ const isOnline = useOnline()
 <template>
 	<div
 		:class="pika({
+			'position': 'relative',
 			'display': 'grid',
 			'gridTemplateRows': 'auto 1fr auto',
 			'rowGap': '12px',
@@ -29,6 +30,7 @@ const isOnline = useOnline()
 			'minHeight': '100%',
 			'padding': '0 12px',
 			'margin': '0 auto',
+			'zIndex': '1',
 
 			'@screen-md-and-up': {
 				maxWidth: '1024px',

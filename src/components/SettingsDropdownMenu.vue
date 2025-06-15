@@ -3,6 +3,8 @@ import type { HashActionImportSavedUserData, SavedUserData } from '@/types'
 import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
 import AboutDialog from '@/components/AboutDialog.vue'
 import { SavedUserDataSchema } from '@/schemas'
+import { chunkArray } from '@/utils/common'
+import { ofetch } from 'ofetch'
 import { safeParse } from 'valibot'
 
 const appStore = useAppStore()
@@ -10,6 +12,7 @@ const { toggleDark } = appStore
 
 const {
 	savedUserData,
+	bgImage,
 } = useSavedUserData()
 
 function resetSavedUserData() {
@@ -98,7 +101,32 @@ function handleShowAboutDialog() {
 	dialog(AboutDialog, {})
 }
 
-const menuItems: UiDropdownMenuItem[] = [
+const {
+	state: bgData,
+} = useAsyncState(
+	async () => {
+		const { list, preview } = await ofetch<{ list: string[], preview: Record<string, string> }>('/resources/bg.json')
+		const result = {
+			list,
+			preview: {} as Record<string, string>,
+		}
+		await Promise.all(
+			list.map(async (bg) => {
+				result.preview[bg] = await decodeMarkImg(preview[bg]!)
+			}),
+		)
+		return result
+	},
+	null,
+)
+const bgChunks = computed(() => {
+	if (bgData.value == null)
+		return []
+
+	return chunkArray(bgData.value.list, 2)
+})
+
+const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
 		icon: pika('i-f7:sun-max', { '@dark': ['i-f7:moon'] }),
 		label: 'Theme',
@@ -106,6 +134,12 @@ const menuItems: UiDropdownMenuItem[] = [
 			event.preventDefault()
 			toggleDark()
 		},
+	},
+	{
+		icon: pika('i-f7:photo-on-rectangle'),
+		label: 'Background',
+		disabled: bgData.value == null,
+		id: 'bg-menu',
 	},
 	{
 		icon: pika('i-f7:archivebox'),
@@ -138,7 +172,7 @@ const menuItems: UiDropdownMenuItem[] = [
 		label: 'About',
 		onSelect: handleShowAboutDialog,
 	},
-]
+])
 </script>
 
 <template>
@@ -154,6 +188,67 @@ const menuItems: UiDropdownMenuItem[] = [
 					:class="pika('i-f7:gear-alt')"
 				/>
 			</button>
+		</template>
+
+		<template
+			v-if="bgData != null"
+			#bg-menu
+		>
+			<button
+				:class="pika('primary-plain-btn', {
+					width: '100%',
+					backgroundColor: 'transparent',
+					cursor: 'pointer',
+					margin: '0 12px 8px 12px',
+					padding: '8px 16px',
+				})"
+				@click="bgImage = 'none'"
+			>
+				None
+			</button>
+			<div
+				:class="pika({
+					height: '400px',
+				})"
+			>
+				<UiVerticalList
+					:items="bgChunks"
+					:itemHeight="108"
+				>
+					<template #item="{ item: chunk }">
+						<div
+							:class="pika({
+								display: 'flex',
+								gap: '8px',
+								marginBottom: '8px',
+							})"
+						>
+							<img
+								v-for="bg in chunk"
+								:key="bg"
+								:src="bgData.preview[bg]"
+								:alt="bg"
+								:data-is-selected="bgImage === bg"
+								role="button"
+								:class="pika({
+									'display': 'block',
+									'height': '100px',
+									'cursor': 'pointer',
+									'borderRadius': '8px',
+									'overflow': 'hidden',
+									'opacity': '0.3',
+
+									'$[data-is-selected=true]': {
+										opacity: '1',
+
+									},
+								})"
+								@click="bgImage = bg"
+							>
+						</div>
+					</template>
+				</UiVerticalList>
+			</div>
 		</template>
 	</UiDropdownMenu>
 </template>

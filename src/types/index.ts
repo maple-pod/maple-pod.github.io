@@ -1,6 +1,7 @@
 export interface SavedUserData {
 	preferences: {
 		theme: 'light' | 'dark' | 'auto'
+		bgImage: 'none' | string
 		volume: number
 		muted: boolean
 		random: boolean

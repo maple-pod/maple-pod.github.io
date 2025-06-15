@@ -3,9 +3,10 @@ import type { SavedUserData } from '@/types'
 function toSavedPreferenceRef<P extends keyof SavedUserData['preferences']>(
 	savedUserData: Ref<SavedUserData>,
 	preference: P,
+	defaultValue?: SavedUserData['preferences'][P],
 ) {
 	return computed<SavedUserData['preferences'][P]>({
-		get: () => savedUserData.value.preferences[preference],
+		get: () => savedUserData.value.preferences[preference] ?? defaultValue,
 		set: value => savedUserData.value.preferences[preference] = value,
 	})
 }
@@ -14,6 +15,7 @@ function createInitialSavedUserData(): SavedUserData {
 	return {
 		preferences: {
 			theme: 'auto',
+			bgImage: 'none',
 			volume: 1,
 			muted: false,
 			random: false,
@@ -39,6 +41,7 @@ export const useSavedUserData = createSharedComposable(() => {
 	)
 
 	const theme = toSavedPreferenceRef(savedUserData, 'theme')
+	const bgImage = toSavedPreferenceRef(savedUserData, 'bgImage', 'none')
 	const volume = toSavedPreferenceRef(savedUserData, 'volume')
 	const muted = toSavedPreferenceRef(savedUserData, 'muted')
 	const random = toSavedPreferenceRef(savedUserData, 'random')
@@ -59,6 +62,7 @@ export const useSavedUserData = createSharedComposable(() => {
 	return {
 		savedUserData,
 		theme,
+		bgImage,
 		volume,
 		muted,
 		random,

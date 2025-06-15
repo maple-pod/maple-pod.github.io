@@ -26,7 +26,11 @@ interface SubMenu extends BaseMenuItem {
 	items: (NormalMenuItem | 'separator')[]
 }
 
-export type UiDropdownMenuItem = NormalMenuItem | SubMenu | 'separator'
+interface CustomSubMenu extends BaseMenuItem {
+	id: string
+}
+
+export type UiDropdownMenuItem = NormalMenuItem | SubMenu | CustomSubMenu | 'separator'
 
 defineProps<{
 	items?: UiDropdownMenuItem[]
@@ -36,6 +40,7 @@ const open = defineModel<boolean>('open')
 
 const [DefineUiDropdownMenuNormalMenuItem, UiDropdownMenuNormalMenuItem] = createReusableTemplate<{ item: NormalMenuItem }>()
 const [DefineUiDropdownMenuSubMenu, UiDropdownMenuSubMenu] = createReusableTemplate<{ item: SubMenu }>()
+const [DefineUiDropdownMenuCustomSubMenu, UiDropdownMenuCustomSubMenu] = createReusableTemplate<{ item: CustomSubMenu }>()
 const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableTemplate()
 </script>
 
@@ -132,6 +137,51 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 			</DropdownMenuSub>
 		</DefineUiDropdownMenuSubMenu>
 
+		<DefineUiDropdownMenuCustomSubMenu v-slot="{ item }">
+			<DropdownMenuSub>
+				<DropdownMenuSubTrigger
+					:class="pika('hover-mask', {
+						'display': 'flex',
+						'alignItems': 'center',
+						'gap': '8px',
+						'padding': '8px',
+						'cursor': 'pointer',
+
+						'$::before': {
+							borderRadius: '4px',
+						},
+
+						'$[id^=reka-menu-sub-trigger][data-state=open]::before': {
+							opacity: '0.1',
+						},
+
+						'$[data-disabled]': {
+							opacity: '0.5',
+							cursor: 'not-allowed',
+						},
+					})"
+					:disabled="item.disabled"
+				>
+					<div :class="item.icon" />
+					<span :class="pika({ fontSize: '14px' })">{{ item.label }}</span>
+
+					<div :class="pika('i-f7:chevron-right', { marginLeft: 'auto' })" />
+				</DropdownMenuSubTrigger>
+				<DropdownMenuPortal>
+					<DropdownMenuSubContent
+						:class="pika('theme-color', 'card', {
+							padding: '8px',
+							minWidth: '200px',
+							borderRadius: '4px',
+							zIndex: 2,
+						})"
+					>
+						<slot :name="item.id" />
+					</DropdownMenuSubContent>
+				</DropdownMenuPortal>
+			</DropdownMenuSub>
+		</DefineUiDropdownMenuCustomSubMenu>
+
 		<DropdownMenuTrigger
 			asChild
 		>
@@ -159,6 +209,10 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 						/>
 						<UiDropdownMenuSubMenu
 							v-else-if="'items' in item"
+							:item="item"
+						/>
+						<UiDropdownMenuCustomSubMenu
+							v-else-if="'id' in item"
 							:item="item"
 						/>
 					</template>
