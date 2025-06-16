@@ -36,7 +36,7 @@ export const useAppStore = defineStore('app', () => {
 	}
 	useIntervalFn(nextAutoBgImage, 5 * 60 * 1000)
 	const currentAutoBgPreview = computed(() => {
-		if (savedBgImage.value !== 'auto' || bgData.value == null) {
+		if (bgData.value == null) {
 			return null
 		}
 		return bgData.value.preview[autoBgImageList.value[currentAutoBgImageIndex.value]!] || null

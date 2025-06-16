@@ -223,12 +223,14 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 							>
 								<div
 									v-if="bg === 'none'"
-									:class="pika({
+									:class="pika('card', {
+										position: 'relative',
 										display: 'flex',
 										alignItems: 'center',
 										justifyContent: 'center',
 										width: '100%',
 										height: '100%',
+										borderRadius: '8px',
 									})"
 								>
 									<div
@@ -243,13 +245,14 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 								</div>
 								<div
 									v-else-if="bg === 'auto'"
-									:class="pika({
+									:class="pika('card', {
 										position: 'relative',
 										display: 'flex',
 										alignItems: 'center',
 										justifyContent: 'center',
 										width: '100%',
 										height: '100%',
+										borderRadius: '8px',
 									})"
 								>
 									<img
