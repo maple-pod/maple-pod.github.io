@@ -45,10 +45,10 @@ export function formatTime(timeInSeconds: number) {
 	return `${minutes}:${seconds}`
 }
 
-export async function decodeMarkImg(binStr: string) {
+export async function decodeImageFromBinary(binStr: string) {
 	const compressed = Uint8Array.from(binStr, c => c.charCodeAt(0))
 	const decompressed = decompressSync(compressed)
-	const blob = new Blob([decompressed], { type: 'image/png' })
+	const blob = new Blob([decompressed])
 	const url = URL.createObjectURL(blob)
 
 	return url

@@ -1,5 +1,5 @@
 import type { CustomPlaylistId, MusicData, Playlist, PlaylistId, Resources } from '@/types'
-import { decodeMarkImg } from '@/utils/common'
+import { decodeImageFromBinary } from '@/utils/common'
 import localforage from 'localforage'
 import { ofetch } from 'ofetch'
 
@@ -42,7 +42,7 @@ export const useMusicStore = defineStore('music', () => {
 			return Promise.all<MusicData>(res.bgms.map(async bgm => ({
 				id: bgm.filename,
 				title: bgm.metadata.title,
-				cover: await decodeMarkImg(marks[bgm.mark]!),
+				cover: await decodeImageFromBinary(marks[bgm.mark]!),
 				src: `/resources/bgm/${bgm.filename}.mp3`,
 				duration: bgm.duration,
 				data: bgm,

@@ -112,7 +112,7 @@ const {
 		}
 		await Promise.all(
 			list.map(async (bg) => {
-				result.preview[bg] = await decodeMarkImg(preview[bg]!)
+				result.preview[bg] = await decodeImageFromBinary(preview[bg]!)
 			}),
 		)
 		return result
