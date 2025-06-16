@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AboutDialog from '@/components/AboutDialog.vue'
 
-const { isReady, bgImage } = storeToRefs(useAppStore())
+const { isReady, currentBgImage } = storeToRefs(useAppStore())
 const { AppDialog, dialog } = useAppDialog()
 const { UiToast } = useUiToast()
 
@@ -10,10 +10,9 @@ if (firstVisit.value) {
 	dialog(AboutDialog, {}).then(() => firstVisit.value = false)
 }
 
-const bg = computed(() => bgImage.value === 'none'
+const bg = computed(() => currentBgImage.value == null
 	? 'transparent'
-	// ? `url(/resources/bg/bg-1.jpg)`
-	: `url(/resources/bg/${bgImage.value}.jpg)`)
+	: `url(/resources/bg/${currentBgImage.value}.jpg)`)
 </script>
 
 <template>

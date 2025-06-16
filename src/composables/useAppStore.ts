@@ -1,8 +1,55 @@
 import type { PlaylistId } from '@/types'
 import { useHead } from '@unhead/vue'
+import { ofetch } from 'ofetch'
 
 export const useAppStore = defineStore('app', () => {
-	const { theme, bgImage } = useSavedUserData()
+	const { theme, bgImage: savedBgImage } = useSavedUserData()
+
+	const { state: bgData } = useAsyncState(
+		async () => {
+			const { list, preview } = await ofetch<{ list: string[], preview: Record<string, string> }>('/resources/bg.json')
+			const result = {
+				list,
+				preview: {} as Record<string, string>,
+			}
+			await Promise.all(
+				list.map(async (bg) => {
+					result.preview[bg] = await decodeImageFromBinary(preview[bg]!)
+				}),
+			)
+			return result
+		},
+		null,
+	)
+	const autoBgImageList = computed(() => {
+		if (bgData.value == null) {
+			return []
+		}
+		return bgData.value.list.toSorted(() => Math.random() - 0.5)
+	})
+	const currentAutoBgImageIndex = ref(0)
+	function nextAutoBgImage() {
+		if (bgData.value == null || bgData.value.list.length === 0) {
+			return
+		}
+		currentAutoBgImageIndex.value = (currentAutoBgImageIndex.value + 1) % bgData.value.list.length
+	}
+	useIntervalFn(nextAutoBgImage, 5 * 60 * 1000)
+	const currentAutoBgPreview = computed(() => {
+		if (savedBgImage.value !== 'auto' || bgData.value == null) {
+			return null
+		}
+		return bgData.value.preview[autoBgImageList.value[currentAutoBgImageIndex.value]!] || null
+	})
+	const currentBgImage = computed(() => {
+		if (savedBgImage.value === 'none' || bgData.value == null) {
+			return null
+		}
+		if (savedBgImage.value === 'auto') {
+			return autoBgImageList.value[currentAutoBgImageIndex.value]!
+		}
+		return savedBgImage.value
+	})
 
 	const isDark = useDark({
 		selector: 'body',
@@ -80,7 +127,10 @@ export const useAppStore = defineStore('app', () => {
 	return {
 		isDark,
 		toggleDark,
-		bgImage,
+		bgData,
+		savedBgImage,
+		currentBgImage,
+		currentAutoBgPreview,
 		scrollPlaylistToIndex,
 		handleShowMusicInPlaylist,
 		ready,

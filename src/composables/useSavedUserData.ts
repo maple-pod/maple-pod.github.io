@@ -41,7 +41,7 @@ export const useSavedUserData = createSharedComposable(() => {
 	)
 
 	const theme = toSavedPreferenceRef(savedUserData, 'theme')
-	const bgImage = toSavedPreferenceRef(savedUserData, 'bgImage', 'none')
+	const bgImage = toSavedPreferenceRef(savedUserData, 'bgImage', 'auto')
 	const volume = toSavedPreferenceRef(savedUserData, 'volume')
 	const muted = toSavedPreferenceRef(savedUserData, 'muted')
 	const random = toSavedPreferenceRef(savedUserData, 'random')

@@ -4,16 +4,13 @@ import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
 import AboutDialog from '@/components/AboutDialog.vue'
 import { SavedUserDataSchema } from '@/schemas'
 import { chunkArray } from '@/utils/common'
-import { ofetch } from 'ofetch'
 import { safeParse } from 'valibot'
 
 const appStore = useAppStore()
 const { toggleDark } = appStore
+const { bgData, savedBgImage, currentAutoBgPreview } = storeToRefs(appStore)
 
-const {
-	savedUserData,
-	bgImage,
-} = useSavedUserData()
+const { savedUserData } = useSavedUserData()
 
 function resetSavedUserData() {
 	savedUserData.value = undefined
@@ -100,30 +97,14 @@ const { dialog } = useAppDialog()
 function handleShowAboutDialog() {
 	dialog(AboutDialog, {})
 }
-
-const {
-	state: bgData,
-} = useAsyncState(
-	async () => {
-		const { list, preview } = await ofetch<{ list: string[], preview: Record<string, string> }>('/resources/bg.json')
-		const result = {
-			list,
-			preview: {} as Record<string, string>,
-		}
-		await Promise.all(
-			list.map(async (bg) => {
-				result.preview[bg] = await decodeImageFromBinary(preview[bg]!)
-			}),
-		)
-		return result
-	},
-	null,
-)
 const bgChunks = computed(() => {
 	if (bgData.value == null)
 		return []
 
-	return chunkArray(bgData.value.list, 2)
+	return [
+		['none', 'auto'],
+		...chunkArray(bgData.value.list, 2),
+	]
 })
 
 const menuItems = computed<UiDropdownMenuItem[]>(() => [
@@ -194,18 +175,6 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 			v-if="bgData != null"
 			#bg-menu
 		>
-			<button
-				:class="pika('primary-plain-btn', {
-					width: '100%',
-					backgroundColor: 'transparent',
-					cursor: 'pointer',
-					margin: '0 12px 8px 12px',
-					padding: '8px 16px',
-				})"
-				@click="bgImage = 'none'"
-			>
-				None
-			</button>
 			<div
 				:class="pika({
 					height: '400px',
@@ -226,11 +195,12 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 							<div
 								v-for="bg in chunk"
 								:key="bg"
-								:data-is-selected="bgImage === bg"
+								:data-is-selected="savedBgImage === bg"
 								role="button"
 								:class="pika({
 									'position': 'relative',
 									'display': 'block',
+									'flex': '1',
 									'height': '100px',
 									'cursor': 'pointer',
 									'borderRadius': '8px',
@@ -249,9 +219,67 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 										pointerEvents: 'none',
 									},
 								})"
-								@click="bgImage = bg"
+								@click="savedBgImage = bg"
 							>
+								<div
+									v-if="bg === 'none'"
+									:class="pika({
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										width: '100%',
+										height: '100%',
+									})"
+								>
+									<div
+										:class="pika('card', {
+											padding: '8px 16px',
+											borderRadius: '9999px',
+											fontSize: '12px',
+										})"
+									>
+										None
+									</div>
+								</div>
+								<div
+									v-else-if="bg === 'auto'"
+									:class="pika({
+										position: 'relative',
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										width: '100%',
+										height: '100%',
+									})"
+								>
+									<img
+										v-if="currentAutoBgPreview"
+										:src="currentAutoBgPreview"
+										:alt="bg"
+										:class="pika({
+											position: 'absolute',
+											zIndex: '-1',
+											top: '0',
+											left: '0',
+											display: 'block',
+											width: '100%',
+											height: '100%',
+											objectFit: 'cover',
+											filter: 'blur(4px)',
+										})"
+									>
+									<div
+										:class="pika('card', {
+											padding: '8px 16px',
+											borderRadius: '9999px',
+											fontSize: '12px',
+										})"
+									>
+										Auto
+									</div>
+								</div>
 								<img
+									v-else
 									:class="pika({
 										display: 'block',
 										width: 'auto',
