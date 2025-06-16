@@ -223,28 +223,44 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 								marginBottom: '8px',
 							})"
 						>
-							<img
+							<div
 								v-for="bg in chunk"
 								:key="bg"
-								:src="bgData.preview[bg]"
-								:alt="bg"
 								:data-is-selected="bgImage === bg"
 								role="button"
 								:class="pika({
+									'position': 'relative',
 									'display': 'block',
 									'height': '100px',
 									'cursor': 'pointer',
 									'borderRadius': '8px',
 									'overflow': 'hidden',
-									'opacity': '0.3',
-
-									'$[data-is-selected=true]': {
-										opacity: '1',
-
+									'$[data-is-selected=true]::after': {
+										content: '\'\'',
+										position: 'absolute',
+										zIndex: '1',
+										top: '0',
+										left: '0',
+										width: '100%',
+										height: '100%',
+										border: '2px solid var(--color-primary-1)',
+										borderRadius: '8px',
+										boxSizing: 'border-box',
+										pointerEvents: 'none',
 									},
 								})"
 								@click="bgImage = bg"
 							>
+								<img
+									:class="pika({
+										display: 'block',
+										width: 'auto',
+										height: '100%',
+									})"
+									:src="bgData.preview[bg]"
+									:alt="bg"
+								>
+							</div>
 						</div>
 					</template>
 				</UiVerticalList>
