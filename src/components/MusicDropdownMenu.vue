@@ -9,7 +9,7 @@ const props = defineProps<{
 }>()
 
 const musicStore = useMusicStore()
-const { likedPlaylist, savedPlaylists, offlineReadyMusics, offlineMusicDownloadProgress } = storeToRefs(musicStore)
+const { likedPlaylist, savedPlaylists, offlineReadyMusics, offlineMusicDownloadingProgress } = storeToRefs(musicStore)
 const { toggleMusicInPlaylist, isAddedInPlaylist, getPlayMusicLink, saveMusicForOffline } = musicStore
 
 const { dialog } = useAppDialog()
@@ -27,8 +27,18 @@ function handleCopyMusicLink(musicId: string) {
 }
 
 const isReadyForOffline = computed(() => offlineReadyMusics.value.has(props.musicId))
-const isDownloading = computed(() => offlineMusicDownloadProgress.value.has(props.musicId))
-const downloadProgress = computed(() => offlineMusicDownloadProgress.value.get(props.musicId) ?? null)
+const isDownloading = computed(() => offlineMusicDownloadingProgress.value.has(props.musicId))
+const downloadingProgress = computed(() => offlineMusicDownloadingProgress.value.get(props.musicId) ?? null)
+const downloadStatusLabel = computed(() => {
+	if (isReadyForOffline.value)
+		return 'Ready for Offline'
+	if (isDownloading.value) {
+		return downloadingProgress.value === 'pending'
+			? 'Pending for Download'
+			: `Downloading ${downloadingProgress.value}%`
+	}
+	return 'Download for Offline'
+})
 
 const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
@@ -74,11 +84,7 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
 		// download for offline
 		icon: isReadyForOffline.value ? pika('i-f7:checkmark-circle') : pika('i-f7:cloud-download'),
-		label: isDownloading.value
-			? `Downloading... ${downloadProgress.value ? `${downloadProgress.value}%` : ''}`
-			: isReadyForOffline.value
-				? 'Ready for Offline'
-				: 'Download for Offline',
+		label: downloadStatusLabel.value,
 		onSelect: (event: Event) => {
 			if (isReadyForOffline.value || isDownloading.value)
 				return

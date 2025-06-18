@@ -61,3 +61,85 @@ export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 	}
 	return result
 }
+
+export async function fetchBlob(
+	url: string,
+	onProgress?: (loaded: number, total: number) => void,
+): Promise<Blob> {
+	const response = await fetch(url)
+	const contentEncoding = response.headers.get('content-encoding')
+	const contentLength = response.headers.get(contentEncoding ? 'x-file-size' : 'content-length')
+	if (contentLength === null) {
+		throw new Error('Response size header unavailable')
+	}
+	const total = Number.parseInt(contentLength, 10)
+	let loaded = 0
+	const newResponse = new Response(
+		new ReadableStream({
+			start(controller) {
+				const reader = response.body!.getReader()
+
+				read()
+
+				function read() {
+					reader.read()
+						.then(({ done, value }) => {
+							if (done) {
+								controller.close()
+								return
+							}
+							loaded += value.byteLength
+							onProgress?.(loaded, total)
+							controller.enqueue(value)
+							read()
+						})
+						.catch((error) => {
+							controller.error(error)
+						})
+				}
+			},
+		}),
+	)
+	return await newResponse.blob()
+}
+
+export type Task<T> = () => Promise<T>
+
+export class PromiseQueue {
+	private concurrency: number
+	private runningCount = 0
+	private queue: Task<any>[] = []
+
+	constructor(concurrency: number) {
+		this.concurrency = concurrency
+	}
+
+	add<T>(task: Task<T>): Promise<T> {
+		return new Promise<T>((resolve, reject) => {
+			const wrappedTask = () => {
+				this.runningCount++
+				return task()
+					.then(resolve)
+					.catch(reject)
+					.finally(() => {
+						this.runningCount--
+						this.runNext() // 嘗試執行下一個
+					})
+			}
+
+			if (this.runningCount < this.concurrency) {
+				wrappedTask()
+			}
+			else {
+				this.queue.push(wrappedTask)
+			}
+		})
+	}
+
+	private runNext() {
+		if (this.queue.length > 0 && this.runningCount < this.concurrency) {
+			const nextTask = this.queue.shift()
+			nextTask?.()
+		}
+	}
+}

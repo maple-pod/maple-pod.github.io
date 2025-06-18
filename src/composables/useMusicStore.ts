@@ -142,15 +142,14 @@ export const useMusicStore = defineStore('music', () => {
 		toggleMusicInPlaylist('liked', musicId)
 	}
 
-	const offlineMusicStorage = localforage.createInstance({
-		name: 'maple-pod',
-	})
-	const offlineReadyMusics = ref(new Set<string>())
-	async function loadOfflineMusics() {
-		const keys = await offlineMusicStorage.keys()
-		offlineReadyMusics.value = new Set<string>(keys)
-	}
-	const offlineMusicDownloadProgress = ref<Map<string, number>>(new Map())
+	const {
+
+		offlineReadyMusics,
+		loadOfflineMusics,
+		offlineMusicDownloadingProgress,
+		saveMusicForOffline: _saveMusicForOffline,
+		getSavedOfflineMusicBlob,
+	} = useOfflineMusics()
 	async function saveMusicForOffline(musicId: string) {
 		const musicData = getMusicData(musicId)
 
@@ -158,50 +157,7 @@ export const useMusicStore = defineStore('music', () => {
 			return
 
 		const src = `/resources/bgm/${musicData.data.filename}.mp3`
-		const blob = await fetch(src)
-			.then((response) => {
-				const contentEncoding = response.headers.get('content-encoding')
-				const contentLength = response.headers.get(contentEncoding ? 'x-file-size' : 'content-length')
-				if (contentLength === null) {
-					throw new Error('Response size header unavailable')
-				}
-
-				const total = Number.parseInt(contentLength, 10)
-				let loaded = 0
-
-				return new Response(
-					new ReadableStream({
-						start(controller) {
-							const reader = response.body!.getReader()
-
-							read()
-
-							function read() {
-								reader.read()
-									.then(({ done, value }) => {
-										if (done) {
-											offlineMusicDownloadProgress.value.delete(musicId)
-											controller.close()
-											return
-										}
-										loaded += value.byteLength
-										const percent = Math.round((loaded / total) * 100)
-										offlineMusicDownloadProgress.value.set(musicId, percent)
-										controller.enqueue(value)
-										read()
-									})
-									.catch((error) => {
-										console.error(error)
-										controller.error(error)
-									})
-							}
-						},
-					}),
-				)
-			})
-			.then(response => response.blob())
-		await offlineMusicStorage.setItem(musicId, blob)
-		offlineReadyMusics.value.add(musicId)
+		await _saveMusicForOffline(musicId, src)
 	}
 
 	const objUrls: string[] = []
@@ -210,7 +166,7 @@ export const useMusicStore = defineStore('music', () => {
 			if (id == null)
 				return null
 
-			const blob = await offlineMusicStorage.getItem<Blob>(id)
+			const blob = await getSavedOfflineMusicBlob(id)
 			if (blob != null) {
 				const toRevoke = [...objUrls]
 				objUrls.length = 0
@@ -378,13 +334,52 @@ export const useMusicStore = defineStore('music', () => {
 		play,
 		history,
 		getPlayMusicLink,
-		offlineMusicDownloadProgress,
+		offlineMusicDownloadingProgress,
 		offlineReadyMusics,
 		saveMusicForOffline,
 		isMusicDisabled,
 		ready,
 	}
 })
+
+function useOfflineMusics() {
+	const storage = localforage.createInstance({ name: 'maple-pod' })
+	const offlineReadyMusics = ref(new Set<string>())
+	async function loadOfflineMusics() {
+		const keys = await storage.keys()
+		offlineReadyMusics.value = new Set<string>(keys)
+	}
+	const offlineMusicDownloadingProgress = ref<Map<string, 'pending' | number>>(new Map())
+	async function _saveMusicForOffline(musicId: string, src: string) {
+		offlineMusicDownloadingProgress.value.set(musicId, 'pending')
+		const blob = await fetchBlob(src, (loaded, total) => {
+			const percent = Math.round((loaded / total) * 100)
+			offlineMusicDownloadingProgress.value.set(musicId, percent)
+		})
+		offlineMusicDownloadingProgress.value.delete(musicId)
+		await storage.setItem(musicId, blob)
+		offlineReadyMusics.value.add(musicId)
+	}
+	const offlineMusicsQueue = new PromiseQueue(5)
+	async function saveMusicForOffline(musicId: string, src: string) {
+		if (offlineMusicDownloadingProgress.value.has(musicId) || offlineReadyMusics.value.has(musicId)) {
+			return
+		}
+
+		offlineMusicsQueue.add(() => _saveMusicForOffline(musicId, src))
+	}
+	async function getSavedOfflineMusicBlob(musicId: string): Promise<Blob | null> {
+		return await storage.getItem(musicId) || null
+	}
+
+	return {
+		offlineReadyMusics,
+		loadOfflineMusics,
+		offlineMusicDownloadingProgress,
+		saveMusicForOffline,
+		getSavedOfflineMusicBlob,
+	}
+}
 
 if (import.meta.hot)
 	import.meta.hot.accept(acceptHMRUpdate(useMusicStore, import.meta.hot))
