@@ -8,7 +8,8 @@ const props = defineProps<{
 }>()
 
 const musicStore = useMusicStore()
-const { getPlaylist, deletePlaylist, isCustomPlaylist, play, isMusicDisabled } = musicStore
+const { getPlaylist, deletePlaylist, isCustomPlaylist, play, isMusicDisabled, saveMusicForOffline } = musicStore
+const { offlineReadyMusics, offlineMusicDownloadingProgress } = storeToRefs(musicStore)
 
 const playlist = computed(() => getPlaylist(props.playlistId)!)
 
@@ -56,6 +57,18 @@ async function handleCopyPlaylistLink(playlistId: PlaylistId) {
 	})
 }
 
+const isReadyForOffline = computed(() => playlist.value.list.every(musicId => offlineReadyMusics.value.has(musicId)))
+const isDownloading = computed(() => playlist.value.list.some(musicId => offlineMusicDownloadingProgress.value.has(musicId)))
+const numOfDownloading = computed(() => playlist.value.list.filter(musicId => offlineMusicDownloadingProgress.value.has(musicId)).length)
+const downloadStatusLabel = computed(() => {
+	if (isReadyForOffline.value)
+		return 'Ready for Offline'
+	if (isDownloading.value) {
+		return `Downloading ${numOfDownloading.value} Music${numOfDownloading.value > 1 ? 's' : ''}`
+	}
+	return `Download for Offline (${playlist.value.list.length} Music${playlist.value.list.length > 1 ? 's' : ''})`
+})
+
 const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
 		icon: pika('i-f7:play'),
@@ -84,6 +97,18 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 					icon: pika('i-f7:link'),
 					label: 'Copy Link',
 					onSelect: () => handleCopyPlaylistLink(props.playlistId),
+				},
+				{
+					// download for offline
+					icon: isReadyForOffline.value ? pika('i-f7:checkmark-circle') : pika('i-f7:cloud-download'),
+					label: downloadStatusLabel.value,
+					onSelect: (event: Event) => {
+						if (isReadyForOffline.value || isDownloading.value)
+							return
+						event.preventDefault()
+						playlist.value.list.forEach(saveMusicForOffline)
+					},
+					disabled: isReadyForOffline.value || isDownloading.value,
 				},
 			]
 		: []),
