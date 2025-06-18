@@ -11,7 +11,7 @@ if (firstVisit.value) {
 }
 
 const bg = computed(() => currentBgImage.value == null
-	? 'transparent'
+	? 'var(--color-primary-bg)'
 	: `url(/resources/bg/${currentBgImage.value}.jpg)`)
 
 const backdropFilterBlur = ref(1)
@@ -29,7 +29,7 @@ useIntervalFn(() => {
 			'--backdrop-filter-blur': `${backdropFilterBlur}px`,
 			'--backdrop-filter-transition-duration': `${intervalTime}ms`,
 		}"
-		:class="pika('theme', {
+		:class="pika('theme', 'theme-vars', {
 			'--bg-mask': 'linear-gradient(transparent, transparent)',
 			'position': 'relative',
 			'width': '100%',

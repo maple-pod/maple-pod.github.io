@@ -53,7 +53,7 @@ whenever(
 			/>
 			<DialogContent
 				:class="mergeClasses(
-					pika('theme-color', 'card', {
+					pika('theme-vars', 'theme-color', 'card', {
 						position: 'fixed',
 						top: '50%',
 						left: '50%',

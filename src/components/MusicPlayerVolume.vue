@@ -29,13 +29,9 @@ const volumeLevel = computed(() => {
 
 <template>
 	<div
-		:class="pika({
-			'padding': '12px 2px',
-			'borderRadius': '9999px',
-			'backgroundColor': 'var(--color-gray-2)',
-			'@dark': {
-				backgroundColor: 'var(--color-gray-5)',
-			},
+		:class="pika('card-border', {
+			padding: '12px 2px',
+			borderRadius: '9999px',
 		})"
 	>
 		<div

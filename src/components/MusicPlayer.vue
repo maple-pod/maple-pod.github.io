@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useDocumentPictureInPicture } from '@/composables/useDocumentPictureInPicture'
-import { onKeyDown } from '@vueuse/core'
 
 const musicStore = useMusicStore()
 const {
@@ -81,7 +80,7 @@ function handleCopyMusicLink() {
 			:class="pika({
 				'display': 'contents',
 
-				'@docpip': ['theme', {
+				'@docpip': ['theme-vars', 'theme', {
 					display: 'flex',
 					justifyContent: 'center',
 					alignItems: 'center',

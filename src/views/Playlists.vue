@@ -109,7 +109,7 @@ function handleStartCreatePlaylist() {
 							<div
 								:class="pika({
 									fontSize: '14px',
-									color: 'var(--color-gray-3)',
+									color: 'var(--color-secondary-text)',
 									opacity: '0.8',
 								})"
 							>

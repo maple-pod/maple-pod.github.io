@@ -81,14 +81,10 @@ defineExpose({
 				'zIndex': '2',
 				'width': '8px',
 				'padding': '2px',
-				'backgroundColor': 'var(--color-gray-2)',
+				'backgroundColor': 'var(--color-secondary-bg)',
 				'borderRadius': '9999px',
 				'opacity': '0.4',
 				'transition': 'all 0.2s',
-
-				'@dark': {
-					backgroundColor: 'var(--color-gray-5)',
-				},
 
 				'$:hover': {
 					width: '16px',
@@ -102,12 +98,8 @@ defineExpose({
 		>
 			<ScrollAreaThumb
 				:class="pika({
-					'borderRadius': '9999px',
-					'backgroundColor': 'var(--color-gray-1)',
-
-					'@dark': {
-						backgroundColor: 'var(--color-gray-3)',
-					},
+					borderRadius: '9999px',
+					backgroundColor: 'var(--color-primary-bg)',
 				})"
 			/>
 		</ScrollAreaScrollbar>

@@ -9,13 +9,10 @@ defineProps<{
 <template>
 	<div
 		:class="pika({
-			'aspectRatio': '1 / 1',
-			'overflow': 'hidden',
-			'borderRadius': '4px',
-			'backgroundColor': 'var(--color-gray-2)',
-			'@dark': {
-				backgroundColor: 'var(--color-gray-5)',
-			},
+			aspectRatio: '1 / 1',
+			overflow: 'hidden',
+			borderRadius: '4px',
+			backgroundColor: 'var(--color-secondary-bg)',
 		})"
 	>
 		<div
@@ -31,7 +28,7 @@ defineProps<{
 			<div
 				:class="pika('i-f7:music-note', {
 					'fontSize': '24px',
-					'color': 'var(--color-gray-3)',
+					'color': 'var(--color-secondary-text)',
 
 					'@container music-player 420 to *': {
 						fontSize: '36px',

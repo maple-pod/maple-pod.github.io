@@ -117,18 +117,13 @@ useRafFn(() => {
 				{{ title }}
 			</UiMarquee>
 			<div
-				:class="pika({
-					'display': 'flex',
-					'alignItems': 'center',
-					'gap': '4px',
-					'marginRight': 'auto',
-					'padding': '8px 12px',
-					'borderRadius': '9999px',
-					'backgroundColor': 'var(--color-gray-2)',
-					'@dark': {
-						backgroundColor: 'var(--color-gray-5)',
-					},
-
+				:class="pika('card-border', {
+					display: 'flex',
+					alignItems: 'center',
+					gap: '4px',
+					marginRight: 'auto',
+					padding: '8px 12px',
+					borderRadius: '9999px',
 				})"
 			>
 				<UiTooltip>
@@ -236,7 +231,7 @@ useRafFn(() => {
 									alignItems: 'center',
 									height: '100%',
 									padding: '8px',
-									color: 'var(--color-gray-3)',
+									color: 'var(--color-secondary-text)',
 								})"
 								@click.capture.stop
 							>
@@ -264,11 +259,7 @@ useRafFn(() => {
 									<span
 										:class="pika({
 											'fontSize': '12px',
-											'color': 'var(--color-gray-5)',
-											'opacity': '0.5',
-											'@dark': {
-												color: 'var(--color-gray-1)',
-											},
+											'color': 'var(--color-secondary-text)',
 											'[data-is-current-music=true][data-is-paused=false]:not([data-disabled]) $': { display: 'none' },
 											'[data-is-current-music=true][data-is-paused=true]:not([data-disabled]) $, [data-is-current-music=false]:not([data-disabled]):hover $': { display: 'none' },
 										})"
@@ -330,12 +321,8 @@ useRafFn(() => {
 									</UiMarquee>
 									<div
 										:class="pika({
-											'fontSize': '12px',
-											'color': 'var(--color-gray-5)',
-											'opacity': '0.5',
-											'@dark': {
-												color: 'var(--color-gray-1)',
-											},
+											fontSize: '12px',
+											color: 'var(--color-secondary-text)',
 										})"
 									>
 										{{ formatTime(item.duration) }}

@@ -34,22 +34,16 @@ const currentTime = defineModel<number>('currentTime', { required: true })
 		>
 			<div
 				:class="pika({
-					'fontSize': '12px',
-					'color': 'var(--color-gray-5)',
-					'@dark': {
-						color: 'var(--color-gray-1)',
-					},
+					fontSize: '12px',
+					color: 'var(--color-secondary-text)',
 				})"
 			>
 				{{ formatTime(currentTime) }}
 			</div>
 			<div
 				:class="pika({
-					'fontSize': '12px',
-					'color': 'var(--color-gray-5)',
-					'@dark': {
-						color: 'var(--color-gray-1)',
-					},
+					fontSize: '12px',
+					color: 'var(--color-secondary-text)',
 				})"
 			>
 				{{ formatTime(duration) }}

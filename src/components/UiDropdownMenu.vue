@@ -50,7 +50,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 			<DropdownMenuSeparator
 				:class="pika({
 					margin: '4px',
-					borderBottom: '1px solid var(--color-gray-3)',
+					borderBottom: '1px solid var(--color-border)',
 				})"
 			/>
 		</DefineUiDropdownMenuSeparator>
@@ -115,7 +115,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 				</DropdownMenuSubTrigger>
 				<DropdownMenuPortal>
 					<DropdownMenuSubContent
-						:class="pika('theme-color', 'card', {
+						:class="pika('theme-vars', 'theme-color', 'card', {
 							padding: '8px',
 							minWidth: '200px',
 							borderRadius: '4px',
@@ -169,7 +169,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 				</DropdownMenuSubTrigger>
 				<DropdownMenuPortal>
 					<DropdownMenuSubContent
-						:class="pika('theme-color', 'card', {
+						:class="pika('theme-vars', 'theme-color', 'card', {
 							padding: '8px',
 							minWidth: '200px',
 							borderRadius: '4px',
@@ -190,7 +190,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 
 		<DropdownMenuPortal>
 			<DropdownMenuContent
-				:class="pika('theme-color', 'card', {
+				:class="pika('theme-vars', 'theme-color', 'card', {
 					padding: '8px',
 					minWidth: '200px',
 					borderRadius: '4px',
@@ -220,10 +220,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 
 				<DropdownMenuArrow
 					:class="pika({
-						'fill': 'var(--color-gray-1)',
-						'@dark': {
-							fill: 'var(--color-gray-4)',
-						},
+						fill: 'var(--color-border)',
 					})"
 				/>
 			</DropdownMenuContent>

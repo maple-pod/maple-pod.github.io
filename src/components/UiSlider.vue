@@ -45,16 +45,12 @@ const _modelValue = computed<[number]>({
 	>
 		<SliderTrack
 			:class="pika({
-				'position': 'relative',
-				'width': '100%',
-				'height': '100%',
-				'display': 'inline-block',
-				'backgroundColor': 'var(--color-gray-3)',
-				'borderRadius': '6px',
-
-				'@dark': {
-					color: 'var(--color-gray-5)',
-				},
+				position: 'relative',
+				width: '100%',
+				height: '100%',
+				display: 'inline-block',
+				backgroundColor: 'var(--color-secondary-bg)',
+				borderRadius: '6px',
 			})"
 		>
 			<SliderRange
@@ -78,7 +74,7 @@ const _modelValue = computed<[number]>({
 			:class="pika({
 				width: '16px',
 				height: '16px',
-				backgroundColor: 'var(--color-gray-1)',
+				backgroundColor: '#FEFEFE',
 				borderRadius: '50%',
 				boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
 			})"

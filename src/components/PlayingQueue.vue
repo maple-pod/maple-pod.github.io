@@ -71,7 +71,7 @@ const displayList = computed(() => {
 								'gap': '8px',
 								'padding': '0 24px',
 								'fontWeight': '300',
-								'color': 'var(--color-gray-3)',
+								'color': 'var(--color-secondary-text)',
 								'cursor': 'pointer',
 								'$[data-is-playing=true]': {
 									color: 'var(--color-primary-1)',

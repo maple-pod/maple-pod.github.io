@@ -14,14 +14,14 @@ export default defineEngineConfig({
 
 	variables: {
 		variables: [
-			['--color-gray-1', '#FEFEFE'],
-			['--color-gray-2', '#F2F2F2'],
-			['--color-gray-3', '#888888'],
-			['--color-gray-4', '#222222'],
-			['--color-gray-5', '#111111'],
 			['--color-primary-1', '#E36262'],
 			['--color-secondary-1', '#FFC15F'],
 			['--color-danger-1', '#FF5252'],
+			['--color-primary-text'],
+			['--color-secondary-text'],
+			['--color-primary-bg'],
+			['--color-secondary-bg'],
+			['--color-border'],
 		],
 	},
 
@@ -79,23 +79,33 @@ export default defineEngineConfig({
 	shortcuts: {
 		shortcuts: [
 			[
-				'theme-color',
+				'theme-vars',
 				{
-					'color': 'var(--color-gray-5)',
+					'--color-primary-text': '#111111',
+					'--color-secondary-text': '#666666',
+					'--color-primary-bg': '#FEFEFE',
+					'--color-secondary-bg': '#999999',
+					'--color-border': '#DDDDDD',
 
 					'@dark': {
-						color: 'var(--color-gray-1)',
+						'--color-primary-text': '#EEEEEE',
+						'--color-secondary-text': '#AAAAAA',
+						'--color-primary-bg': '#010101',
+						'--color-secondary-bg': '#666666',
+						'--color-border': '#222222',
 					},
+				},
+			],
+			[
+				'theme-color',
+				{
+					color: 'var(--color-primary-text)',
 				},
 			],
 			[
 				'theme-bg',
 				{
-					'backgroundColor': 'var(--color-gray-2)',
-
-					'@dark': {
-						backgroundColor: 'var(--color-gray-5)',
-					},
+					backgroundColor: 'var(--color-primary-bg)',
 				},
 			],
 			[
@@ -103,19 +113,26 @@ export default defineEngineConfig({
 				['theme-color', 'theme-bg'],
 			],
 			[
-				'card',
+				'card-border',
 				{
-					'padding': '16px',
-					'borderRadius': '16px',
-					'backgroundColor': 'rgba(255, 255, 255, 0.6)',
-					'backdropFilter': 'blur(8px)',
-					'border': '1px solid rgba(0, 0, 0, 0.1)',
-
-					'@dark': {
-						backgroundColor: 'rgba(30, 30, 30, 0.6)',
-						border: '1px solid rgba(255, 255, 255, 0.1)',
-					},
+					border: '1px solid var(--color-border)',
+					borderRadius: '16px',
 				},
+			],
+			[
+				'card',
+				[
+					'card-border',
+					{
+						'padding': '16px',
+						'backgroundColor': 'rgba(255, 255, 255, 0.6)',
+						'backdropFilter': 'blur(16px)',
+
+						'@dark': {
+							backgroundColor: 'rgba(30, 30, 30, 0.6)',
+						},
+					},
+				],
 			],
 			[
 				'hover-mask',
@@ -131,7 +148,7 @@ export default defineEngineConfig({
 						width: '100%',
 						height: '100%',
 						borderRadius: '8px',
-						backgroundColor: 'var(--color-gray-3)',
+						backgroundColor: 'var(--color-secondary-bg)',
 						opacity: '0',
 						transition: 'opacity 0.1s',
 						pointerEvents: 'none',
@@ -200,7 +217,7 @@ export default defineEngineConfig({
 						'--padding': 'calc(var(--size) / 4)',
 						'padding': 'var(--padding)',
 						'fontSize': 'var(--size)',
-						'color': 'var(--color-gray-3)',
+						'color': 'var(--color-secondary-text)',
 						'backgroundColor': 'transparent',
 						'borderRadius': '50%',
 

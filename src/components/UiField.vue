@@ -15,7 +15,7 @@ defineProps<{
 				display: 'flex',
 				flexDirection: 'column',
 				fontSize: '14px',
-				color: 'var(--color-gray-3)',
+				color: 'var(--color-secondary-text)',
 			}),
 			$attrs.class,
 		)"
@@ -25,7 +25,7 @@ defineProps<{
 			:class="pika({
 				marginBottom: '4px',
 				fontSize: '16px',
-				color: 'var(--color-gray-3)',
+				color: 'var(--color-secondary-text)',
 			})"
 		>
 			{{ label }}
