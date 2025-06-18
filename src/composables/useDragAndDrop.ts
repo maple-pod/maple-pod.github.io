@@ -106,20 +106,8 @@ export function useDragAndDrop({
 }
 
 function createGhostElement(sourceEl: HTMLElement): HTMLElement {
-	const clone = sourceEl.cloneNode(true) as HTMLElement
+	const clonedEl = cloneNodeWithStyles(sourceEl, el => el.style.pointerEvents = 'none')
 	const sourceRect = sourceEl.getBoundingClientRect()
-
-	copyComputedStyle(sourceEl, clone)
-	clone.style.pointerEvents = 'none'
-
-	// Recursively copy computed styles for all child elements
-	const sourceChildren = sourceEl.querySelectorAll('*')
-	const cloneChildren = clone.querySelectorAll('*')
-	for (let i = 0; i < sourceChildren.length; i++) {
-		const cloneChild = cloneChildren[i] as HTMLElement
-		copyComputedStyle(sourceChildren[i] as HTMLElement, cloneChild)
-		cloneChild.style.pointerEvents = 'none'
-	}
 
 	const ghostEl = document.createElement('div')
 	Object.assign(ghostEl.style, {
@@ -136,7 +124,7 @@ function createGhostElement(sourceEl: HTMLElement): HTMLElement {
 		'transform': `translate(var(--translateX, 0), var(--translateY, 0))`,
 	})
 	ghostEl.dataset.ghost = 'true'
-	ghostEl.appendChild(clone)
+	ghostEl.appendChild(clonedEl)
 
 	return ghostEl
 }
@@ -151,4 +139,20 @@ function copyComputedStyle(source: HTMLElement, target: HTMLElement) {
 			// Ignore errors when setting styles that are not applicable
 		}
 	}
+}
+
+function cloneNodeWithStyles(sourceEl: HTMLElement, updateNode?: (el: HTMLElement) => void): HTMLElement {
+	const clonedEl = sourceEl.cloneNode(true) as HTMLElement
+	copyComputedStyle(sourceEl, clonedEl)
+	updateNode?.(clonedEl)
+
+	// Recursively copy computed styles for all child elements
+	const sourceChildren = sourceEl.querySelectorAll('*')
+	const cloneChildren = clonedEl.querySelectorAll('*')
+	for (let i = 0; i < sourceChildren.length; i++) {
+		const cloneChild = cloneChildren[i] as HTMLElement
+		copyComputedStyle(sourceChildren[i] as HTMLElement, cloneChild)
+		updateNode?.(cloneChild)
+	}
+	return clonedEl
 }
