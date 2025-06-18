@@ -13,12 +13,21 @@ if (firstVisit.value) {
 const bg = computed(() => currentBgImage.value == null
 	? 'transparent'
 	: `url(/resources/bg/${currentBgImage.value}.jpg)`)
+
+const backdropFilterBlur = ref(1)
+const intervalTime = ref(1000)
+useIntervalFn(() => {
+	backdropFilterBlur.value = (1 + Math.ceil(Math.random() * 15))
+	intervalTime.value = 3000 + Math.ceil(Math.random() * 3000)
+}, intervalTime)
 </script>
 
 <template>
 	<div
 		:style="{
 			'--bg': bg,
+			'--backdrop-filter-blur': `${backdropFilterBlur}px`,
+			'--backdrop-filter-transition-duration': `${intervalTime}ms`,
 		}"
 		:class="pika('theme', {
 			'--bg-mask': 'linear-gradient(transparent, transparent)',
@@ -27,6 +36,7 @@ const bg = computed(() => currentBgImage.value == null
 			'height': '100dvh',
 			'minHeight': '100vh',
 			'background': 'var(--bg-mask), var(--bg) no-repeat center center fixed',
+			'backgroundSize': 'cover',
 
 			'@dark': {
 				'--bg-mask': 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5))',
@@ -39,8 +49,9 @@ const bg = computed(() => currentBgImage.value == null
 				left: 0,
 				width: '100%',
 				height: '100%',
-				backdropFilter: 'blur(4px)',
+				backdropFilter: 'blur(var(--backdrop-filter-blur))',
 				zIndex: 0,
+				transition: 'backdrop-filter var(--backdrop-filter-transition-duration)',
 			},
 		})"
 	>
