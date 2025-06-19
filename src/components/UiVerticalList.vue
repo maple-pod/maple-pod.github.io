@@ -83,12 +83,12 @@ defineExpose({
 				'padding': '2px',
 				'backgroundColor': 'var(--color-secondary-bg)',
 				'borderRadius': '9999px',
-				'opacity': '0.4',
+				'opacity': '0.2',
 				'transition': 'all 0.2s',
 
 				'$:hover': {
 					width: '16px',
-					opacity: '1',
+					opacity: '0.4',
 				},
 
 				'$[data-state=hidden]': {

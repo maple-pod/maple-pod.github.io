@@ -81,18 +81,18 @@ export default defineEngineConfig({
 			[
 				'theme-vars',
 				{
-					'--color-primary-text': '#111111',
-					'--color-secondary-text': '#666666',
-					'--color-primary-bg': '#FEFEFE',
-					'--color-secondary-bg': '#999999',
-					'--color-border': '#DDDDDD',
+					'--color-primary-text': 'rgb(17, 17, 17)',
+					'--color-secondary-text': 'rgb(102, 102, 102)',
+					'--color-primary-bg': 'rgb(254, 254, 254)',
+					'--color-secondary-bg': 'rgb(153, 153, 153)',
+					'--color-border': 'rgba(102, 102, 102, 0.2)',
 
 					'@dark': {
-						'--color-primary-text': '#EEEEEE',
-						'--color-secondary-text': '#AAAAAA',
-						'--color-primary-bg': '#010101',
-						'--color-secondary-bg': '#666666',
-						'--color-border': '#222222',
+						'--color-primary-text': 'rgb(238, 238, 238)',
+						'--color-secondary-text': 'rgb(170, 170, 170)',
+						'--color-primary-bg': 'rgb(1, 1, 1)',
+						'--color-secondary-bg': 'rgb(102, 102, 102)',
+						'--color-border': 'rgba(170, 170, 170, 0.2)',
 					},
 				},
 			],
@@ -125,11 +125,11 @@ export default defineEngineConfig({
 					'card-border',
 					{
 						'padding': '16px',
-						'backgroundColor': 'rgba(255, 255, 255, 0.6)',
+						'backgroundColor': 'rgba(254, 254, 254, 0.6)',
 						'backdropFilter': 'blur(16px)',
 
 						'@dark': {
-							backgroundColor: 'rgba(30, 30, 30, 0.6)',
+							backgroundColor: 'rgba(1, 1, 1, 0.6)',
 						},
 					},
 				],

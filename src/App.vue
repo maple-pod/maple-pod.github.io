@@ -39,7 +39,7 @@ useIntervalFn(() => {
 			'backgroundSize': 'cover',
 
 			'@dark': {
-				'--bg-mask': 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5))',
+				'--bg-mask': 'linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3))',
 			},
 
 			'$::after': {
