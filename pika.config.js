@@ -14,7 +14,7 @@ export default defineEngineConfig({
 
 	variables: {
 		variables: [
-			['--color-primary-1', '#E36262'],
+			['--color-primary-1', 'rgb(227, 98, 98)'],
 			['--color-secondary-1', '#FFC15F'],
 			['--color-danger-1', '#FF5252'],
 			['--color-primary-text'],

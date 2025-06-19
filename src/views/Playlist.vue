@@ -112,58 +112,48 @@ useRafFn(() => {
 					maxWidth: '250px',
 					fontSize: '24px',
 					fontWeight: '100',
+					marginRight: 'auto',
 				})"
 			>
 				{{ title }}
 			</UiMarquee>
-			<div
-				:class="pika('card-border', {
-					display: 'flex',
-					alignItems: 'center',
-					gap: '4px',
-					marginRight: 'auto',
-					padding: '8px 12px',
-					borderRadius: '9999px',
-				})"
-			>
-				<UiTooltip>
-					<template #trigger>
-						<button
-							:data-state="random"
-							:data-toggle="random"
-							:class="pika('icon-btn-toggle')"
-							@click="toggleRandom()"
-						>
-							<div
-								:class="pika('i-f7:shuffle')"
-							/>
-						</button>
-					</template>
-					<template #content>
-						{{ random === true ? 'Disable Random' : 'Enable Random' }}
-					</template>
-				</UiTooltip>
-				<UiTooltip>
-					<template #trigger>
-						<button
-							:class="pika('icon-btn')"
-							:disabled="playlist.list.length === 0"
-							@click="handlePlayPlaylist()"
-						>
-							<div
-								:data-is-paused="isPaused || playlist.id !== currentPlaylist?.id"
-								:class="pika({
-									'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
-									'$[data-is-paused=false]': ['i-f7:pause-fill'],
-								})"
-							/>
-						</button>
-					</template>
-					<template #content>
-						{{ isPaused === true ? 'Play' : 'Pause' }}
-					</template>
-				</UiTooltip>
-			</div>
+			<UiTooltip>
+				<template #trigger>
+					<button
+						:data-state="random"
+						:data-toggle="random"
+						:class="pika('icon-btn-toggle')"
+						@click="toggleRandom()"
+					>
+						<div
+							:class="pika('i-f7:shuffle')"
+						/>
+					</button>
+				</template>
+				<template #content>
+					{{ random === true ? 'Disable Random' : 'Enable Random' }}
+				</template>
+			</UiTooltip>
+			<UiTooltip>
+				<template #trigger>
+					<button
+						:class="pika('icon-btn')"
+						:disabled="playlist.list.length === 0"
+						@click="handlePlayPlaylist()"
+					>
+						<div
+							:data-is-paused="isPaused || playlist.id !== currentPlaylist?.id"
+							:class="pika({
+								'$[data-is-paused=true]': ['i-f7:play-fill', { transform: 'translateX(2px)' }],
+								'$[data-is-paused=false]': ['i-f7:pause-fill'],
+							})"
+						/>
+					</button>
+				</template>
+				<template #content>
+					{{ isPaused === true ? 'Play' : 'Pause' }}
+				</template>
+			</UiTooltip>
 			<PlaylistDropdownMenu
 				:playlistId="playlist.id"
 			/>

@@ -23,7 +23,7 @@ const isOnline = useOnline()
 			'position': 'relative',
 			'display': 'grid',
 			'gridTemplateRows': 'auto 1fr auto',
-			'rowGap': '12px',
+			'rowGap': '8px',
 			'width': '100%',
 			'maxWidth': '500px',
 			'height': '100%',
@@ -117,7 +117,7 @@ const isOnline = useOnline()
 			:class="pika({
 				'display': 'grid',
 				'gridTemplateColumns': '1fr',
-				'columnGap': '12px',
+				'columnGap': '8px',
 				'height': '100%',
 
 				'@screen-md-and-up': {
