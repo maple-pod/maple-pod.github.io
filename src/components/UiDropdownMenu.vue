@@ -49,7 +49,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 		<DefineUiDropdownMenuSeparator>
 			<DropdownMenuSeparator
 				:class="pika({
-					margin: '4px',
+					margin: '12px 0',
 					borderBottom: '1px solid var(--color-border)',
 				})"
 			/>
@@ -61,11 +61,8 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 					'display': 'flex',
 					'alignItems': 'center',
 					'gap': '8px',
-					'padding': '8px',
+					'padding': '12px',
 					'cursor': 'pointer',
-					'$::before': {
-						borderRadius: '4px',
-					},
 
 					'$[data-disabled]': {
 						opacity: '0.5',
@@ -90,12 +87,8 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 						'display': 'flex',
 						'alignItems': 'center',
 						'gap': '8px',
-						'padding': '8px',
+						'padding': '12px',
 						'cursor': 'pointer',
-
-						'$::before': {
-							borderRadius: '4px',
-						},
 
 						'$[id^=reka-menu-sub-trigger][data-state=open]::before': {
 							opacity: '0.1',
@@ -116,9 +109,8 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 				<DropdownMenuPortal>
 					<DropdownMenuSubContent
 						:class="pika('theme-vars', 'theme-color', 'card', {
-							padding: '8px',
+							padding: '8px 4px',
 							minWidth: '200px',
-							borderRadius: '4px',
 							zIndex: 2,
 						})"
 					>
@@ -144,12 +136,8 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 						'display': 'flex',
 						'alignItems': 'center',
 						'gap': '8px',
-						'padding': '8px',
+						'padding': '12px',
 						'cursor': 'pointer',
-
-						'$::before': {
-							borderRadius: '4px',
-						},
 
 						'$[id^=reka-menu-sub-trigger][data-state=open]::before': {
 							opacity: '0.1',
@@ -170,7 +158,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 				<DropdownMenuPortal>
 					<DropdownMenuSubContent
 						:class="pika('theme-vars', 'theme-color', 'card', {
-							padding: '8px',
+							padding: '8px 4px',
 							minWidth: '200px',
 							borderRadius: '4px',
 							zIndex: 2,
@@ -191,9 +179,8 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 		<DropdownMenuPortal>
 			<DropdownMenuContent
 				:class="pika('theme-vars', 'theme-color', 'card', {
-					padding: '8px',
+					padding: '8px 4px',
 					minWidth: '200px',
-					borderRadius: '4px',
 					zIndex: 2,
 				})"
 			>
@@ -202,7 +189,9 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 						v-for="(item, i) in items"
 						:key="`item-${i}`"
 					>
-						<UiDropdownMenuSeparator v-if="item === 'separator'" />
+						<UiDropdownMenuSeparator
+							v-if="item === 'separator'"
+						/>
 						<UiDropdownMenuNormalMenuItem
 							v-else-if="'onSelect' in item"
 							:item="item"

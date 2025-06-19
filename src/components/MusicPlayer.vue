@@ -217,7 +217,7 @@ function handleCopyMusicLink() {
 								:class="pika({
 									width: '100%',
 								})"
-								:currentMusic="currentMusic"
+								:music="currentMusic"
 							/>
 						</div>
 						<div

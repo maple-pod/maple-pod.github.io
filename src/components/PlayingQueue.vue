@@ -85,16 +85,12 @@ const displayList = computed(() => {
 							role="button"
 							@click="isDisabled || playToPlayQueueItem(item.id)"
 						>
-							<img
-								:src="item.cover"
-								:alt="item.title"
-								:title="item.title"
+							<MusicPlayerThumbnail
+								:music="item"
 								:class="pika({
 									width: '24px',
-									height: '24px',
-									borderRadius: '4px',
 								})"
-							>
+							/>
 							<UiMarquee
 								:key="item.title"
 								:title="item.title"

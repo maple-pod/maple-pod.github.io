@@ -2,21 +2,19 @@
 import type { MusicData } from '@/types'
 
 defineProps<{
-	currentMusic: MusicData | null
+	music: MusicData | null
 }>()
 </script>
 
 <template>
 	<div
-		:class="pika({
+		:class="pika('card-border', {
 			aspectRatio: '1 / 1',
 			overflow: 'hidden',
-			borderRadius: '4px',
-			backgroundColor: 'var(--color-secondary-bg)',
 		})"
 	>
 		<div
-			v-if="currentMusic == null"
+			v-if="music == null"
 			:class="pika({
 				display: 'flex',
 				alignItems: 'center',
@@ -38,12 +36,13 @@ defineProps<{
 		</div>
 		<img
 			v-else
-			:src="currentMusic.cover"
-			:alt="currentMusic.title"
-			:title="currentMusic.title"
+			:src="music.cover"
+			:alt="music.title"
+			:title="music.title"
 			:class="pika({
 				width: '100%',
 				height: '100%',
+				transform: 'scale(1.1)',
 			})"
 		>
 	</div>

@@ -13,7 +13,7 @@ import { TooltipArrow, TooltipContent, TooltipPortal, TooltipProvider, TooltipRo
 			<TooltipPortal>
 				<TooltipContent
 					:class="pika('theme-vars', 'theme-color', 'card', {
-						padding: '8px 16px',
+						padding: '4px 8px',
 						fontSize: '14px',
 						zIndex: 2,
 					})"

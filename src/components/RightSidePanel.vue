@@ -55,6 +55,7 @@ const tabs = [
 				:key="tab.value"
 				:value="tab.value"
 				:class="pika('font-comfortaa', {
+					'flex': '1 0 0',
 					'backgroundColor': 'transparent',
 					'color': 'var(--color-secondary-text)',
 					'padding': '12px 4px',
