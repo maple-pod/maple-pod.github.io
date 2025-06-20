@@ -60,13 +60,14 @@ async function handleCopyPlaylistLink(playlistId: PlaylistId) {
 const isReadyForOffline = computed(() => playlist.value.list.every(musicId => offlineReadyMusics.value.has(musicId)))
 const isDownloading = computed(() => playlist.value.list.some(musicId => offlineMusicDownloadingProgress.value.has(musicId)))
 const numOfDownloading = computed(() => playlist.value.list.filter(musicId => offlineMusicDownloadingProgress.value.has(musicId)).length)
+const numOfDownloadable = computed(() => playlist.value.list.filter(musicId => !offlineReadyMusics.value.has(musicId) && !offlineMusicDownloadingProgress.value.has(musicId)).length)
 const downloadStatusLabel = computed(() => {
 	if (isReadyForOffline.value)
 		return 'Ready for Offline'
 	if (isDownloading.value) {
 		return `Downloading ${numOfDownloading.value} Music${numOfDownloading.value > 1 ? 's' : ''}`
 	}
-	return `Download for Offline (${playlist.value.list.length} Music${playlist.value.list.length > 1 ? 's' : ''})`
+	return `Download for Offline (${numOfDownloadable.value} Music${numOfDownloadable.value > 1 ? 's' : ''})`
 })
 
 const menuItems = computed<UiDropdownMenuItem[]>(() => [

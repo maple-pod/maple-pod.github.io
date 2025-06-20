@@ -148,6 +148,8 @@ export const useMusicStore = defineStore('music', () => {
 		loadOfflineMusics,
 		offlineMusicDownloadingProgress,
 		saveMusicForOffline: _saveMusicForOffline,
+		cancelOfflineMusicDownload,
+		removeSavedOfflineMusic,
 		getSavedOfflineMusicBlob,
 	} = useOfflineMusics()
 	async function saveMusicForOffline(musicId: string) {
@@ -337,6 +339,8 @@ export const useMusicStore = defineStore('music', () => {
 		offlineMusicDownloadingProgress,
 		offlineReadyMusics,
 		saveMusicForOffline,
+		cancelOfflineMusicDownload,
+		removeSavedOfflineMusic,
 		isMusicDisabled,
 		ready,
 	}
@@ -349,14 +353,24 @@ function useOfflineMusics() {
 		const keys = await storage.keys()
 		offlineReadyMusics.value = new Set<string>(keys)
 	}
+	const cancelFns = new Map<string, () => void>()
 	const offlineMusicDownloadingProgress = ref<Map<string, 'pending' | number>>(new Map())
-	async function _saveMusicForOffline(musicId: string, src: string) {
-		offlineMusicDownloadingProgress.value.set(musicId, 'pending')
-		const blob = await fetchBlob(src, (loaded, total) => {
-			const percent = Math.round((loaded / total) * 100)
-			offlineMusicDownloadingProgress.value.set(musicId, percent)
-		})
+	async function _saveMusicForOffline(musicId: string, src: string, signal: AbortSignal) {
+		const blob = await fetchBlob(
+			src,
+			(loaded, total) => {
+				const percent = Math.round((loaded / total) * 100)
+				offlineMusicDownloadingProgress.value.set(musicId, percent)
+			},
+			signal,
+		).catch(() => null)
 		offlineMusicDownloadingProgress.value.delete(musicId)
+
+		if (blob == null) {
+			await storage.removeItem(musicId)
+			return
+		}
+
 		await storage.setItem(musicId, blob)
 		offlineReadyMusics.value.add(musicId)
 	}
@@ -366,10 +380,25 @@ function useOfflineMusics() {
 			return
 		}
 
-		offlineMusicsQueue.add(() => _saveMusicForOffline(musicId, src))
+		offlineMusicDownloadingProgress.value.set(musicId, 'pending')
+		const abortController = new AbortController()
+		const task = offlineMusicsQueue.add(() => _saveMusicForOffline(musicId, src, abortController.signal))
+		cancelFns.set(musicId, () => {
+			task.cancel()
+			abortController.abort()
+			offlineMusicDownloadingProgress.value.delete(musicId)
+			cancelFns.delete(musicId)
+		})
 	}
 	async function getSavedOfflineMusicBlob(musicId: string): Promise<Blob | null> {
 		return await storage.getItem(musicId) || null
+	}
+	function cancelOfflineMusicDownload(musicId: string) {
+		cancelFns.get(musicId)?.()
+	}
+	async function removeSavedOfflineMusic(musicId: string) {
+		await storage.removeItem(musicId)
+		offlineReadyMusics.value.delete(musicId)
 	}
 
 	return {
@@ -378,6 +407,8 @@ function useOfflineMusics() {
 		offlineMusicDownloadingProgress,
 		saveMusicForOffline,
 		getSavedOfflineMusicBlob,
+		cancelOfflineMusicDownload,
+		removeSavedOfflineMusic,
 	}
 }
 

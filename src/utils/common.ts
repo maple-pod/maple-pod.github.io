@@ -65,8 +65,9 @@ export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 export async function fetchBlob(
 	url: string,
 	onProgress?: (loaded: number, total: number) => void,
+	signal?: AbortSignal | null,
 ): Promise<Blob> {
-	const response = await fetch(url)
+	const response = await fetch(url, { signal })
 	const contentEncoding = response.headers.get('content-encoding')
 	const contentLength = response.headers.get(contentEncoding ? 'x-file-size' : 'content-length')
 	if (contentLength === null) {
@@ -103,43 +104,83 @@ export async function fetchBlob(
 	return await newResponse.blob()
 }
 
-export type Task<T> = () => Promise<T>
+export function createPromise<T = any>() {
+	let resolve: (value: T) => void
+	let reject: (reason?: any) => void
+	const promise = new Promise<T>((res, rej) => {
+		resolve = res
+		reject = rej
+	})
+	return {
+		promise,
+		resolve: resolve!,
+		reject: reject!,
+	}
+}
 
+export type TaskFn = () => Promise<any>
+export interface Task {
+	run: TaskFn
+	cancel: () => void
+}
+export class CancelledError extends Error {
+	constructor(message: string = 'Task was cancelled') {
+		super(message)
+		this.name = 'CancelledError'
+	}
+}
 export class PromiseQueue {
 	private concurrency: number
-	private runningCount = 0
-	private queue: Task<any>[] = []
-
+	private running: number
+	private queue: Task[]
 	constructor(concurrency: number) {
 		this.concurrency = concurrency
+		this.running = 0
+		this.queue = []
 	}
 
-	add<T>(task: Task<T>): Promise<T> {
-		return new Promise<T>((resolve, reject) => {
-			const wrappedTask = () => {
-				this.runningCount++
-				return task()
+	public add(fn: TaskFn): Task {
+		const { promise, resolve, reject } = createPromise()
+
+		const task: Task = {
+			run: () => {
+				fn()
 					.then(resolve)
 					.catch(reject)
-					.finally(() => {
-						this.runningCount--
-						this.runNext() // 嘗試執行下一個
-					})
-			}
-
-			if (this.runningCount < this.concurrency) {
-				wrappedTask()
-			}
-			else {
-				this.queue.push(wrappedTask)
-			}
-		})
+				return promise
+			},
+			cancel: () => {
+				const index = this.queue.indexOf(task)
+				if (index !== -1) {
+					this.queue.splice(index, 1)
+				}
+				reject(new CancelledError())
+			},
+		}
+		this.queue.push(task)
+		this.runNext()
+		return task
 	}
 
 	private runNext() {
-		if (this.queue.length > 0 && this.runningCount < this.concurrency) {
-			const nextTask = this.queue.shift()
-			nextTask?.()
+		if (this.running >= this.concurrency || this.queue.length === 0) {
+			return
 		}
+		const task = this.queue.shift()!
+		this.running++
+		task.run()
+			.then(() => {
+				this.running--
+				this.runNext()
+			})
+			.catch((error) => {
+				if (error instanceof CancelledError) {
+					this.running--
+					this.runNext()
+				}
+				else {
+					console.error('Task failed:', error)
+				}
+			})
 	}
 }

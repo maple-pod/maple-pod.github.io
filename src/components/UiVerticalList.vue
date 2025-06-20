@@ -48,6 +48,7 @@ defineExpose({
 	<ScrollAreaRoot
 		:class="pika({
 			width: '100%',
+			maxHeight: 'inherit',
 			height: '100%',
 		})"
 	>
@@ -55,6 +56,7 @@ defineExpose({
 			ref="scrollAreaViewportRef"
 			:class="pika({
 				width: '100%',
+				maxHeight: 'inherit',
 				height: '100%',
 			})"
 		>

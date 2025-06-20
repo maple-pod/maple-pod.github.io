@@ -109,7 +109,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 				<DropdownMenuPortal>
 					<DropdownMenuSubContent
 						:class="pika('theme-vars', 'theme-color', 'card', {
-							padding: '8px 4px',
+							padding: '8px',
 							minWidth: '200px',
 							zIndex: 2,
 						})"
@@ -158,9 +158,8 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 				<DropdownMenuPortal>
 					<DropdownMenuSubContent
 						:class="pika('theme-vars', 'theme-color', 'card', {
-							padding: '8px 4px',
+							padding: '8px',
 							minWidth: '200px',
-							borderRadius: '4px',
 							zIndex: 2,
 						})"
 					>
@@ -179,12 +178,12 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 		<DropdownMenuPortal>
 			<DropdownMenuContent
 				:class="pika('theme-vars', 'theme-color', 'card', {
-					padding: '8px 4px',
+					padding: '8px',
 					minWidth: '200px',
 					zIndex: 2,
 				})"
 			>
-				<slot>
+				<slot name="menu">
 					<template
 						v-for="(item, i) in items"
 						:key="`item-${i}`"

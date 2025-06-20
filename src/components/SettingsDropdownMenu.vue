@@ -178,6 +178,8 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 			<div
 				:class="pika({
 					height: '400px',
+					borderRadius: '16px',
+					overflow: 'hidden',
 				})"
 			>
 				<UiVerticalList
@@ -203,7 +205,7 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 									'flex': '1',
 									'height': '100px',
 									'cursor': 'pointer',
-									'borderRadius': '8px',
+									'borderRadius': '16px',
 									'overflow': 'hidden',
 									'$[data-is-selected=true]::after': {
 										content: '\'\'',
@@ -214,7 +216,7 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 										width: '100%',
 										height: '100%',
 										border: '2px solid var(--color-primary-1)',
-										borderRadius: '8px',
+										borderRadius: '16px',
 										boxSizing: 'border-box',
 										pointerEvents: 'none',
 									},
@@ -230,7 +232,7 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 										justifyContent: 'center',
 										width: '100%',
 										height: '100%',
-										borderRadius: '8px',
+										borderRadius: '16px',
 									})"
 								>
 									<div
@@ -252,7 +254,7 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 										justifyContent: 'center',
 										width: '100%',
 										height: '100%',
-										borderRadius: '8px',
+										borderRadius: '16px',
 									})"
 								>
 									<img

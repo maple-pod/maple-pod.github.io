@@ -10,6 +10,7 @@ export default defineEngineConfig({
 
 	preflights: [
 		'* { line-height: 1.25; } a { text-decoration: none; color: currentColor; } button:not(:focus-visible) { border: 0; }',
+		'body[color-scheme="light"] { background-color: #EEEEEE; } body[color-scheme="dark"] { background-color: #222222; }',
 	],
 
 	variables: {
@@ -115,7 +116,7 @@ export default defineEngineConfig({
 			[
 				'card-border',
 				{
-					border: '1px solid var(--color-border)',
+					border: '2px solid var(--color-border)',
 					borderRadius: '16px',
 				},
 			],

@@ -11,7 +11,7 @@ if (firstVisit.value) {
 }
 
 const bg = computed(() => currentBgImage.value == null
-	? 'var(--color-primary-bg)'
+	? 'transparent'
 	: `url(/resources/bg/${currentBgImage.value}.jpg)`)
 
 const backdropFilterBlur = ref(1)
@@ -39,7 +39,7 @@ useIntervalFn(() => {
 			'backgroundSize': 'cover',
 
 			'@dark': {
-				'--bg-mask': 'linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3))',
+				'--bg-mask': 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5))',
 			},
 
 			'$::after': {

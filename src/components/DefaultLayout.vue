@@ -109,6 +109,7 @@ const isOnline = useOnline()
 					</UiTooltip>
 				</RouterLink>
 
+				<DownloadManagerDropdownMenu />
 				<SettingsDropdownMenu />
 			</div>
 		</div>
