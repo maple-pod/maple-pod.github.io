@@ -1,6 +1,39 @@
 import { icons } from '@pikacss/plugin-icons'
-/// <reference path="./pika.gen.ts" />
 import { defineEngineConfig } from '@pikacss/vite-plugin-pikacss'
+import './pika.gen'
+
+const colors = {
+	general: {
+		'primary-1': 'rgb(227, 98, 98)',
+		'secondary-1': 'rgb(255, 193, 95)',
+		'danger-1': 'rgb(255, 82, 82)',
+	},
+	light: {
+		'primary-text': 'rgb(17, 17, 17)',
+		'secondary-text': 'rgb(102, 102, 102)',
+		'primary-bg': 'rgb(254, 254, 254)',
+		'secondary-bg': 'rgb(153, 153, 153)',
+		'border': 'rgba(102, 102, 102, 0.2)',
+		'site-bg': 'rgb(220, 220, 220)',
+		'card-bg': 'rgba(254, 254, 254, 0.6)',
+		'hover-mask': 'rgba(0, 0, 0, 0.4)',
+	},
+	dark: {
+		'primary-text': 'rgb(238, 238, 238)',
+		'secondary-text': 'rgb(170, 170, 170)',
+		'primary-bg': 'rgb(1, 1, 1)',
+		'secondary-bg': 'rgb(102, 102, 102)',
+		'border': 'rgba(170, 170, 170, 0.2)',
+		'site-bg': 'rgb(50, 50, 50)',
+		'card-bg': 'rgba(1, 1, 1, 0.6)',
+		'hover-mask': 'rgba(255, 255, 255, 0.4)',
+	},
+}
+function toVars(obj, prefix) {
+	return Object.fromEntries(
+		Object.entries(obj).map(([key, value]) => [`${prefix}${key}`, value]),
+	)
+}
 
 export default defineEngineConfig({
 	// Add your PikaCSS engine config here
@@ -9,26 +42,51 @@ export default defineEngineConfig({
 	],
 
 	preflights: [
-		'* { line-height: 1.25; } a { text-decoration: none; color: currentColor; } button:not(:focus-visible) { border: 0; }',
-		'body[color-scheme="light"] { background-color: #EEEEEE; } body[color-scheme="dark"] { background-color: #222222; }',
+		{
+			':root': {
+				...toVars(colors.general, '--color-'),
+			},
+			'@light': {
+				...toVars(colors.light, '--color-'),
+			},
+			'@dark': {
+				...toVars(colors.dark, '--color-'),
+			},
+			'*': {
+				lineHeight: '1.25',
+			},
+			'body': {
+				backgroundColor: 'var(--color-site-bg)',
+				color: 'var(--color-primary-text)',
+			},
+			'a': {
+				textDecoration: 'none',
+				color: 'currentColor',
+			},
+			'button:not(:focus-visible)': {
+				border: '0',
+			},
+		},
 	],
 
 	variables: {
 		variables: [
-			['--color-primary-1', 'rgb(227, 98, 98)'],
-			['--color-secondary-1', '#FFC15F'],
-			['--color-danger-1', '#FF5252'],
-			['--color-primary-text'],
-			['--color-secondary-text'],
-			['--color-primary-bg'],
-			['--color-secondary-bg'],
-			['--color-border'],
+			'--color-primary-text',
+			'--color-secondary-text',
+			'--color-primary-bg',
+			'--color-secondary-bg',
+			'--color-border',
+			'--color-card-bg',
+			'--color-primary-1',
+			'--color-secondary-1',
+			'--color-danger-1',
 		],
 	},
 
 	selectors: {
 		selectors: [
-			['@dark', '[color-scheme="dark"] $'],
+			['@light', '[color-scheme="light"]'],
+			['@dark', '[color-scheme="dark"]'],
 			['@docpip', '@media all and (display-mode: picture-in-picture)'],
 			[/^@screen (\*|\d+) to (\*|\d+)$/, ([, min, max]) => {
 				if (min === '*' && max !== '*') {
@@ -80,43 +138,9 @@ export default defineEngineConfig({
 	shortcuts: {
 		shortcuts: [
 			[
-				'theme-vars',
-				{
-					'--color-primary-text': 'rgb(17, 17, 17)',
-					'--color-secondary-text': 'rgb(102, 102, 102)',
-					'--color-primary-bg': 'rgb(254, 254, 254)',
-					'--color-secondary-bg': 'rgb(153, 153, 153)',
-					'--color-border': 'rgba(102, 102, 102, 0.2)',
-
-					'@dark': {
-						'--color-primary-text': 'rgb(238, 238, 238)',
-						'--color-secondary-text': 'rgb(170, 170, 170)',
-						'--color-primary-bg': 'rgb(1, 1, 1)',
-						'--color-secondary-bg': 'rgb(102, 102, 102)',
-						'--color-border': 'rgba(170, 170, 170, 0.2)',
-					},
-				},
-			],
-			[
-				'theme-color',
-				{
-					color: 'var(--color-primary-text)',
-				},
-			],
-			[
-				'theme-bg',
-				{
-					backgroundColor: 'var(--color-primary-bg)',
-				},
-			],
-			[
-				'theme',
-				['theme-color', 'theme-bg'],
-			],
-			[
 				'card-border',
 				{
-					border: '2px solid var(--color-border)',
+					border: '1px solid var(--color-border)',
 					borderRadius: '16px',
 				},
 			],
@@ -125,13 +149,9 @@ export default defineEngineConfig({
 				[
 					'card-border',
 					{
-						'padding': '16px',
-						'backgroundColor': 'rgba(254, 254, 254, 0.6)',
-						'backdropFilter': 'blur(16px)',
-
-						'@dark': {
-							backgroundColor: 'rgba(1, 1, 1, 0.6)',
-						},
+						padding: '16px',
+						backgroundColor: 'var(--color-card-bg)',
+						backdropFilter: 'blur(16px)',
 					},
 				],
 			],
@@ -149,7 +169,7 @@ export default defineEngineConfig({
 						width: '100%',
 						height: '100%',
 						borderRadius: '16px',
-						backgroundColor: '#777777',
+						backgroundColor: 'var(--color-hover-mask)',
 						opacity: '0',
 						transition: 'opacity 0.1s',
 						pointerEvents: 'none',

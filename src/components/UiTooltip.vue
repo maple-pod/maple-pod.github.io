@@ -12,7 +12,7 @@ import { TooltipArrow, TooltipContent, TooltipPortal, TooltipProvider, TooltipRo
 			</TooltipTrigger>
 			<TooltipPortal>
 				<TooltipContent
-					:class="pika('theme-vars', 'theme-color', 'card', {
+					:class="pika('card', {
 						padding: '4px 8px',
 						fontSize: '14px',
 						zIndex: 2,

@@ -16,7 +16,7 @@ const open = defineModel<boolean>('open', { default: false })
 	>
 		<ToastRoot
 			v-model:open="open"
-			:class="pika('theme-color', 'card', {
+			:class="pika('card', {
 				padding: '12px',
 			})"
 		>

@@ -29,7 +29,7 @@ useIntervalFn(() => {
 			'--backdrop-filter-blur': `${backdropFilterBlur}px`,
 			'--backdrop-filter-transition-duration': `${intervalTime}ms`,
 		}"
-		:class="pika('theme', 'theme-vars', {
+		:class="pika({
 			'--bg-mask': 'linear-gradient(transparent, transparent)',
 			'position': 'relative',
 			'width': '100%',

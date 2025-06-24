@@ -84,14 +84,14 @@ function handleCopyMusicLink() {
 			:class="pika({
 				'display': 'contents',
 
-				'@docpip': ['theme-vars', 'theme', {
+				'@docpip': {
 					display: 'flex',
 					justifyContent: 'center',
 					alignItems: 'center',
 					width: '100%',
 					height: '100dvh',
 					padding: '16px',
-				}],
+				},
 			})"
 		>
 			<div
