@@ -26,10 +26,14 @@ const {
 	getPlayMusicLink,
 } = musicStore
 
-const magicKeys = useMagicKeys()
-whenever(
-	() => magicKeys.Space!.value && magicKeys.current.size === 1,
-	() => canPlay.value && togglePlay(),
+useEventListener(
+	'keydown',
+	(event) => {
+		if (event.key === ' ') {
+			event.preventDefault()
+			canPlay.value && togglePlay()
+		}
+	},
 )
 
 const {
