@@ -1,6 +1,6 @@
+/** @type {import('./pika.gen')} */
 import { icons } from '@pikacss/plugin-icons'
 import { defineEngineConfig } from '@pikacss/vite-plugin-pikacss'
-import './pika.gen'
 
 const colors = {
 	general: {
