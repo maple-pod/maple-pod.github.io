@@ -2,39 +2,6 @@
 import { icons } from '@pikacss/plugin-icons'
 import { defineEngineConfig } from '@pikacss/vite-plugin-pikacss'
 
-const colors = {
-	general: {
-		'primary-1': 'rgb(227, 98, 98)',
-		'secondary-1': 'rgb(255, 193, 95)',
-		'danger-1': 'rgb(255, 82, 82)',
-	},
-	light: {
-		'primary-text': 'rgb(17, 17, 17)',
-		'secondary-text': 'rgb(102, 102, 102)',
-		'primary-bg': 'rgb(254, 254, 254)',
-		'secondary-bg': 'rgb(153, 153, 153)',
-		'border': 'rgba(102, 102, 102, 0.2)',
-		'site-bg': 'rgb(220, 220, 220)',
-		'card-bg': 'rgba(254, 254, 254, 0.6)',
-		'hover-mask': 'rgba(0, 0, 0, 0.4)',
-	},
-	dark: {
-		'primary-text': 'rgb(238, 238, 238)',
-		'secondary-text': 'rgb(170, 170, 170)',
-		'primary-bg': 'rgb(1, 1, 1)',
-		'secondary-bg': 'rgb(102, 102, 102)',
-		'border': 'rgba(170, 170, 170, 0.2)',
-		'site-bg': 'rgb(50, 50, 50)',
-		'card-bg': 'rgba(1, 1, 1, 0.6)',
-		'hover-mask': 'rgba(255, 255, 255, 0.4)',
-	},
-}
-function toVars(obj, prefix) {
-	return Object.fromEntries(
-		Object.entries(obj).map(([key, value]) => [`${prefix}${key}`, value]),
-	)
-}
-
 export default defineEngineConfig({
 	// Add your PikaCSS engine config here
 	plugins: [
@@ -43,15 +10,6 @@ export default defineEngineConfig({
 
 	preflights: [
 		{
-			':root': {
-				...toVars(colors.general, '--color-'),
-			},
-			'@light': {
-				...toVars(colors.light, '--color-'),
-			},
-			'@dark': {
-				...toVars(colors.dark, '--color-'),
-			},
 			'*': {
 				lineHeight: '1.25',
 			},
@@ -70,17 +28,31 @@ export default defineEngineConfig({
 	],
 
 	variables: {
-		variables: [
-			'--color-primary-text',
-			'--color-secondary-text',
-			'--color-primary-bg',
-			'--color-secondary-bg',
-			'--color-border',
-			'--color-card-bg',
-			'--color-primary-1',
-			'--color-secondary-1',
-			'--color-danger-1',
-		],
+		variables: {
+			'--color-primary-1': 'rgb(227, 98, 98)',
+			'--color-secondary-1': 'rgb(255, 193, 95)',
+			'--color-danger-1': 'rgb(255, 82, 82)',
+			'--color-primary-text': 'rgb(17, 17, 17)',
+			'--color-secondary-text': 'rgb(102, 102, 102)',
+			'--color-primary-bg': 'rgb(254, 254, 254)',
+			'--color-secondary-bg': 'rgb(153, 153, 153)',
+			'--color-border': 'rgba(102, 102, 102, 0.2)',
+			'--color-site-bg': 'rgb(220, 220, 220)',
+			'--color-card-bg': 'rgba(254, 254, 254, 0.6)',
+			'--color-hover-mask': 'rgba(0, 0, 0, 0.4)',
+
+			'@dark': {
+				'--color-primary-text': 'rgb(238, 238, 238)',
+				'--color-secondary-text': 'rgb(170, 170, 170)',
+				'--color-primary-bg': 'rgb(1, 1, 1)',
+				'--color-secondary-bg': 'rgb(102, 102, 102)',
+				'--color-border': 'rgba(170, 170, 170, 0.2)',
+				'--color-site-bg': 'rgb(50, 50, 50)',
+				'--color-card-bg': 'rgba(1, 1, 1, 0.6)',
+				'--color-hover-mask': 'rgba(255, 255, 255, 0.4)',
+			},
+		},
+		safeList: ['--color-site-bg'],
 	},
 
 	selectors: {
