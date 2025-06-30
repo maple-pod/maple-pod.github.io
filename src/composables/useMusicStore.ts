@@ -252,38 +252,49 @@ export const useMusicStore = defineStore('music', () => {
 					artwork: [
 						{
 							src: currentMusic.value.cover,
-							sizes: '96x96',
-							type: 'image/png',
-						},
-						{
-							src: currentMusic.value.cover,
-							sizes: '128x128',
-							type: 'image/png',
-						},
-						{
-							src: currentMusic.value.cover,
-							sizes: '192x192',
-							type: 'image/png',
-						},
-						{
-							src: currentMusic.value.cover,
-							sizes: '256x256',
-							type: 'image/png',
-						},
-						{
-							src: currentMusic.value.cover,
-							sizes: '384x384',
-							type: 'image/png',
-						},
-						{
-							src: currentMusic.value.cover,
-							sizes: '512x512',
 							type: 'image/png',
 						},
 					],
 				})
+				navigator.mediaSession.setPositionState({
+					duration: currentMusic.value.duration,
+					playbackRate: 1,
+					position: 0,
+				})
 			},
 		)
+		watch(
+			audioPlayerLogic.isPaused,
+			bool => navigator.mediaSession.playbackState = bool ? 'paused' : 'playing',
+			{ immediate: true },
+		)
+		useEventListener(
+			audioPlayerLogic.audio,
+			'seeked',
+			() => {
+				navigator.mediaSession.setPositionState({
+					duration: audioPlayerLogic.duration.value,
+					playbackRate: 1,
+					position: audioPlayerLogic.currentTime.value,
+				})
+			},
+		)
+		navigator.mediaSession.setActionHandler('play', () => {
+			audioPlayerLogic.togglePlay()
+		})
+		navigator.mediaSession.setActionHandler('pause', () => {
+			audioPlayerLogic.togglePlay()
+		})
+		navigator.mediaSession.setActionHandler('previoustrack', () => {
+			audioPlayerLogic.goPrevious()
+		})
+		navigator.mediaSession.setActionHandler('nexttrack', () => {
+			audioPlayerLogic.goNext()
+		})
+		navigator.mediaSession.setActionHandler('seekto', (details) => {
+			if (details.seekTime != null)
+				audioPlayerLogic.currentTime.value = details.seekTime
+		})
 	}
 
 	const ready = until(isDataReady)

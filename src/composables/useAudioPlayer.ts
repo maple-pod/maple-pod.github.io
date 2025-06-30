@@ -143,38 +143,6 @@ export function useAudioPlayer({
 		},
 	)
 
-	// register media session actions
-	if ('mediaSession' in navigator) {
-		watch(
-			isPaused,
-			bool => navigator.mediaSession.playbackState = bool ? 'paused' : 'playing',
-			{ immediate: true },
-		)
-		watch(
-			[currentTime, duration],
-			() => {
-				navigator.mediaSession.setPositionState({
-					duration: duration.value,
-					playbackRate: 1,
-					position: currentTime.value,
-				})
-			},
-			{ immediate: true },
-		)
-		navigator.mediaSession.setActionHandler('play', () => {
-			audioLogic.play()
-		})
-		navigator.mediaSession.setActionHandler('pause', () => {
-			audioLogic.pause()
-		})
-		navigator.mediaSession.setActionHandler('previoustrack', () => {
-			goPrevious()
-		})
-		navigator.mediaSession.setActionHandler('nexttrack', () => {
-			goNext()
-		})
-	}
-
 	return {
 		audio,
 		currentTime,
