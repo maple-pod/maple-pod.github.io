@@ -32,6 +32,7 @@ export default defineEngineConfig({
 			'--color-primary-1': 'rgb(227, 98, 98)',
 			'--color-secondary-1': 'rgb(255, 193, 95)',
 			'--color-danger-1': 'rgb(255, 82, 82)',
+
 			'--color-primary-text': 'rgb(17, 17, 17)',
 			'--color-secondary-text': 'rgb(102, 102, 102)',
 			'--color-primary-bg': 'rgb(254, 254, 254)',
@@ -52,7 +53,7 @@ export default defineEngineConfig({
 				'--color-hover-mask': 'rgba(255, 255, 255, 0.4)',
 			},
 		},
-		safeList: ['--color-site-bg'],
+		safeList: ['--color-site-bg', '--color-primary-text'],
 	},
 
 	selectors: {
