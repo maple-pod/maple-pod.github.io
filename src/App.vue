@@ -20,6 +20,12 @@ useIntervalFn(() => {
 	backdropFilterBlur.value = (1 + Math.ceil(Math.random() * 15))
 	intervalTime.value = 3000 + Math.ceil(Math.random() * 3000)
 }, intervalTime)
+
+// Prevent direct close of the app
+useEventListener('beforeunload', (event) => {
+	event.preventDefault()
+	event.returnValue = ''
+})
 </script>
 
 <template>
