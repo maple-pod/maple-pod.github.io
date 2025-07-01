@@ -6,6 +6,8 @@ const modelValue = defineModel<string>({ required: true })
 	<input
 		v-model="modelValue"
 		:class="pika({
+			backgroundColor: 'transparent',
+			color: 'var(--color-primary-text)',
 			border: '1px solid var(--color-border)',
 			borderRadius: '4px',
 			padding: '8px 12px',
