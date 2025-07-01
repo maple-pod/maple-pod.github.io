@@ -8,7 +8,11 @@ export function mergeClasses(...classes: any[]) {
 export function dataToUrlHash(data: any) {
 	const json = JSON.stringify(data)
 	const compressed = deflateSync(strToU8(json))
-	return `#${btoa(String.fromCharCode(...compressed))}`
+	// eslint-disable-next-line prefer-template
+	return '#' + btoa(Array.from(compressed, byte => String.fromCharCode(byte)).join(''))
+		.replace(/\+/g, '-')
+		.replace(/\//g, '_')
+		.replace(/=+$/, '')
 }
 
 export function urlHashToData<T = any>(hash: string): T | null {
@@ -16,7 +20,12 @@ export function urlHashToData<T = any>(hash: string): T | null {
 		return null
 	}
 	try {
-		const binary = atob(hash.slice(1))
+		let b64 = hash.slice(1)
+			.replace(/-/g, '+')
+			.replace(/_/g, '/')
+		while (b64.length % 4) b64 += '='
+
+		const binary = atob(b64)
 		const compressed = Uint8Array.from(binary, c => c.charCodeAt(0))
 		const json = strFromU8(decompressSync(compressed))
 		return JSON.parse(json) as T
