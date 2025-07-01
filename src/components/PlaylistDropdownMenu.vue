@@ -69,7 +69,7 @@ const downloadStatusLabel = computed(() => {
 	}
 	return `Download for Offline (${numOfDownloadable.value} Music${numOfDownloadable.value > 1 ? 's' : ''})`
 })
-
+const isOnline = useOnline()
 const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
 		icon: pika('i-f7:play'),
@@ -109,7 +109,7 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 						event.preventDefault()
 						playlist.value.list.forEach(saveMusicForOffline)
 					},
-					disabled: isReadyForOffline.value || isDownloading.value,
+					disabled: isReadyForOffline.value || isDownloading.value || (isOnline.value === false),
 				},
 			]
 		: []),
