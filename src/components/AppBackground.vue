@@ -3,21 +3,12 @@ const { currentBgImage } = storeToRefs(useAppStore())
 const bg = computed(() => currentBgImage.value == null
 	? 'transparent'
 	: `url(/resources/bg/${currentBgImage.value}.jpg)`)
-
-const backdropFilterBlur = ref(1)
-const intervalTime = ref(1000)
-useIntervalFn(() => {
-	backdropFilterBlur.value = (1 + Math.ceil(Math.random() * 15))
-	intervalTime.value = 3000 + Math.ceil(Math.random() * 3000)
-}, intervalTime)
 </script>
 
 <template>
 	<div
 		:style="{
 			'--bg': bg,
-			'--backdrop-filter-blur': `${backdropFilterBlur}px`,
-			'--backdrop-filter-transition-duration': `${intervalTime}ms`,
 		}"
 		:class="pika({
 			'--bg-mask': 'linear-gradient(transparent, transparent)',
@@ -38,9 +29,8 @@ useIntervalFn(() => {
 				left: 0,
 				width: '100%',
 				height: '100%',
-				backdropFilter: 'blur(var(--backdrop-filter-blur))',
+				backdropFilter: 'blur(8px)',
 				zIndex: 0,
-				transition: 'backdrop-filter var(--backdrop-filter-transition-duration)',
 			},
 		})"
 	/>
