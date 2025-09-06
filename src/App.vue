@@ -10,6 +10,13 @@ if (firstVisit.value) {
 	dialog(AboutDialog, {}).then(() => firstVisit.value = false)
 }
 
+useEventListener('pointerdown', () => {
+	document.documentElement.classList.add('pointer-down')
+})
+useEventListener('pointerup', () => {
+	document.documentElement.classList.remove('pointer-down')
+})
+
 // Prevent direct close of the app
 useEventListener('beforeunload', (event) => {
 	event.preventDefault()

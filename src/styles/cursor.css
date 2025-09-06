@@ -1,0 +1,8 @@
+/* Global custom cursors */
+html:not(.pointer-down), html:not(.pointer-down) * {
+	cursor: url("../assets/images/cursor/Cursor.0.0 (0,3).png") 0 3, auto !important;
+}
+
+html.pointer-down, html.pointer-down * {
+	cursor: url("../assets/images/cursor/Cursor.12.0 (4,1).png") 4 1, auto !important;
+}
