@@ -202,7 +202,7 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 								:class="pika({
 									'position': 'relative',
 									'display': 'block',
-									'flex': '1',
+									'width': 'calc((100% - 8px) / 2)',
 									'height': '100px',
 									'cursor': 'pointer',
 									'borderRadius': '16px',
