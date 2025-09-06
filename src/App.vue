@@ -2,6 +2,7 @@
 import AboutDialog from '@/components/AboutDialog.vue'
 
 const { isReady } = storeToRefs(useAppStore())
+const { isPaused } = storeToRefs(useMusicStore())
 const { AppDialog, dialog } = useAppDialog()
 const { UiToast } = useUiToast()
 
@@ -19,6 +20,8 @@ useEventListener('pointerup', () => {
 
 // Prevent direct close of the app
 useEventListener('beforeunload', (event) => {
+	if (isPaused.value)
+		return
 	event.preventDefault()
 	event.returnValue = ''
 })
