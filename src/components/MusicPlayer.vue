@@ -242,6 +242,7 @@ function handleCopyMusicLink() {
 									'justifyContent': 'center',
 									'alignItems': 'center',
 									'width': '100%',
+									'gap': '8px',
 
 									'@container music-player 420 to *': {
 										gap: '4px',

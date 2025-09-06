@@ -14,7 +14,7 @@ const currentTime = defineModel<number>('currentTime', { required: true })
 		:class="pika({
 			display: 'flex',
 			flexDirection: 'column',
-			gap: '4px',
+			gap: '8px',
 			width: '100%',
 			userSelect: 'none',
 			touchAction: 'none',
