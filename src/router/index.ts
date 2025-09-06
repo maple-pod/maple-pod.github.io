@@ -1,7 +1,6 @@
 import type { HashActionImportSaveablePlaylist, HashActionImportSavedUserData, PlaylistId } from '@/types'
 import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
 import { HashActionImportSaveablePlaylistSchema, HashActionImportSavedUserDataSchema } from '@/schemas'
-import { getRecord } from '@/utils/cfWorker'
 import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
 import { safeParse } from 'valibot'
 import { createRouter, createWebHistory, RouterView } from 'vue-router'
@@ -20,24 +19,6 @@ const middlewares = {
 	waitUntilReady: async () => {
 		const appStore = useAppStore()
 		await appStore.ready
-	},
-	resolveRecord: async (to) => {
-		const { recordId, ...restQuery } = to.query as { recordId: string | undefined }
-		if (recordId == null) {
-			return true
-		}
-
-		const hash = await getRecord(recordId)
-		if (hash == null) {
-			// Invalid recordId, redirect to root
-			return { name: Routes.Root }
-		}
-
-		return {
-			...to,
-			query: restQuery,
-			hash,
-		}
 	},
 	importSavedUserData: async (to) => {
 		const data = urlHashToData(to.hash)
@@ -130,7 +111,6 @@ const router = createRouter({
 			meta: {
 				middleware: [
 					middlewares.waitUntilReady,
-					middlewares.resolveRecord,
 					middlewares.importSavedUserData,
 					() => ({ name: Routes.Root }),
 				],
@@ -154,7 +134,6 @@ const router = createRouter({
 			meta: {
 				middleware: [
 					middlewares.waitUntilReady,
-					middlewares.resolveRecord,
 					middlewares.importPlaylist,
 					() => ({ name: Routes.Root }),
 				],
