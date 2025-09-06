@@ -29,20 +29,21 @@ export default defineEngineConfig({
 
 	variables: {
 		variables: {
-			'--color-primary-1': 'rgb(227, 98, 98)',
+			'--color-primary-1': 'rgb(219, 66, 66)',
 			'--color-secondary-1': 'rgb(255, 193, 95)',
 			'--color-danger-1': 'rgb(255, 82, 82)',
 
 			'--color-primary-text': 'rgb(17, 17, 17)',
-			'--color-secondary-text': 'rgb(102, 102, 102)',
+			'--color-secondary-text': 'rgba(77, 77, 77, 1)',
 			'--color-primary-bg': 'rgb(254, 254, 254)',
 			'--color-secondary-bg': 'rgb(153, 153, 153)',
 			'--color-border': 'rgba(102, 102, 102, 0.2)',
 			'--color-site-bg': 'rgb(220, 220, 220)',
-			'--color-card-bg': 'rgba(254, 254, 254, 0.6)',
-			'--color-hover-mask': 'rgba(0, 0, 0, 0.4)',
+			'--color-card-bg': 'rgba(254, 254, 254, 0.7)',
+			'--color-hover-mask': 'rgba(16, 15, 15, 0.4)',
 
 			'@dark': {
+				'--color-primary-1': 'rgb(227, 98, 98)',
 				'--color-primary-text': 'rgb(238, 238, 238)',
 				'--color-secondary-text': 'rgb(170, 170, 170)',
 				'--color-primary-bg': 'rgb(1, 1, 1)',
