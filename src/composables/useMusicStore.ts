@@ -1,5 +1,5 @@
 import type { CustomPlaylistId, MusicData, Playlist, PlaylistId, Resources } from '@/types'
-import { decodeImageFromBinary } from '@/utils/common'
+import { convertImageDataUrlToDataUrl512, decodeImageFromBinary } from '@/utils/common'
 import localforage from 'localforage'
 import { ofetch } from 'ofetch'
 
@@ -244,18 +244,22 @@ export const useMusicStore = defineStore('music', () => {
 					navigator.mediaSession.metadata = null
 					return
 				}
+				convertImageDataUrlToDataUrl512(currentMusic.value.cover)
+					.then((cover) => {
+						navigator.mediaSession.metadata = new MediaMetadata({
+							title: currentMusic.value!.title,
+							artist: 'MapleStory',
+							album: currentPlaylist.value?.title,
+							artwork: [
+								{
+									src: cover,
+									type: 'image/png',
+									sizes: '512x512',
+								},
+							],
+						})
+					})
 
-				navigator.mediaSession.metadata = new MediaMetadata({
-					title: currentMusic.value.title,
-					artist: 'MapleStory',
-					album: currentPlaylist.value?.title,
-					artwork: [
-						{
-							src: currentMusic.value.cover,
-							type: 'image/png',
-						},
-					],
-				})
 				navigator.mediaSession.setPositionState({
 					duration: currentMusic.value.duration,
 					playbackRate: 1,

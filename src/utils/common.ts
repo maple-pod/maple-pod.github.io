@@ -193,3 +193,42 @@ export class PromiseQueue {
 			})
 	}
 }
+
+export async function convertImageDataUrlToDataUrl512(dataUrl: string): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const img = new Image()
+		img.onload = () => {
+			const canvas = document.createElement('canvas')
+			canvas.width = 512
+			canvas.height = 512
+			const ctx = canvas.getContext('2d')
+
+			if (!ctx) {
+				reject(new Error('Canvas context is null'))
+				return
+			}
+
+			// 保留像素感（關閉抗鋸齒）
+			ctx.imageSmoothingEnabled = false
+
+			// 將原圖放大繪製到 512×512
+			ctx.drawImage(
+				img,
+				0,
+				0,
+				img.width,
+				img.height, // 原圖來源
+				0,
+				0,
+				512,
+				512, // 畫到新 canvas 上
+			)
+
+			const enlargedDataUrl = canvas.toDataURL('image/png')
+			resolve(enlargedDataUrl)
+		}
+
+		img.onerror = reject
+		img.src = dataUrl
+	})
+}
