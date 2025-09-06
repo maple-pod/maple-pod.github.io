@@ -45,12 +45,7 @@ async function handleCopyPlaylistLink(playlistId: PlaylistId) {
 	}
 
 	const hash = dataToUrlHash(data)
-	let link = `${window.location.origin}${import.meta.env.BASE_URL}import-playlist/${hash}`
-
-	const recordId = await createRecord(hash)
-	if (recordId != null) {
-		link = `${window.location.origin}${import.meta.env.BASE_URL}import-playlist/?recordId=${recordId}`
-	}
+	const link = `${window.location.origin}${import.meta.env.BASE_URL}import-playlist/${hash}`
 
 	copyLink({
 		link,
