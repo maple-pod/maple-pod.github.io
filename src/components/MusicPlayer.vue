@@ -111,7 +111,7 @@ function handleCopyMusicLink() {
 				<div
 					:class="pika({
 						width: '100%',
-						height: '120px',
+						height: '150px',
 						container: 'music-player / inline-size',
 					})"
 				>

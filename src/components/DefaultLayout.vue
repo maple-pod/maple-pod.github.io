@@ -127,11 +127,13 @@ const isOnline = useOnline()
 			})"
 		>
 			<div
-				:class="pika('card', {
-					minWidth: '0',
-					position: 'relative',
-					paddingBottom: '38px',
-				})"
+				:class="[
+					pika('card', {
+						minWidth: '0',
+						position: 'relative',
+					}),
+					isRightSidePanelContainerVisible === false ? pika({ paddingBottom: '38px' }) : '',
+				]"
 			>
 				<div
 					v-if="isRightSidePanelContainerVisible === false"

@@ -16,6 +16,7 @@ const currentTime = defineModel<number>('currentTime', { required: true })
 			flexDirection: 'column',
 			gap: '8px',
 			width: '100%',
+			padding: '0 8px',
 			userSelect: 'none',
 			touchAction: 'none',
 		})"

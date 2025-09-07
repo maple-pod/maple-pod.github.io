@@ -45,23 +45,35 @@ whenever(
 		<DialogPortal>
 			<DialogOverlay
 				:class="pika({
-					position: 'fixed',
-					inset: '0',
-					backdropFilter: 'blur(8px)',
-					zIndex: '10',
+					'position': 'fixed',
+					'inset': '0',
+					'backdropFilter': 'blur(8px)',
+					'zIndex': '10',
+					'$[data-state=open]': {
+						animation: 'fade-in 300ms ease-out',
+					},
+					'$[data-state=closed]': {
+						animation: 'fade-out 300ms ease-out',
+					},
 				})"
 			/>
 			<DialogContent
 				:class="mergeClasses(
 					pika('card', {
-						position: 'fixed',
-						top: '50%',
-						left: '50%',
-						transform: 'translate(-50%, -50%)',
-						zIndex: '11',
-						display: 'flex',
-						flexDirection: 'column',
-						maxWidth: 'calc(100vw - 32px)',
+						'position': 'fixed',
+						'top': '50%',
+						'left': '50%',
+						'transform': 'translate(-50%, -50%)',
+						'zIndex': '11',
+						'display': 'flex',
+						'flexDirection': 'column',
+						'maxWidth': 'calc(100vw - 32px)',
+						'$[data-state=open]': {
+							animation: 'fade-in 300ms ease-out',
+						},
+						'$[data-state=closed]': {
+							animation: 'fade-out 300ms ease-out',
+						},
 					}),
 					contentClass,
 				)"
