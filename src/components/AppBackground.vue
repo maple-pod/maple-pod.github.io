@@ -29,7 +29,7 @@ const bg = computed(() => currentBgImage.value == null
 				left: 0,
 				width: '100%',
 				height: '100%',
-				backdropFilter: 'blur(8px)',
+				backdropFilter: 'blur(2px)',
 				zIndex: 0,
 			},
 		})"
