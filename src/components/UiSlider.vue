@@ -26,6 +26,7 @@ const _modelValue = computed<[number]>({
 			'width': '100%',
 			'height': '6px',
 			'cursor': 'pointer',
+			'touchAction': 'none',
 
 			'$[data-orientation=vertical]': {
 				flexDirection: 'column',
