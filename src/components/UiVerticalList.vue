@@ -87,6 +87,7 @@ defineExpose({
 				'borderRadius': '9999px',
 				'opacity': '0.2',
 				'transition': 'all 0.2s',
+				'touchAction': 'none',
 
 				'$:hover': {
 					width: '16px',
