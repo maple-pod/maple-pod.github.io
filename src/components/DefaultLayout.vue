@@ -23,12 +23,12 @@ const isOnline = useOnline()
 			'position': 'relative',
 			'display': 'grid',
 			'gridTemplateRows': 'minmax(0, auto) 1fr minmax(0, auto)',
-			'rowGap': '8px',
+			'rowGap': '4px',
 			'width': '100%',
 			'maxWidth': '500px',
 			'height': '100%',
 			'minHeight': '100%',
-			'padding': '0 12px',
+			'padding': '4px',
 			'margin': '0 auto',
 			'zIndex': '1',
 
@@ -43,7 +43,6 @@ const isOnline = useOnline()
 				flexDirection: 'column',
 				gap: '16px',
 				padding: '16px',
-				borderRadius: '0 0 16px 16px',
 			})"
 		>
 			<div
@@ -57,7 +56,7 @@ const isOnline = useOnline()
 					:class="pika({
 						display: 'flex',
 						alignItems: 'center',
-						gap: '8px',
+						gap: '4px',
 						marginRight: 'auto',
 					})"
 				>
@@ -118,7 +117,7 @@ const isOnline = useOnline()
 			:class="pika({
 				'display': 'grid',
 				'gridTemplateColumns': '1fr',
-				'columnGap': '8px',
+				'columnGap': '4px',
 				'height': '100%',
 
 				'@screen-md-and-up': {
@@ -181,7 +180,7 @@ const isOnline = useOnline()
 			</div>
 		</div>
 
-		<div :class="pika('card', { borderRadius: '16px 16px 0 0' })">
+		<div :class="pika('card')">
 			<MusicPlayer />
 		</div>
 	</div>
