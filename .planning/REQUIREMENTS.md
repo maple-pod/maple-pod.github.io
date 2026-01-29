@@ -76,36 +76,36 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| UI-01 | TBD | Pending |
-| UI-02 | TBD | Pending |
-| UI-03 | TBD | Pending |
-| UI-04 | TBD | Pending |
-| UI-05 | TBD | Pending |
-| UI-06 | TBD | Pending |
-| UI-07 | TBD | Pending |
-| UI-08 | TBD | Pending |
-| UI-09 | TBD | Pending |
-| UI-10 | TBD | Pending |
-| UI-11 | TBD | Pending |
-| UI-12 | TBD | Pending |
-| UI-13 | TBD | Pending |
-| UI-14 | TBD | Pending |
-| FILTER-01 | TBD | Pending |
-| FILTER-02 | TBD | Pending |
-| FILTER-03 | TBD | Pending |
-| FILTER-04 | TBD | Pending |
-| FILTER-05 | TBD | Pending |
-| FILTER-06 | TBD | Pending |
-| FILTER-07 | TBD | Pending |
-| EMPTY-01 | TBD | Pending |
-| EMPTY-02 | TBD | Pending |
-| EMPTY-03 | TBD | Pending |
+| UI-01 | Phase 1 | Pending |
+| UI-02 | Phase 1 | Pending |
+| UI-03 | Phase 1 | Pending |
+| UI-04 | Phase 1 | Pending |
+| UI-05 | Phase 1 | Pending |
+| UI-06 | Phase 2 | Pending |
+| UI-07 | Phase 1 | Pending |
+| UI-08 | Phase 2 | Pending |
+| UI-09 | Phase 1 | Pending |
+| UI-10 | Phase 1 | Pending |
+| UI-11 | Phase 1 | Pending |
+| UI-12 | Phase 1 | Pending |
+| UI-13 | Phase 1 | Pending |
+| UI-14 | Phase 1 | Pending |
+| FILTER-01 | Phase 2 | Pending |
+| FILTER-02 | Phase 2 | Pending |
+| FILTER-03 | Phase 2 | Pending |
+| FILTER-04 | Phase 2 | Pending |
+| FILTER-05 | Phase 2 | Pending |
+| FILTER-06 | Phase 2 | Pending |
+| FILTER-07 | Phase 2 | Pending |
+| EMPTY-01 | Phase 3 | Pending |
+| EMPTY-02 | Phase 3 | Pending |
+| EMPTY-03 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 24 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 24 ⚠️
+- Mapped to phases: 24 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after initial definition*
+*Last updated: 2026-01-29 after roadmap creation*
