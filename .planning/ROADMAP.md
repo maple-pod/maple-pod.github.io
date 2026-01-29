@@ -43,10 +43,10 @@ Plans:
   3. When users select marks, track list updates reactively to show only tracks matching any selected mark
   4. When no marks are selected, all tracks are shown (default behavior)
   5. Filter state automatically clears when user navigates away from playlist view
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 02-01: [Plan description TBD during plan-phase]
+- [ ] 02-01-PLAN.md — Implement mark extraction, badge counts, and OR-logic filtering with lifecycle management
 
 ### Phase 3: Playlist Integration
 **Goal**: Filter feature is fully integrated into playlist view with proper empty state handling and user feedback
