@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MusicData, PlaylistId } from '@/types'
+import PlaylistFilterDropdown from '@/components/PlaylistFilterDropdown.vue'
 import { formatTime } from '@/utils/common'
 
 const props = defineProps<{
@@ -12,6 +13,10 @@ const { currentPlaylist, currentMusic, isPaused, random } = storeToRefs(musicSto
 const { getPlaylist, getMusicData, play, togglePlay, isMusicLiked, toggleMusicLike, toggleRandom, isMusicDisabled } = musicStore
 const playlist = computed(() => getPlaylist(props.playlistId)!)
 const title = computed(() => playlist.value.title)
+
+// Filter state
+const selectedMarks = ref<string[]>([])
+const marks = ref(['Mark A', 'Mark B', 'Mark C'])
 const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
 
 useAppStore().scrollPlaylistToIndex = (index: number) => uiVerticalListRef.value?.scrollToIndex(index)
@@ -117,6 +122,10 @@ useRafFn(() => {
 			>
 				{{ title }}
 			</UiMarquee>
+			<PlaylistFilterDropdown
+				v-model="selectedMarks"
+				:marks="marks"
+			/>
 			<UiTooltip>
 				<template #trigger>
 					<button
