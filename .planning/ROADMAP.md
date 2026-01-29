@@ -13,7 +13,7 @@ This roadmap delivers a mark-based filtering feature for the playlist view in th
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Filter UI Foundation** - Standalone filter component with visual controls
-- [ ] **Phase 2: Filter Logic Core** - Mark extraction and filtering implementation
+- [x] **Phase 2: Filter Logic Core** - Mark extraction and filtering implementation
 - [ ] **Phase 3: Playlist Integration** - Live integration with empty states and feedback
 
 ## Phase Details
@@ -46,7 +46,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 02-01-PLAN.md — Implement mark extraction, badge counts, and OR-logic filtering with lifecycle management
+- [x] 02-01-PLAN.md — Implement mark extraction, badge counts, and OR-logic filtering with lifecycle management
 
 ### Phase 3: Playlist Integration
 **Goal**: Filter feature is fully integrated into playlist view with proper empty state handling and user feedback
@@ -70,9 +70,9 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Filter UI Foundation | 1/1 | Complete | 2026-01-30 |
-| 2. Filter Logic Core | 0/1 | Not started | - |
+| 2. Filter Logic Core | 1/1 | Complete | 2026-01-29 |
 | 3. Playlist Integration | 0/1 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-30 after Phase 1 completion*
+*Last updated: 2026-01-29 after Phase 2 completion*
