@@ -134,8 +134,8 @@ const clearAll = deselectAll
 							cursor: 'not-allowed',
 						},
 					})"
+					@click.prevent="() => toggleMark(mark, !modelValue.includes(mark))"
 					@select.prevent
-					@update:checked="(checked: boolean) => toggleMark(mark, checked)"
 				>
 					<DropdownMenuItemIndicator>
 						<div :class="pika('i-f7:checkmark')" />
