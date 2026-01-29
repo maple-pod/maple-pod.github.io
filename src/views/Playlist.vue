@@ -14,9 +14,90 @@ const { getPlaylist, getMusicData, play, togglePlay, isMusicLiked, toggleMusicLi
 const playlist = computed(() => getPlaylist(props.playlistId)!)
 const title = computed(() => playlist.value.title)
 
-// Filter state
-const selectedMarks = ref<string[]>([])
-const marks = ref(['Mark A', 'Mark B', 'Mark C'])
+// Filter state - use Set for O(1) lookup performance
+const selectedMarks = ref<Set<string>>(new Set())
+
+// Transform Set <-> Array for v-model binding
+const selectedMarksArray = computed({
+	get: () => Array.from(selectedMarks.value),
+	set: (arr: string[]) => {
+		selectedMarks.value = new Set(arr)
+	},
+})
+
+// Extract marks from current playlist
+const availableMarks = computed(() => {
+	const playlist = getPlaylist(props.playlistId)
+	if (!playlist)
+		return []
+
+	const playlistTrackIds = new Set(playlist.list)
+	const marks: string[] = []
+
+	// Iterate through musicsGroupedByCover Map
+	const { musicsGroupedByCover } = storeToRefs(musicStore)
+	for (const [mark, tracks] of musicsGroupedByCover.value) {
+		// Skip empty/null marks
+		if (!mark)
+			continue
+
+		// Check if any tracks in this mark group exist in current playlist
+		const hasTracksInPlaylist = tracks.some(t => playlistTrackIds.has(t.id))
+		if (hasTracksInPlaylist) {
+			marks.push(mark)
+		}
+	}
+
+	return marks
+})
+
+// Calculate badge counts for each mark
+const markBadgeCounts = computed(() => {
+	const playlist = getPlaylist(props.playlistId)
+	if (!playlist)
+		return new Map<string, number>()
+
+	const playlistTrackIds = new Set(playlist.list)
+	const counts = new Map<string, number>()
+
+	const { musicsGroupedByCover } = storeToRefs(musicStore)
+	for (const [mark, tracks] of musicsGroupedByCover.value) {
+		if (!mark)
+			continue
+
+		const count = tracks.filter(t => playlistTrackIds.has(t.id)).length
+		if (count > 0) {
+			counts.set(mark, count)
+		}
+	}
+
+	return counts
+})
+
+// Filter tracks based on selected marks using OR logic
+const filteredTracks = computed(() => {
+	const playlist = getPlaylist(props.playlistId)
+	if (!playlist)
+		return []
+
+	const allTracks = playlist.list
+		.map(id => getMusicData(id))
+		.filter((t): t is MusicData => t != null)
+
+	// Default state: show all tracks when no marks selected
+	if (selectedMarks.value.size === 0) {
+		return allTracks
+	}
+
+	// OR logic: show track if its mark is in the selected set
+	// Set.has() provides O(1) lookup performance
+	return allTracks.filter(track => selectedMarks.value.has(track.data.mark))
+})
+
+// Clear filter state when playlist changes
+watch(() => props.playlistId, () => {
+	selectedMarks.value.clear()
+})
 const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
 
 useAppStore().scrollPlaylistToIndex = (index: number) => uiVerticalListRef.value?.scrollToIndex(index)
@@ -43,9 +124,7 @@ const { pointerPosition, placeholderIndex, isDragging, items } = useDragAndSort(
 	draggableElementHandlerSelector: '[data-draggable-handler]',
 	draggableElementSelector: '[data-draggable=true]',
 	items: computed({
-		get: () => playlist.value.list
-			.map(id => getMusicData(id))
-			.filter<MusicData>(item => item != null),
+		get: () => filteredTracks.value,
 		set: (newItems) => {
 			playlist.value.list = newItems.map(item => item.id)
 		},
@@ -123,8 +202,9 @@ useRafFn(() => {
 				{{ title }}
 			</UiMarquee>
 			<PlaylistFilterDropdown
-				v-model="selectedMarks"
-				:marks="marks"
+				v-model="selectedMarksArray"
+				:marks="availableMarks"
+				:markCounts="markBadgeCounts"
 			/>
 			<UiTooltip>
 				<template #trigger>

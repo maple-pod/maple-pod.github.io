@@ -12,6 +12,7 @@ import {
 const props = defineProps<{
 	marks: string[]
 	modelValue: string[]
+	markCounts?: Map<string, number>
 }>()
 
 const emit = defineEmits<{
@@ -132,6 +133,17 @@ const clearAll = deselectAll
 						<div :class="pika('i-f7:checkmark')" />
 					</DropdownMenuItemIndicator>
 					<span :class="pika({ fontSize: '14px' })">{{ mark }}</span>
+					<span
+						v-if="markCounts?.has(mark)"
+						:class="pika({
+							fontSize: '12px',
+							color: 'var(--color-secondary-text)',
+							marginLeft: 'auto',
+							fontWeight: '500',
+						})"
+					>
+						{{ markCounts.get(mark) }}
+					</span>
 				</DropdownMenuCheckboxItem>
 			</DropdownMenuContent>
 		</DropdownMenuPortal>
