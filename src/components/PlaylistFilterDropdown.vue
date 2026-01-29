@@ -82,15 +82,6 @@ const clearAll = deselectAll
 							fontSize: '12px',
 							padding: '4px 8px',
 						})"
-						@click="deselectAll"
-					>
-						Deselect all
-					</button>
-					<button
-						:class="pika('primary-plain-btn', {
-							fontSize: '12px',
-							padding: '4px 8px',
-						})"
 						@click="clearAll"
 					>
 						Clear all
