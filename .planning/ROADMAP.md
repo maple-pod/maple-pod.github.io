@@ -28,10 +28,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Users can select/deselect individual marks using checkboxes with visual indicators
   4. Users can clear all selections with "Clear all" button or select/deselect all marks with corresponding buttons
   5. Users can navigate dropdown using keyboard (Enter/Space toggles, Escape closes)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 01-01: [Plan description TBD during plan-phase]
+- [ ] 01-01-PLAN.md — Build PlaylistFilterDropdown component and integrate into Playlist header
 
 ### Phase 2: Filter Logic Core
 **Goal**: Filter component extracts marks from data and reactively filters tracks based on user selections using OR logic
@@ -75,4 +75,4 @@ Phases execute in numeric order: 1 → 2 → 3
 
 ---
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-29 after initial creation*
+*Last updated: 2026-01-29 after Phase 1 planning*
