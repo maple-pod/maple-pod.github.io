@@ -22,10 +22,10 @@ const open = ref(false)
 
 const hasActiveFilters = computed(() => props.modelValue.length > 0)
 
-function toggleMark(mark: string) {
-	const newValue = props.modelValue.includes(mark)
-		? props.modelValue.filter(m => m !== mark)
-		: [...props.modelValue, mark]
+function toggleMark(mark: string, checked: boolean) {
+	const newValue = checked
+		? [...props.modelValue, mark]
+		: props.modelValue.filter(m => m !== mark)
 	emit('update:modelValue', newValue)
 }
 
@@ -135,7 +135,7 @@ const clearAll = deselectAll
 						},
 					})"
 					@select.prevent
-					@update:checked="toggleMark(mark)"
+					@update:checked="(checked: boolean) => toggleMark(mark, checked)"
 				>
 					<DropdownMenuItemIndicator>
 						<div :class="pika('i-f7:checkmark')" />
