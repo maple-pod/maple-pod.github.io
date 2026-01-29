@@ -12,7 +12,7 @@ This roadmap delivers a mark-based filtering feature for the playlist view in th
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Filter UI Foundation** - Standalone filter component with visual controls
+- [x] **Phase 1: Filter UI Foundation** - Standalone filter component with visual controls
 - [ ] **Phase 2: Filter Logic Core** - Mark extraction and filtering implementation
 - [ ] **Phase 3: Playlist Integration** - Live integration with empty states and feedback
 
@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md — Build PlaylistFilterDropdown component and integrate into Playlist header
+- [x] 01-01-PLAN.md — Build PlaylistFilterDropdown component and integrate into Playlist header
 
 ### Phase 2: Filter Logic Core
 **Goal**: Filter component extracts marks from data and reactively filters tracks based on user selections using OR logic
@@ -69,10 +69,10 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Filter UI Foundation | 0/1 | Not started | - |
+| 1. Filter UI Foundation | 1/1 | Complete | 2026-01-30 |
 | 2. Filter Logic Core | 0/1 | Not started | - |
 | 3. Playlist Integration | 0/1 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-29 after Phase 1 planning*
+*Last updated: 2026-01-30 after Phase 1 completion*
