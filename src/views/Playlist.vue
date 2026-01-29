@@ -27,25 +27,27 @@ const selectedMarksArray = computed({
 
 // Extract marks from current playlist
 const availableMarks = computed(() => {
-	const playlist = getPlaylist(props.playlistId)
-	if (!playlist)
+	const currentPlaylist = getPlaylist(props.playlistId)
+	if (!currentPlaylist)
 		return []
 
-	const playlistTrackIds = new Set(playlist.list)
 	const marks: string[] = []
 
-	// Iterate through musicsGroupedByCover Map
-	const { musicsGroupedByCover } = storeToRefs(musicStore)
-	for (const [mark, tracks] of musicsGroupedByCover.value) {
+	// Get all tracks grouped by their mark from all playlists
+	const allTracks = currentPlaylist.list
+		.map(id => getMusicData(id))
+		.filter((t): t is MusicData => t != null)
+
+	// Group by mark to maintain order
+	const seenMarks = new Set<string>()
+	for (const track of allTracks) {
+		const mark = track.data.mark
 		// Skip empty/null marks
-		if (!mark)
+		if (!mark || seenMarks.has(mark))
 			continue
 
-		// Check if any tracks in this mark group exist in current playlist
-		const hasTracksInPlaylist = tracks.some(t => playlistTrackIds.has(t.id))
-		if (hasTracksInPlaylist) {
-			marks.push(mark)
-		}
+		seenMarks.add(mark)
+		marks.push(mark)
 	}
 
 	return marks
@@ -53,22 +55,24 @@ const availableMarks = computed(() => {
 
 // Calculate badge counts for each mark
 const markBadgeCounts = computed(() => {
-	const playlist = getPlaylist(props.playlistId)
-	if (!playlist)
+	const currentPlaylist = getPlaylist(props.playlistId)
+	if (!currentPlaylist)
 		return new Map<string, number>()
 
-	const playlistTrackIds = new Set(playlist.list)
 	const counts = new Map<string, number>()
 
-	const { musicsGroupedByCover } = storeToRefs(musicStore)
-	for (const [mark, tracks] of musicsGroupedByCover.value) {
+	// Get all tracks in current playlist
+	const allTracks = currentPlaylist.list
+		.map(id => getMusicData(id))
+		.filter((t): t is MusicData => t != null)
+
+	// Count occurrences of each mark
+	for (const track of allTracks) {
+		const mark = track.data.mark
 		if (!mark)
 			continue
 
-		const count = tracks.filter(t => playlistTrackIds.has(t.id)).length
-		if (count > 0) {
-			counts.set(mark, count)
-		}
+		counts.set(mark, (counts.get(mark) || 0) + 1)
 	}
 
 	return counts
