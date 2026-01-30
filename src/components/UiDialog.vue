@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { mergeClasses } from '@/utils/common'
 import {
 	DialogClose,
 	DialogContent,
@@ -10,6 +9,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from 'reka-ui'
+import { mergeClasses } from '@/utils/common'
 
 const props = defineProps<{
 	defaultOpen?: boolean

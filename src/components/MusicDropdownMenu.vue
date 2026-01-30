@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { PlaylistId } from '@/types'
 import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
+import type { PlaylistId } from '@/types'
 import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
 
 const props = defineProps<{

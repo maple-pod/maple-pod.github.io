@@ -1,9 +1,10 @@
+import type { Middleware } from '@deviltea/vue-router-middleware'
 import type { HashActionImportSaveablePlaylist, HashActionImportSavedUserData, PlaylistId } from '@/types'
-import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
-import { HashActionImportSaveablePlaylistSchema, HashActionImportSavedUserDataSchema } from '@/schemas'
-import { handleMiddlewares, type Middleware } from '@deviltea/vue-router-middleware'
+import { handleMiddlewares } from '@deviltea/vue-router-middleware'
 import { safeParse } from 'valibot'
 import { createRouter, createWebHistory, RouterView } from 'vue-router'
+import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
+import { HashActionImportSaveablePlaylistSchema, HashActionImportSavedUserDataSchema } from '@/schemas'
 
 export const Routes = {
 	Root: 'Root',

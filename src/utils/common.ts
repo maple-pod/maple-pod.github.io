@@ -9,7 +9,8 @@ export function dataToUrlHash(data: any) {
 	const json = JSON.stringify(data)
 	const compressed = deflateSync(strToU8(json))
 	// eslint-disable-next-line prefer-template
-	return '#' + btoa(Array.from(compressed, byte => String.fromCharCode(byte)).join(''))
+	return '#' + btoa(Array.from(compressed, byte => String.fromCharCode(byte))
+		.join(''))
 		.replace(/\+/g, '-')
 		.replace(/\//g, '_')
 		.replace(/=+$/, '')
@@ -50,7 +51,8 @@ export function exportToJSONFile(data: any, filename: string) {
 
 export function formatTime(timeInSeconds: number) {
 	const minutes = String(Math.floor(timeInSeconds / 60))
-	const seconds = String(Math.floor(timeInSeconds % 60)).padStart(2, '0')
+	const seconds = String(Math.floor(timeInSeconds % 60))
+		.padStart(2, '0')
 	return `${minutes}:${seconds}`
 }
 

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { HashActionImportSavedUserData, SavedUserData } from '@/types'
 import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
+import type { HashActionImportSavedUserData, SavedUserData } from '@/types'
+import { safeParse } from 'valibot'
 import AboutDialog from '@/components/AboutDialog.vue'
 import { SavedUserDataSchema } from '@/schemas'
 import { chunkArray } from '@/utils/common'
-import { safeParse } from 'valibot'
 
 const appStore = useAppStore()
 const { toggleDark } = appStore
@@ -18,7 +18,8 @@ function resetSavedUserData() {
 }
 
 function handleDownloadSavedDataFile() {
-	const timeStr = new Date().toISOString()
+	const timeStr = new Date()
+		.toISOString()
 	exportToJSONFile(savedUserData.value, `maple-pod.${timeStr}.json`)
 }
 

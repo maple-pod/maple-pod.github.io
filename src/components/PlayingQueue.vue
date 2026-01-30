@@ -11,7 +11,8 @@ const displayList = computed(() => {
 
 		...toPlayQueue.value.length === 0
 			? []
-			: ['Next To Play', ...toPlayQueue.value.filter(id => !isMusicDisabled(id)).map(id => musicStore.getMusicData(id)!)],
+			: ['Next To Play', ...toPlayQueue.value.filter(id => !isMusicDisabled(id))
+					.map(id => musicStore.getMusicData(id)!)],
 	]
 })
 </script>

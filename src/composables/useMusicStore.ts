@@ -1,7 +1,7 @@
 import type { CustomPlaylistId, MusicData, Playlist, PlaylistId, Resources } from '@/types'
-import { convertImageDataUrlToDataUrl512, decodeImageFromBinary } from '@/utils/common'
 import localforage from 'localforage'
 import { ofetch } from 'ofetch'
+import { convertImageDataUrlToDataUrl512, decodeImageFromBinary } from '@/utils/common'
 
 function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playlist {
 	return {
@@ -10,7 +10,8 @@ function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playli
 		list: Array.from(
 			dataGroupedByCover.values(),
 			list => list.map(item => item.id),
-		).flat(),
+		)
+			.flat(),
 	}
 }
 
@@ -319,14 +320,16 @@ export const useMusicStore = defineStore('music', () => {
 
 					playlist.list = playlist.list
 						// Process old data
-						.map(src => src.split('/').pop()!.replace('.mp3', ''))
+						.map(src => src.split('/')
+							.pop()!.replace('.mp3', ''))
 						.filter(getMusicData)
 
 					return true
 				})
 			likedPlaylist.value.list = likedPlaylist.value.list
 				// Process old data
-				.map(src => src.split('/').pop()!.replace('.mp3', ''))
+				.map(src => src.split('/')
+					.pop()!.replace('.mp3', ''))
 				.filter(getMusicData)
 		})
 
@@ -334,7 +337,8 @@ export const useMusicStore = defineStore('music', () => {
 		getMusicData,
 		playlistList,
 		likedPlaylist,
-		savedPlaylists: computed(() => savedPlaylists.value.filter(playlist => isCustomPlaylist(playlist.id)).map(playlist => playlist)),
+		savedPlaylists: computed(() => savedPlaylists.value.filter(playlist => isCustomPlaylist(playlist.id))
+			.map(playlist => playlist)),
 		getPlaylist,
 		findMusicInPlaylistIndex,
 		isCustomPlaylist,
@@ -378,7 +382,8 @@ function useOfflineMusics() {
 				offlineMusicDownloadingProgress.value.set(musicId, percent)
 			},
 			signal,
-		).catch(() => null)
+		)
+			.catch(() => null)
 		offlineMusicDownloadingProgress.value.delete(musicId)
 
 		if (blob == null) {

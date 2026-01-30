@@ -21,12 +21,14 @@ function createAudioRef(options: UseAudioOptions = {}) {
 			audio.value.dispatchEvent(new Event('loopupdate'))
 			// @ts-expect-error expect HTMLMediaElement.prototype.__lookupSetter__ to exist
 			// eslint-disable-next-line no-restricted-properties
-			HTMLMediaElement.prototype.__lookupSetter__('loop').call(this, value)
+			HTMLMediaElement.prototype.__lookupSetter__('loop')
+				.call(this, value)
 		},
 		get() {
 			// @ts-expect-error expect HTMLMediaElement.prototype.__lookupGetter__ to exist
 			// eslint-disable-next-line no-restricted-properties
-			return HTMLMediaElement.prototype.__lookupGetter__('loop').call(this)
+			return HTMLMediaElement.prototype.__lookupGetter__('loop')
+				.call(this)
 		},
 	})
 	return audio

@@ -120,9 +120,10 @@ export const useAppStore = defineStore('app', () => {
 	const isReady = ref(false)
 	const ready = Promise.all([
 		musicStore.ready,
-	]).then(() => {
-		isReady.value = true
-	})
+	])
+		.then(() => {
+			isReady.value = true
+		})
 
 	return {
 		isDark,

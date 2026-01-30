@@ -1,15 +1,16 @@
 <script setup lang="ts">
 const images = (import.meta.glob('../assets/images/pieces/*.png', { eager: true }))
 const groups = {} as Record<string, string[]>
-Object.entries(images).forEach(([path, module]) => {
-	const match = path.match(/\/pieces\/([a-zA-Z]+)_\d+\.png$/)
-	if (match) {
-		const group = match[1]!
-		if (!groups[group])
-			groups[group] = []
-		groups[group].push((module as { default: string }).default)
-	}
-})
+Object.entries(images)
+	.forEach(([path, module]) => {
+		const match = path.match(/\/pieces\/([a-zA-Z]+)_\d+\.png$/)
+		if (match) {
+			const group = match[1]!
+			if (!groups[group])
+				groups[group] = []
+			groups[group].push((module as { default: string }).default)
+		}
+	})
 const PICKED_GROUPS = 3
 const pickedGroups = Object.values(groups)
 	.sort(() => 0.5 - Math.random())

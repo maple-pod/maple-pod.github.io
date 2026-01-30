@@ -8,7 +8,8 @@ const { UiToast } = useUiToast()
 
 const firstVisit = useLocalStorage('firstVisit', true)
 if (firstVisit.value) {
-	dialog(AboutDialog, {}).then(() => firstVisit.value = false)
+	dialog(AboutDialog, {})
+		.then(() => firstVisit.value = false)
 }
 
 useEventListener('pointerdown', () => {

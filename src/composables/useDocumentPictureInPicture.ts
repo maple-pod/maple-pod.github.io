@@ -44,7 +44,8 @@ export function useDocumentPictureInPicture() {
 		function cloneStyleSheets() {
 			const elList = [...document.styleSheets].map((styleSheet) => {
 				try {
-					const cssRules = [...styleSheet.cssRules].map(rule => rule.cssText).join('')
+					const cssRules = [...styleSheet.cssRules].map(rule => rule.cssText)
+						.join('')
 					const style = document.createElement('style')
 
 					style.textContent = cssRules
@@ -68,9 +69,10 @@ export function useDocumentPictureInPicture() {
 				const _pipWindow = await (window as any).documentPictureInPicture.requestWindow(options)
 				// Copy style sheets over from the initial document
 				// so that the player looks the same.
-				cloneStyleSheets().forEach((style) => {
-					_pipWindow.document.head.appendChild(style)
-				})
+				cloneStyleSheets()
+					.forEach((style) => {
+						_pipWindow.document.head.appendChild(style)
+					})
 
 				_pipWindow.addEventListener('pagehide', () => {
 					(window as any).documentPictureInPicture.window.close()
