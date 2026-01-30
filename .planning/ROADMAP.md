@@ -15,6 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Filter UI Foundation** - Standalone filter component with visual controls
 - [x] **Phase 2: Filter Logic Core** - Mark extraction and filtering implementation
 - [ ] **Phase 3: Playlist Integration** - Live integration with empty states and feedback
+- [ ] **Phase 4: Upgrade Dependencies** - Upgrade all dependencies including devDependencies while maintaining stability
 
 ## Phase Details
 
@@ -62,17 +63,36 @@ Plans:
 Plans:
 - [ ] 03-01: [Plan description TBD during plan-phase]
 
+### Phase 4: Upgrade Dependencies
+**Goal**: All project dependencies upgraded to latest stable versions while maintaining project stability
+**Depends on**: Phase 3
+**Requirements**: All dependencies current, no security vulnerabilities, build and features verified
+**Success Criteria** (what must be TRUE):
+  1. All patch, minor, and major dependency upgrades completed successfully
+  2. Build toolchain (Vite 7, TypeScript 5.9) functions correctly
+  3. Vue Router 5 migration complete and navigation works
+  4. All application features verified working after upgrades
+  5. `pnpm outdated` shows no critical outdated packages
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Upgrade patch-level dependencies safely
+- [ ] 04-02-PLAN.md — Upgrade minor-level dependencies within current majors
+- [ ] 04-03-PLAN.md — Upgrade development tooling to major versions (Vite 7, TypeScript)
+- [ ] 04-04-PLAN.md — Upgrade runtime dependencies to major versions (Vue Router 5)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3
+Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Filter UI Foundation | 1/1 | Complete | 2026-01-30 |
 | 2. Filter Logic Core | 1/1 | Complete | 2026-01-30 |
 | 3. Playlist Integration | 0/1 | Not started | - |
+| 4. Upgrade Dependencies | 0/4 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-30 after Phase 2 completion*
+*Last updated: 2026-01-30 after Phase 4 planning*
