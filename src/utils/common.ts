@@ -57,7 +57,7 @@ export function formatTime(timeInSeconds: number) {
 export async function decodeImageFromBinary(binStr: string) {
 	const compressed = Uint8Array.from(binStr, c => c.charCodeAt(0))
 	const decompressed = decompressSync(compressed)
-	const blob = new Blob([decompressed])
+	const blob = new Blob([decompressed as BlobPart])
 	const url = URL.createObjectURL(blob)
 
 	return url

@@ -1,7 +1,7 @@
 # Project Research Summary
 
 **Project:** Mark-based Multi-select Filter Dropdown for Music Playlist
-**Domain:** Vue 3 PWA Component Development  
+**Domain:** Vue 3 PWA Component Development
 **Researched:** 2026-01-29
 **Confidence:** HIGH
 
@@ -218,20 +218,20 @@ All recommendations grounded in:
 
 ### Gaps to Address
 
-**Gap 1: Actual mark count in production data**  
-**Impact:** If mark count >50, Phase 1-3 roadmap remains valid but Phase 4 should include search functionality instead of just polish.  
+**Gap 1: Actual mark count in production data**
+**Impact:** If mark count >50, Phase 1-3 roadmap remains valid but Phase 4 should include search functionality instead of just polish.
 **Resolution:** Phase 2 will compute `availableMarks` from real data. If `availableMarks.size > 50`, flag for PM review — may adjust Phase 4 scope or add Phase 5.
 
-**Gap 2: Performance threshold validation**  
-**Impact:** Research recommends `shallowRef()` for >100 tracks, but project-specific performance depends on device targets (mobile vs desktop, CPU/memory constraints).  
+**Gap 2: Performance threshold validation**
+**Impact:** Research recommends `shallowRef()` for >100 tracks, but project-specific performance depends on device targets (mobile vs desktop, CPU/memory constraints).
 **Resolution:** Phase 4 includes performance profiling with 200 tracks on target devices. If initial page load >500ms or memory usage >10MB, validate `shallowRef()` is correctly applied in Phase 1. If profiling shows no issues with `ref()`, document for future scale decisions.
 
-**Gap 3: Mark label formatting**  
-**Impact:** Research assumes marks are user-facing strings (e.g., "Boss Battle"). If marks are IDs (e.g., "mark_001"), need label mapping logic.  
+**Gap 3: Mark label formatting**
+**Impact:** Research assumes marks are user-facing strings (e.g., "Boss Battle"). If marks are IDs (e.g., "mark_001"), need label mapping logic.
 **Resolution:** Phase 2 data integration will expose this. If marks are IDs, add `markLabel()` computed function to map ID → display name using existing mark metadata from store.
 
-**Gap 4: Filter persistence user expectation**  
-**Impact:** Research recommends ephemeral filter (resets on navigation) per standard patterns. If user testing shows expectation for persistence, requires Pinia + localforage integration.  
+**Gap 4: Filter persistence user expectation**
+**Impact:** Research recommends ephemeral filter (resets on navigation) per standard patterns. If user testing shows expectation for persistence, requires Pinia + localforage integration.
 **Resolution:** Ship with ephemeral behavior (Phase 1-4). Gather usage analytics post-launch. If users frequently reapply same filters, add persistence as Phase 5 based on data, not assumption.
 
 ## Sources
@@ -253,5 +253,5 @@ All recommendations grounded in:
 - **Mark count estimates** — Inferred from `useMusicStore.ts` grouping by cover image; actual count unknown until Phase 2
 
 ---
-*Research completed: 2026-01-29*  
+*Research completed: 2026-01-29*
 *Ready for roadmap: yes*

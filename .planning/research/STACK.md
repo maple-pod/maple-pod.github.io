@@ -66,26 +66,27 @@ The project already has a well-structured `UiDropdownMenu.vue` component that wr
 ```typescript
 // composables/useMarkFilter.ts
 export function useMarkFilter(marks: Ref<string[]>) {
-  const selectedMarks = ref<Set<string>>(new Set())
-  
-  const toggle = (mark: string) => {
-    if (selectedMarks.value.has(mark)) {
-      selectedMarks.value.delete(mark)
-    } else {
-      selectedMarks.value.add(mark)
-    }
-    // Trigger reactivity for Set
-    selectedMarks.value = new Set(selectedMarks.value)
-  }
-  
-  const clear = () => {
-    selectedMarks.value.clear()
-    selectedMarks.value = new Set(selectedMarks.value)
-  }
-  
-  const isSelected = (mark: string) => selectedMarks.value.has(mark)
-  
-  return { selectedMarks, toggle, clear, isSelected }
+	const selectedMarks = ref<Set<string>>(new Set())
+
+	const toggle = (mark: string) => {
+		if (selectedMarks.value.has(mark)) {
+			selectedMarks.value.delete(mark)
+		}
+		else {
+			selectedMarks.value.add(mark)
+		}
+		// Trigger reactivity for Set
+		selectedMarks.value = new Set(selectedMarks.value)
+	}
+
+	const clear = () => {
+		selectedMarks.value.clear()
+		selectedMarks.value = new Set(selectedMarks.value)
+	}
+
+	const isSelected = (mark: string) => selectedMarks.value.has(mark)
+
+	return { selectedMarks, toggle, clear, isSelected }
 }
 ```
 
@@ -106,8 +107,8 @@ export function useMarkFilter(marks: Ref<string[]>) {
 **Use reka-ui's built-in CheckboxItem components:**
 
 ```vue
-<DropdownMenuCheckboxItem 
-  v-for="mark in marks" 
+<DropdownMenuCheckboxItem
+  v-for="mark in marks"
   :key="mark"
   :modelValue="isSelected(mark)"
   @update:modelValue="toggle(mark)"
@@ -135,13 +136,13 @@ In `Playlist.vue` (or wherever the filter is used):
 const { selectedMarks, toggle, clear, isSelected } = useMarkFilter(availableMarks)
 
 const filteredMusicList = computed(() => {
-  if (selectedMarks.value.size === 0) {
-    return playlist.value.list // No filter active, show all
-  }
-  
-  return playlist.value.list
-    .map(id => getMusicData(id))
-    .filter(music => music && selectedMarks.value.has(music.data.mark))
+	if (selectedMarks.value.size === 0) {
+		return playlist.value.list // No filter active, show all
+	}
+
+	return playlist.value.list
+		.map(id => getMusicData(id))
+		.filter(music => music && selectedMarks.value.has(music.data.mark))
 })
 ```
 
@@ -213,7 +214,7 @@ const filteredMusicList = computed(() => {
 1. **For 1000+ tracks:**
    - Consider debouncing filter application (300ms delay after selection)
    - Use `shallowRef` for large arrays that don't need deep reactivity
-   
+
 2. **For 100+ marks:**
    - Add virtual scrolling to dropdown (vue-virtual-scroller)
    - Use `v-memo` directive on CheckboxItem
@@ -233,17 +234,17 @@ Based on the existing codebase (`useMusicStore.ts` shows marks are grouped by co
 ```typescript
 // Use existing PikaCSS shortcuts for consistent styling
 const dropdownMenuStyles = pika('card', {
-  padding: '8px',
-  minWidth: '200px',
-  zIndex: 2,
+	padding: '8px',
+	minWidth: '200px',
+	zIndex: 2,
 })
 
 const checkboxItemStyles = pika('hover-mask', {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px',
-  padding: '12px',
-  cursor: 'pointer',
+	display: 'flex',
+	alignItems: 'center',
+	gap: '8px',
+	padding: '12px',
+	cursor: 'pointer',
 })
 ```
 
@@ -252,17 +253,17 @@ const checkboxItemStyles = pika('hover-mask', {
 ```typescript
 // Indicator for "active filter" state
 const triggerActiveStyles = pika({
-  color: 'var(--color-primary-1)',
-  '$[data-active=true]::after': {
-    content: '\'\'',
-    position: 'absolute',
-    right: '4px',
-    top: '4px',
-    width: '6px',
-    height: '6px',
-    borderRadius: '50%',
-    backgroundColor: 'var(--color-primary-1)',
-  }
+	'color': 'var(--color-primary-1)',
+	'$[data-active=true]::after': {
+		content: '\'\'',
+		position: 'absolute',
+		right: '4px',
+		top: '4px',
+		width: '6px',
+		height: '6px',
+		borderRadius: '50%',
+		backgroundColor: 'var(--color-primary-1)',
+	}
 })
 ```
 

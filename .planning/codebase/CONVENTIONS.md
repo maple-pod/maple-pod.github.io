@@ -71,12 +71,12 @@ return '#' + btoa(...)
 // Type imports first
 import type { CustomPlaylistId, MusicData, Playlist } from '@/types'
 
-// Then regular imports from packages
-import localforage from 'localforage'
-import { ofetch } from 'ofetch'
-
 // Then component imports
 import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
+// Then regular imports from packages
+import localforage from 'localforage'
+
+import { ofetch } from 'ofetch'
 ```
 
 **Path Aliases:**
@@ -101,13 +101,13 @@ import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
 **Try-catch for async operations:**
 ```typescript
 try {
-  const git = simpleGit()
-  const shortHash = await git.revparse(['--short', 'HEAD'])
-  return shortHash.trim()
+	const git = simpleGit()
+	const shortHash = await git.revparse(['--short', 'HEAD'])
+	return shortHash.trim()
 }
 catch (e) {
-  console.warn('Failed to get Git commit hash:', e)
-  return 'unknown'
+	console.warn('Failed to get Git commit hash:', e)
+	return 'unknown'
 }
 ```
 
@@ -115,46 +115,46 @@ catch (e) {
 ```typescript
 const musicData = getMusicData(musicId)
 if (musicData == null)
-  return
+	return
 
 // Early returns for guard clauses
 if (playlist == null || playlist.id === 'all')
-  return
+	return
 ```
 
 **Safe parsing with valibot:**
 ```typescript
 const result = safeParse(HashActionImportSavedUserDataSchema, data)
 if (result.success) {
-  // Use result.output
+	// Use result.output
 }
 ```
 
 **Custom error classes:**
 ```typescript
 export class CancelledError extends Error {
-  constructor(message: string = 'Task was cancelled') {
-    super(message)
-    this.name = 'CancelledError'
-  }
+	constructor(message: string = 'Task was cancelled') {
+		super(message)
+		this.name = 'CancelledError'
+	}
 }
 ```
 
 **Error handling in promises:**
 ```typescript
 task.run()
-  .then(() => {
-    this.running--
-    this.runNext()
-  })
-  .catch((error) => {
-    if (error instanceof CancelledError) {
-      // Handle cancelled tasks
-    }
-    else {
-      console.error('Task failed:', error)
-    }
-  })
+	.then(() => {
+		this.running--
+		this.runNext()
+	})
+	.catch((error) => {
+		if (error instanceof CancelledError) {
+			// Handle cancelled tasks
+		}
+		else {
+			console.error('Task failed:', error)
+		}
+	})
 ```
 
 ## Logging
@@ -199,27 +199,27 @@ console.error('Task failed:', error)
 
 ## Function Design
 
-**Size:** 
+**Size:**
 - Small focused functions preferred
 - Longer functions (100+ lines) only in store/composable files
 - Helper functions typically 5-30 lines
 
-**Parameters:** 
+**Parameters:**
 - Options objects for functions with multiple parameters
 - Type-safe with TypeScript interfaces
 ```typescript
 export function useAudio(options: UseAudioOptions = {}) {
-  const { autoplay = true, loop = false, muted = false, volume = 1 } = options
-  // ...
+	const { autoplay = true, loop = false, muted = false, volume = 1 } = options
+	// ...
 }
 ```
 
-**Return Values:** 
+**Return Values:**
 - Composables return object with named properties
 - Helper functions return primitive values or typed objects
 - Tuple returns for success/error patterns:
 ```typescript
-function createPlaylist(title: string, list: string[] = []): 
+function createPlaylist(title: string, list: string[] = []):
   [id: CustomPlaylistId, error: null] | [null, error: string]
 ```
 
@@ -228,15 +228,15 @@ function createPlaylist(title: string, list: string[] = []):
 - Return promises for composables with async state
 ```typescript
 const ready = until(isDataReady)
-  .toBe(true)
-  .then(async () => {
-    await loadOfflineMusics()
-  })
+	.toBe(true)
+	.then(async () => {
+		await loadOfflineMusics()
+	})
 ```
 
 ## Module Design
 
-**Exports:** 
+**Exports:**
 - Named exports preferred
 - No default exports for utilities
 - Default export only for Vue components and router
@@ -246,7 +246,7 @@ export class PromiseQueue { }
 export const useMusicStore = defineStore('music', () => { })
 ```
 
-**Barrel Files:** 
+**Barrel Files:**
 - Used for schemas: `src/schemas/index.ts`
 - Used for types: `src/types/index.ts`
 - Not used for components (auto-imported by unplugin-vue-components)
@@ -262,7 +262,7 @@ export const useMusicStore = defineStore('music', () => { })
 </script>
 
 <template>
-  <!-- Template with PikaCSS styling -->
+	<!-- Template with PikaCSS styling -->
 </template>
 ```
 
@@ -274,7 +274,7 @@ export const useMusicStore = defineStore('music', () => { })
 **Props and emits:**
 ```typescript
 const props = defineProps<{
-  playlistId: PlaylistId
+	playlistId: PlaylistId
 }>()
 
 const modelValue = defineModel<string>({ required: true })
@@ -289,7 +289,8 @@ const modelValue = defineModel<string>({ required: true })
   position: 'relative',
   width: '100%',
   height: '100dvh',
-})">
+})"
+>
 ```
 
 **Reactivity:**
@@ -313,7 +314,7 @@ const modelValue = defineModel<string>({ required: true })
 **Type guards:**
 ```typescript
 function isCustomPlaylist(id: PlaylistId): id is CustomPlaylistId {
-  return id.startsWith('custom:')
+	return id.startsWith('custom:')
 }
 ```
 

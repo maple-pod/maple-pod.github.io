@@ -131,7 +131,7 @@
 
 **Authentication:** Not applicable (client-only app, no auth)
 
-**State Persistence:** 
+**State Persistence:**
 - `useLocalStorage` for user preferences (`useSavedUserData`)
 - IndexedDB via `localforage` for offline music blobs
 - Service Worker caching via Vite PWA plugin

@@ -28,7 +28,7 @@ const selectedMarks = ref<string[]>([])
 
 const filteredTracks = computed(() => {
   if (selectedMarks.value.length === 0) return tracks.value
-  return tracks.value.filter(track => 
+  return tracks.value.filter(track =>
     selectedMarks.value.includes(track.mark)
   )
 })
@@ -67,7 +67,7 @@ import { onClickOutside } from '@vueuse/core'
 
 const dropdownRef = ref<HTMLElement>()
 onClickOutside(dropdownRef, () => {
-  isOpen.value = false
+	isOpen.value = false
 })
 ```
 
@@ -77,16 +77,16 @@ Or if implementing manually, use `AbortController` (2026 standard):
 const controller = new AbortController()
 
 onMounted(() => {
-  window.addEventListener('click', handleClickOutside, { 
-    signal: controller.signal 
-  })
-  window.addEventListener('keydown', handleEscape, { 
-    signal: controller.signal 
-  })
+	window.addEventListener('click', handleClickOutside, {
+		signal: controller.signal
+	})
+	window.addEventListener('keydown', handleEscape, {
+		signal: controller.signal
+	})
 })
 
 onUnmounted(() => {
-  controller.abort() // Removes ALL listeners at once
+	controller.abort() // Removes ALL listeners at once
 })
 ```
 
@@ -94,12 +94,12 @@ onUnmounted(() => {
 ```typescript
 // ❌ Anonymous function - can't be removed
 onMounted(() => {
-  window.addEventListener('click', () => { isOpen.value = false })
+	window.addEventListener('click', () => { isOpen.value = false })
 })
 
 // ❌ Missing cleanup
 onMounted(() => {
-  window.addEventListener('click', handleClick)
+	window.addEventListener('click', handleClick)
 })
 // No onUnmounted!
 ```
@@ -128,24 +128,26 @@ Always use `computed` for derived filter results:
 ```typescript
 // ✅ Correct: Declarative, cached, lazy
 const filteredTracks = computed(() => {
-  const marks = selectedMarks.value
-  if (marks.length === 0) return tracks.value
-  
-  return tracks.value.filter(track => 
-    marks.includes(track.mark)
-  )
+	const marks = selectedMarks.value
+	if (marks.length === 0)
+		return tracks.value
+
+	return tracks.value.filter(track =>
+		marks.includes(track.mark)
+	)
 })
 
 // ❌ Wrong: Imperative, eager, manual sync
 const filteredTracks = ref<Track[]>([])
 watch([tracks, selectedMarks], () => {
-  if (selectedMarks.value.length === 0) {
-    filteredTracks.value = tracks.value
-  } else {
-    filteredTracks.value = tracks.value.filter(track =>
-      selectedMarks.value.includes(track.mark)
-    )
-  }
+	if (selectedMarks.value.length === 0) {
+		filteredTracks.value = tracks.value
+	}
+	else {
+		filteredTracks.value = tracks.value.filter(track =>
+			selectedMarks.value.includes(track.mark)
+		)
+	}
 }, { immediate: true })
 ```
 
@@ -188,7 +190,7 @@ const selectedMarks = ref<string[]>([])
 
 // Reset filter when playlist ID changes
 watch(() => route.params.playlistId, () => {
-  selectedMarks.value = []
+	selectedMarks.value = []
 }, { immediate: false })
 ```
 
@@ -198,7 +200,7 @@ Or use `onBeforeRouteLeave` if filter must clean up:
 import { onBeforeRouteLeave } from 'vue-router'
 
 onBeforeRouteLeave(() => {
-  selectedMarks.value = []
+	selectedMarks.value = []
 })
 ```
 
@@ -288,9 +290,9 @@ Always use `SelectPortal` with `position="popper"` for smart positioning:
 ```typescript
 <SelectRoot>
   <SelectTrigger>...</SelectTrigger>
-  
+
   <SelectPortal>
-    <SelectContent 
+    <SelectContent
       position="popper"
       :side-offset="5"
       :avoid-collisions="true"
@@ -350,10 +352,10 @@ Use union types for known marks and proper generic constraints:
 type Mark = '10' | '9' | '8' | '7' | '6' | '5' | '4' | '3' | '2' | '1'
 
 interface Track {
-  id: string
-  title: string
-  artist: string
-  mark: Mark
+	id: string
+	title: string
+	artist: string
+	mark: Mark
 }
 
 const selectedMarks = ref<Mark[]>([])
@@ -363,8 +365,9 @@ selectedMarks.value = ['10', '99'] // ❌ Error: '99' not in Mark type
 
 // ✅ Type-safe filter function
 function filterByMarks(tracks: Track[], marks: Mark[]): Track[] {
-  if (marks.length === 0) return tracks
-  return tracks.filter(track => marks.includes(track.mark))
+	if (marks.length === 0)
+		return tracks
+	return tracks.filter(track => marks.includes(track.mark))
 }
 
 // ❌ Wrong: Any string allowed
@@ -382,10 +385,10 @@ const MarkSchema = z.enum(['10', '9', '8', '7', '6', '5', '4', '3', '2', '1'])
 type Mark = z.infer<typeof MarkSchema>
 
 const TrackSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  artist: z.string(),
-  mark: MarkSchema,
+	id: z.string(),
+	title: z.string(),
+	artist: z.string(),
+	mark: MarkSchema,
 })
 
 // Validate API response

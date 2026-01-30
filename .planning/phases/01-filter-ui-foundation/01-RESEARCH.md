@@ -53,41 +53,44 @@ src/components/
 ```vue
 <script setup lang="ts">
 import {
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
-  DropdownMenuPortal,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuItemIndicator,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuItemIndicator,
+	DropdownMenuPortal,
+	DropdownMenuRoot,
+	DropdownMenuTrigger,
 } from 'reka-ui'
 
 const selectedMarks = ref<string[]>([])
 </script>
 
 <template>
-  <DropdownMenuRoot v-model:open="isOpen">
-    <DropdownMenuTrigger asChild>
-      <button :class="pika('icon-btn-toggle')" :data-toggle="hasActiveFilters">
-        <div :class="pika('i-f7:line-horizontal-3-decrease')" />
-      </button>
-    </DropdownMenuTrigger>
-    
-    <DropdownMenuPortal>
-      <DropdownMenuContent>
-        <DropdownMenuCheckboxItem
-          v-for="mark in marks"
-          :key="mark"
-          v-model:checked="selectedMarks[mark]"
-          @select.prevent
-        >
-          <DropdownMenuItemIndicator>
-            <div :class="pika('i-f7:checkmark')" />
-          </DropdownMenuItemIndicator>
-          {{ mark }}
-        </DropdownMenuCheckboxItem>
-      </DropdownMenuContent>
-    </DropdownMenuPortal>
-  </DropdownMenuRoot>
+	<DropdownMenuRoot v-model:open="isOpen">
+		<DropdownMenuTrigger asChild>
+			<button
+				:class="pika('icon-btn-toggle')"
+				:data-toggle="hasActiveFilters"
+			>
+				<div :class="pika('i-f7:line-horizontal-3-decrease')" />
+			</button>
+		</DropdownMenuTrigger>
+
+		<DropdownMenuPortal>
+			<DropdownMenuContent>
+				<DropdownMenuCheckboxItem
+					v-for="mark in marks"
+					:key="mark"
+					v-model:checked="selectedMarks[mark]"
+					@select.prevent
+				>
+					<DropdownMenuItemIndicator>
+						<div :class="pika('i-f7:checkmark')" />
+					</DropdownMenuItemIndicator>
+					{{ mark }}
+				</DropdownMenuCheckboxItem>
+			</DropdownMenuContent>
+		</DropdownMenuPortal>
+	</DropdownMenuRoot>
 </template>
 ```
 **Source:** Reka UI official docs - https://reka-ui.com/docs/components/dropdown-menu
@@ -132,9 +135,9 @@ const selectedMarks = ref<string[]>([])
     <button @click="deselectAll">Deselect all</button>
     <button @click="clearAll">Clear all</button>
   </div>
-  
+
   <DropdownMenuSeparator />
-  
+
   <!-- Checkbox items -->
   <DropdownMenuCheckboxItem v-for="item in items" />
 </DropdownMenuContent>
@@ -208,14 +211,14 @@ const hasActiveFilters = computed(() => selectedMarks.value.length > 0)
 </script>
 
 <template>
-  <button
-    :data-toggle="hasActiveFilters"
-    :class="pika('icon-btn-toggle')"
-    aria-label="Filter by marks"
-  >
-    <!-- Framework7 filter icon (funnel alternative) -->
-    <div :class="pika('i-f7:line-horizontal-3-decrease')" />
-  </button>
+	<button
+		:data-toggle="hasActiveFilters"
+		:class="pika('icon-btn-toggle')"
+		aria-label="Filter by marks"
+	>
+		<!-- Framework7 filter icon (funnel alternative) -->
+		<div :class="pika('i-f7:line-horizontal-3-decrease')" />
+	</button>
 </template>
 ```
 
@@ -224,82 +227,83 @@ const hasActiveFilters = computed(() => selectedMarks.value.length > 0)
 <!-- Source: Reka UI official docs + project patterns -->
 <script setup lang="ts">
 import {
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
-  DropdownMenuPortal,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuItemIndicator,
-  DropdownMenuSeparator,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuItemIndicator,
+	DropdownMenuPortal,
+	DropdownMenuRoot,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
 } from 'reka-ui'
 
 const open = ref(false)
 const selectedMarks = ref<Set<string>>(new Set())
 
 function toggleMark(mark: string) {
-  if (selectedMarks.value.has(mark)) {
-    selectedMarks.value.delete(mark)
-  } else {
-    selectedMarks.value.add(mark)
-  }
+	if (selectedMarks.value.has(mark)) {
+		selectedMarks.value.delete(mark)
+	}
+	else {
+		selectedMarks.value.add(mark)
+	}
 }
 </script>
 
 <template>
-  <DropdownMenuRoot v-model:open="open">
-    <DropdownMenuTrigger asChild>
-      <slot name="trigger" />
-    </DropdownMenuTrigger>
-    
-    <DropdownMenuPortal>
-      <DropdownMenuContent
-        :class="pika('card', {
-          padding: '8px',
-          minWidth: '200px',
-          zIndex: 2,
-        })"
-      >
-        <!-- Control buttons -->
-        <div :class="pika({ display: 'flex', gap: '4px', marginBottom: '8px' })">
-          <button
-            :class="pika('primary-plain-btn', { fontSize: '12px', padding: '4px 8px' })"
-            @click="selectAll"
-          >
-            Select all
-          </button>
-          <button
-            :class="pika('primary-plain-btn', { fontSize: '12px', padding: '4px 8px' })"
-            @click="clearAll"
-          >
-            Clear all
-          </button>
-        </div>
-        
-        <DropdownMenuSeparator />
-        
-        <!-- Checkbox items -->
-        <DropdownMenuCheckboxItem
-          v-for="mark in marks"
-          :key="mark"
-          :checked="selectedMarks.has(mark)"
-          :class="pika('hover-mask', {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '12px',
-            cursor: 'pointer',
-          })"
-          @select.prevent
-          @update:checked="toggleMark(mark)"
-        >
-          <DropdownMenuItemIndicator>
-            <div :class="pika('i-f7:checkmark')" />
-          </DropdownMenuItemIndicator>
-          <span>{{ mark }}</span>
-        </DropdownMenuCheckboxItem>
-      </DropdownMenuContent>
-    </DropdownMenuPortal>
-  </DropdownMenuRoot>
+	<DropdownMenuRoot v-model:open="open">
+		<DropdownMenuTrigger asChild>
+			<slot name="trigger" />
+		</DropdownMenuTrigger>
+
+		<DropdownMenuPortal>
+			<DropdownMenuContent
+				:class="pika('card', {
+					padding: '8px',
+					minWidth: '200px',
+					zIndex: 2,
+				})"
+			>
+				<!-- Control buttons -->
+				<div :class="pika({ display: 'flex', gap: '4px', marginBottom: '8px' })">
+					<button
+						:class="pika('primary-plain-btn', { fontSize: '12px', padding: '4px 8px' })"
+						@click="selectAll"
+					>
+						Select all
+					</button>
+					<button
+						:class="pika('primary-plain-btn', { fontSize: '12px', padding: '4px 8px' })"
+						@click="clearAll"
+					>
+						Clear all
+					</button>
+				</div>
+
+				<DropdownMenuSeparator />
+
+				<!-- Checkbox items -->
+				<DropdownMenuCheckboxItem
+					v-for="mark in marks"
+					:key="mark"
+					:checked="selectedMarks.has(mark)"
+					:class="pika('hover-mask', {
+						display: 'flex',
+						alignItems: 'center',
+						gap: '8px',
+						padding: '12px',
+						cursor: 'pointer',
+					})"
+					@select.prevent
+					@update:checked="toggleMark(mark)"
+				>
+					<DropdownMenuItemIndicator>
+						<div :class="pika('i-f7:checkmark')" />
+					</DropdownMenuItemIndicator>
+					<span>{{ mark }}</span>
+				</DropdownMenuCheckboxItem>
+			</DropdownMenuContent>
+		</DropdownMenuPortal>
+	</DropdownMenuRoot>
 </template>
 ```
 
@@ -311,18 +315,18 @@ const { musicDataList } = storeToRefs(musicStore)
 
 // Get unique marks in order of first appearance
 const marks = computed(() => {
-  const seen = new Set<string>()
-  const result: string[] = []
-  
-  for (const music of musicDataList.value) {
-    const mark = music.data.mark
-    if (!seen.has(mark)) {
-      seen.add(mark)
-      result.push(mark)
-    }
-  }
-  
-  return result
+	const seen = new Set<string>()
+	const result: string[] = []
+
+	for (const music of musicDataList.value) {
+		const mark = music.data.mark
+		if (!seen.has(mark)) {
+			seen.add(mark)
+			result.push(mark)
+		}
+	}
+
+	return result
 })
 ```
 

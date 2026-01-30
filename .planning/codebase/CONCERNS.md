@@ -18,7 +18,7 @@
 
 **Inconsistent Error Handling:**
 - Issue: Mix of silent catch blocks returning null and console.error logging, no centralized error reporting
-- Files: 
+- Files:
   - `src/composables/useMusicStore.ts` (line 381)
   - `src/utils/common.ts` (lines 106, 185, 191)
   - `src/components/AppBackground.vue` (line 33)
@@ -44,7 +44,7 @@
 
 **Object URL Memory Leaks:**
 - Symptoms: Background images create blob URLs that are not properly revoked
-- Files: 
+- Files:
   - `src/components/AppBackground.vue` (line 31)
   - `src/utils/common.ts` (lines 40, 61)
 - Trigger: Changing background images or decoding images repeatedly
@@ -74,7 +74,7 @@
 
 **LocalStorage/IndexedDB Data Persistence:**
 - Risk: Sensitive user data (playlists, history) stored unencrypted in browser storage
-- Files: 
+- Files:
   - `src/composables/useSavedUserData.ts` (uses localStorage)
   - `src/composables/useMusicStore.ts` (uses localforage/IndexedDB, line 365)
 - Current mitigation: No personally identifiable information stored, music preferences only
@@ -96,7 +96,7 @@
 
 **Image Decompression on Every Item:**
 - Problem: Each music cover image is decompressed from binary on load
-- Files: 
+- Files:
   - `src/composables/useMusicStore.ts` (line 45)
   - `src/utils/common.ts` (`decodeImageFromBinary`, lines 57-63)
 - Cause: Compressed binary marks decoded individually with blob URL creation
@@ -135,7 +135,7 @@
 - Test coverage: Manual testing required for PWA functionality
 
 **HMR (Hot Module Replacement) Hooks:**
-- Files: 
+- Files:
   - `src/composables/useMusicStore.ts` (lines 430-431)
   - `src/composables/useAppStore.ts` (lines 141-142)
 - Why fragile: Manual HMR accept calls for Pinia stores, can cause state loss on hot reload
@@ -203,7 +203,7 @@
 
 **Complex State Management Untested:**
 - What's not tested: Pinia store logic, playlist operations, audio queue management
-- Files: 
+- Files:
   - `src/composables/useMusicStore.ts` (431 lines)
   - `src/composables/useAudioPlayer.ts` (175 lines)
   - `src/composables/useAudioQueue.ts` (132 lines)
@@ -212,7 +212,7 @@
 
 **Browser API Integration Untested:**
 - What's not tested: MediaSession API, Document Picture-in-Picture, Service Worker
-- Files: 
+- Files:
   - `src/composables/useMusicStore.ts` (lines 239-302)
   - `src/composables/useDocumentPictureInPicture.ts`
 - Risk: Browser compatibility issues, API usage errors

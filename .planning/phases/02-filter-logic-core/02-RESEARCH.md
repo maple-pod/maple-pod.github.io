@@ -62,10 +62,10 @@ const filteredTracks = computed(() => {
   if (selectedMarks.value.size === 0) {
     return tracks.value
   }
-  
+
   // OR logic: track matches if its mark is in the selected set
   // Set.has() is O(1), making total complexity O(n) where n = tracks.length
-  return tracks.value.filter(track => 
+  return tracks.value.filter(track =>
     selectedMarks.value.has(track.data.mark)
   )
 })
@@ -81,13 +81,14 @@ const filteredTracks = computed(() => {
 const selectedMarks = ref<Set<string>>(new Set())
 
 // Type-safe operations
-const toggleMark = (mark: string, checked: boolean) => {
-  if (checked) {
-    selectedMarks.value.add(mark)
-  } else {
-    selectedMarks.value.delete(mark)
-  }
-  // Vue's proxy automatically tracks Set mutations
+function toggleMark(mark: string, checked: boolean) {
+	if (checked) {
+		selectedMarks.value.add(mark)
+	}
+	else {
+		selectedMarks.value.delete(mark)
+	}
+	// Vue's proxy automatically tracks Set mutations
 }
 ```
 
@@ -97,24 +98,24 @@ const toggleMark = (mark: string, checked: boolean) => {
 **Example:**
 ```vue
 <!-- Parent: Playlist.vue -->
-<template>
-  <PlaylistFilterDropdown
-    v-model="selectedMarksArray"
-    :marks="availableMarks"
-  />
-</template>
-
 <script setup>
 const selectedMarks = ref<Set<string>>(new Set())
 
 // Transform Set <-> Array at the boundary
 const selectedMarksArray = computed({
-  get: () => Array.from(selectedMarks.value),
-  set: (arr: string[]) => {
-    selectedMarks.value = new Set(arr)
-  }
+	get: () => Array.from(selectedMarks.value),
+	set: (arr: string[]) => {
+		selectedMarks.value = new Set(arr)
+	}
 })
 </script>
+
+<template>
+	<PlaylistFilterDropdown
+		v-model="selectedMarksArray"
+		:marks="availableMarks"
+	/>
+</template>
 ```
 
 ### Pattern 4: Lifecycle-Based State Reset
@@ -124,11 +125,11 @@ const selectedMarksArray = computed({
 ```typescript
 // Source: Vue Router 4 + Composition API patterns
 watch(
-  () => props.playlistId,
-  () => {
-    // Clear filter when playlist changes
-    selectedMarks.value.clear()
-  }
+	() => props.playlistId,
+	() => {
+		// Clear filter when playlist changes
+		selectedMarks.value.clear()
+	}
 )
 // Component unmount automatically clears local state (no manual cleanup needed)
 ```
@@ -195,23 +196,24 @@ const musicsGroupedByCover = computed(() => groupByMark(musicDataList.value))
 
 // Extract unique marks in original Map order
 const availableMarks = computed(() => {
-  const playlist = getPlaylist(props.playlistId)
-  if (!playlist) return []
-  
-  // Get marks only from current playlist's tracks
-  const playlistTrackIds = new Set(playlist.list)
-  const marks: string[] = []
-  
-  // Map keys are already unique and ordered
-  for (const [mark, tracks] of musicsGroupedByCover.value) {
-    // Check if this mark has any tracks in current playlist
-    const hasTracksInPlaylist = tracks.some(t => playlistTrackIds.has(t.id))
-    if (hasTracksInPlaylist) {
-      marks.push(mark)
-    }
-  }
-  
-  return marks
+	const playlist = getPlaylist(props.playlistId)
+	if (!playlist)
+		return []
+
+	// Get marks only from current playlist's tracks
+	const playlistTrackIds = new Set(playlist.list)
+	const marks: string[] = []
+
+	// Map keys are already unique and ordered
+	for (const [mark, tracks] of musicsGroupedByCover.value) {
+		// Check if this mark has any tracks in current playlist
+		const hasTracksInPlaylist = tracks.some(t => playlistTrackIds.has(t.id))
+		if (hasTracksInPlaylist) {
+			marks.push(mark)
+		}
+	}
+
+	return marks
 })
 ```
 
@@ -219,21 +221,22 @@ const availableMarks = computed(() => {
 ```typescript
 // Source: Vue computed best practices
 const markBadgeCounts = computed(() => {
-  const playlist = getPlaylist(props.playlistId)
-  if (!playlist) return new Map<string, number>()
-  
-  const playlistTrackIds = new Set(playlist.list)
-  const counts = new Map<string, number>()
-  
-  // Count tracks per mark in current playlist
-  for (const [mark, tracks] of musicsGroupedByCover.value) {
-    const count = tracks.filter(t => playlistTrackIds.has(t.id)).length
-    if (count > 0) {
-      counts.set(mark, count)
-    }
-  }
-  
-  return counts
+	const playlist = getPlaylist(props.playlistId)
+	if (!playlist)
+		return new Map<string, number>()
+
+	const playlistTrackIds = new Set(playlist.list)
+	const counts = new Map<string, number>()
+
+	// Count tracks per mark in current playlist
+	for (const [mark, tracks] of musicsGroupedByCover.value) {
+		const count = tracks.filter(t => playlistTrackIds.has(t.id)).length
+		if (count > 0) {
+			counts.set(mark, count)
+		}
+	}
+
+	return counts
 })
 ```
 
@@ -243,23 +246,24 @@ const markBadgeCounts = computed(() => {
 const selectedMarks = ref<Set<string>>(new Set())
 
 const filteredTracks = computed(() => {
-  const playlist = getPlaylist(props.playlistId)
-  if (!playlist) return []
-  
-  const allTracks = playlist.list
-    .map(id => getMusicData(id))
-    .filter((t): t is MusicData => t != null)
-  
-  // Default state: show all tracks
-  if (selectedMarks.value.size === 0) {
-    return allTracks
-  }
-  
-  // OR logic: show track if its mark is selected
-  // Set.has() is O(1), so total complexity is O(n)
-  return allTracks.filter(track => 
-    selectedMarks.value.has(track.data.mark)
-  )
+	const playlist = getPlaylist(props.playlistId)
+	if (!playlist)
+		return []
+
+	const allTracks = playlist.list
+		.map(id => getMusicData(id))
+		.filter((t): t is MusicData => t != null)
+
+	// Default state: show all tracks
+	if (selectedMarks.value.size === 0) {
+		return allTracks
+	}
+
+	// OR logic: show track if its mark is selected
+	// Set.has() is O(1), so total complexity is O(n)
+	return allTracks.filter(track =>
+		selectedMarks.value.has(track.data.mark)
+	)
 })
 ```
 
@@ -267,11 +271,11 @@ const filteredTracks = computed(() => {
 ```typescript
 // Source: Vue 3 watchers documentation
 watch(
-  () => props.playlistId,
-  () => {
-    // Clear filter state when playlist changes
-    selectedMarks.value.clear()
-  }
+	() => props.playlistId,
+	() => {
+		// Clear filter state when playlist changes
+		selectedMarks.value.clear()
+	}
 )
 // No manual cleanup needed - local ref cleared on component unmount
 ```

@@ -79,7 +79,7 @@ src/
 
 **What:** Filter state lives in the component via `ref(new Set<string>())`. It does NOT sync to URL or global store.
 
-**When to use:** 
+**When to use:**
 - Ephemeral UI state (filters that reset on navigation)
 - No need for shareability or deep-linking
 - Performance-critical (avoids router overhead)
@@ -96,7 +96,7 @@ const selectedMarks = ref(new Set<string>())
 
 // Reset on navigation
 watch(() => props.playlistId, () => {
-  selectedMarks.value.clear()
+	selectedMarks.value.clear()
 })
 ```
 
@@ -104,7 +104,7 @@ watch(() => props.playlistId, () => {
 
 **What:** The filter component exposes a `computed` property that filters the original data. The parent consumes this computed value instead of mutating the source.
 
-**When to use:** 
+**When to use:**
 - When multiple components need the unfiltered data
 - When you want to preserve the original data structure
 - When filtering logic is presentational (UI-only concern)
@@ -117,12 +117,12 @@ watch(() => props.playlistId, () => {
 **Example:**
 ```typescript
 const filteredItems = computed(() => {
-  if (selectedMarks.value.size === 0) {
-    return items.value // Show all if no filter
-  }
-  return items.value.filter(music => 
-    selectedMarks.value.has(music.data.mark)
-  )
+	if (selectedMarks.value.size === 0) {
+		return items.value // Show all if no filter
+	}
+	return items.value.filter(music =>
+		selectedMarks.value.has(music.data.mark)
+	)
 })
 ```
 
@@ -130,7 +130,7 @@ const filteredItems = computed(() => {
 
 **What:** Instead of a monolithic `MarkFilterDropdown`, use the existing `UiDropdownMenu` as the structural component and inject custom content via slots.
 
-**When to use:** 
+**When to use:**
 - When you already have a headless dropdown primitive (like `UiDropdownMenu`)
 - When you want flexibility for future filter types
 
@@ -224,9 +224,9 @@ const filteredItems = computed(() => {
 **After Integration:**
 ```vue
 <!-- Add filter button in header (line 157, next to PlaylistDropdownMenu) -->
-<MarkFilterDropdown 
+<MarkFilterDropdown
   ref="filterRef"
-  :playlistId="playlistId" 
+  :playlistId="playlistId"
 />
 
 <!-- Update items binding (line 170) -->
@@ -250,7 +250,7 @@ const filteredItems = computed(() => {
 
 **What people do:** Add `filteredPlaylist` to `useMusicStore` and mutate it on filter change.
 
-**Why it's wrong:** 
+**Why it's wrong:**
 - Global state for local UI concern
 - Breaks if multiple views need different filters
 - Requires cleanup logic on unmount
@@ -333,16 +333,16 @@ Based on integration dependencies:
 ### Props
 ```typescript
 interface Props {
-  playlistId: PlaylistId
+	playlistId: PlaylistId
 }
 ```
 
 ### Exposed
 ```typescript
 interface Exposed {
-  filteredItems: ComputedRef<MusicData[]>
-  selectedMarks: Ref<Set<string>>
-  reset: () => void
+	filteredItems: ComputedRef<MusicData[]>
+	selectedMarks: Ref<Set<string>>
+	reset: () => void
 }
 ```
 
@@ -351,7 +351,7 @@ This component does NOT emit events. It exposes computed state for the parent to
 
 ## Sources
 
-- **Project Analysis:** 
+- **Project Analysis:**
   - `src/views/Playlist.vue` (existing integration point)
   - `src/components/PlaylistDropdownMenu.vue` (dropdown pattern reference)
   - `src/composables/useMusicStore.ts` (data access layer)

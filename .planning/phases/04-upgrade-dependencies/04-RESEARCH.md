@@ -158,7 +158,7 @@ Problems that look simple but have existing solutions:
 ### Pitfall 1: Major Version Zero Instability
 **What goes wrong:** Packages with version 0.x.x (pre-1.0) can introduce breaking changes in minor or patch versions
 **Why it happens:** Semver spec states major version zero is for initial development where anything may change
-**How to avoid:** 
+**How to avoid:**
 - Review changelogs for 0.x packages before upgrading even minor versions
 - Test 0.x upgrades as carefully as major version upgrades
 - Consider pinning unstable 0.x packages if stability is critical
