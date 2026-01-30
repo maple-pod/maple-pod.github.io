@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** Users can quickly find specific tracks in a playlist by filtering through marks without manually scrolling through the entire list.
-**Current focus:** Phase 2 - Filter Logic Core
+**Current focus:** Phase 4 - Upgrade Dependencies
 
 ## Current Position
 
-Phase: 2 of 3 (Filter Logic Core)
-Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-01-30 — Completed 02-01-PLAN.md
+Phase: 4 of 4 (Upgrade Dependencies)
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-01-30 — Completed 04-01-PLAN.md
 
-Progress: [██████░░░░] 67%
+Progress: [███████░░░] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 15 min
+- Total plans completed: 3
+- Average duration: 11 min
 - Total execution time: 0.5 hours
 
 **By Phase:**
@@ -29,10 +29,11 @@ Progress: [██████░░░░] 67%
 |-------|-------|-------|----------|
 | 1. Filter UI Foundation | 1/1 | 25 min | 25 min |
 | 2. Filter Logic Core | 1/1 | 5 min | 5 min |
+| 4. Upgrade Dependencies | 1/4 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (25min), 02-01 (5min)
-- Trend: Accelerating - Phase 2 completed quickly
+- Last 5 plans: 01-01 (25min), 02-01 (5min), 04-01 (2min)
+- Trend: Accelerating - Dependency upgrades efficient
 
 *Updated after each plan completion*
 
@@ -51,6 +52,8 @@ Recent decisions affecting current work:
 | 02 | Use Set<string> internally for selectedMarks with Array transformation | Set provides O(1) lookup for filtering; computed property transforms to Array for v-model compatibility |
 | 02 | Extract marks by iterating playlist tracks directly | musicsGroupedByCover not exported from store; direct iteration achieves same result |
 | 02 | Watch playlistId to auto-clear filter state | Ensures clean slate when user switches playlists without manual cleanup |
+| 04 | Used taze for dependency upgrade discovery and automation | Faster than npm-check-updates, better pnpm integration, created by Vue core team member |
+| 04 | Accepted minor version upgrades within caret ranges (^) as normal pnpm behavior | Caret ranges allow safe minor updates; more comprehensive updates while staying within semver boundaries |
 
 ### Pending Todos
 
@@ -67,9 +70,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 02-01-PLAN.md (Phase 2 complete)
+Stopped at: Completed 04-01-PLAN.md (Phase 4 - 1/4 plans complete)
 Resume file: None
 
 ---
 *State initialized: 2026-01-29*
-*Last updated: 2026-01-30 after 02-01 plan completion*
+*Last updated: 2026-01-30 after 04-01 plan completion*

@@ -76,7 +76,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Upgrade patch-level dependencies safely
+- [x] 04-01-PLAN.md — Upgrade patch-level dependencies safely
 - [ ] 04-02-PLAN.md — Upgrade minor-level dependencies within current majors
 - [ ] 04-03-PLAN.md — Upgrade development tooling to major versions (Vite 7, TypeScript)
 - [ ] 04-04-PLAN.md — Upgrade runtime dependencies to major versions (Vue Router 5)
@@ -91,8 +91,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Filter UI Foundation | 1/1 | Complete | 2026-01-30 |
 | 2. Filter Logic Core | 1/1 | Complete | 2026-01-30 |
 | 3. Playlist Integration | 0/1 | Not started | - |
-| 4. Upgrade Dependencies | 0/4 | Not started | - |
+| 4. Upgrade Dependencies | 1/4 | In progress | - |
 
 ---
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-30 after Phase 4 planning*
+*Last updated: 2026-01-30 after 04-01 plan completion*
