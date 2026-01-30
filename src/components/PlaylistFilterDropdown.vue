@@ -46,10 +46,11 @@ function deselectAll() {
 const clearAll = deselectAll
 
 // Group marks into rows of 3 for grid layout
+const CHUNK_SIZE = 4
 const marksInRows = computed(() => {
 	const rows: MarkItem[][] = []
-	for (let i = 0; i < props.marks.length; i += 3) {
-		rows.push(props.marks.slice(i, i + 3))
+	for (let i = 0; i < props.marks.length; i += CHUNK_SIZE) {
+		rows.push(props.marks.slice(i, i + CHUNK_SIZE))
 	}
 	return rows
 })
@@ -71,7 +72,7 @@ const marksInRows = computed(() => {
 			<DropdownMenuContent
 				:class="pika('card', {
 					padding: '12px',
-					minWidth: '400px',
+					minWidth: '200px',
 					maxWidth: '500px',
 					zIndex: 2,
 				})"
@@ -128,32 +129,32 @@ const marksInRows = computed(() => {
 				<UiVerticalList
 					v-else
 					:items="marksInRows"
-					:itemHeight="80"
+					:itemHeight="60"
 					:class="pika({
 						maxHeight: '400px',
 					})"
 				>
 					<template #item="{ item: row }">
 						<div
+							:style="{
+								'--chunk-size': CHUNK_SIZE,
+							}"
 							:class="pika({
 								display: 'grid',
-								gridTemplateColumns: 'repeat(3, 1fr)',
+								gridTemplateColumns: 'repeat(var(--chunk-size), 1fr)',
 								gap: '8px',
-								marginBottom: '8px',
 							})"
 						>
 							<DropdownMenuCheckboxItem
 								v-for="mark in row"
 								:key="mark.name"
-								:checked="modelValue.includes(mark.name)"
-								:class="pika('hover-mask card-border', {
-									'display': 'flex',
-									'flexDirection': 'column',
-									'alignItems': 'center',
-									'gap': '8px',
-									'padding': '8px',
+								:modelValue="modelValue.includes(mark.name)"
+								:class="pika('hover-mask', {
 									'cursor': 'pointer',
 									'position': 'relative',
+									'width': '60px',
+									'height': '60px',
+									'padding': '2px',
 
 									'$[data-disabled]': {
 										opacity: '0.5',
@@ -163,47 +164,35 @@ const marksInRows = computed(() => {
 								@click.prevent="() => toggleMark(mark.name, !modelValue.includes(mark.name))"
 								@select.prevent
 							>
-								<DropdownMenuItemIndicator
-									:class="pika({
-										position: 'absolute',
-										top: '4px',
-										left: '4px',
-									})"
-								>
-									<div
-										:class="pika('i-f7:checkmark-circle-fill', {
-											fontSize: '20px',
-											color: 'var(--color-primary-1)',
-										})"
-									/>
-								</DropdownMenuItemIndicator>
-
 								<!-- Mark image -->
-								<div
+								<img
+									:src="mark.image"
+									:alt="mark.name"
 									:class="pika('card-border', {
-										width: '60px',
-										height: '60px',
-										overflow: 'hidden',
+										'width': '100%',
+										'height': '100%',
+										'objectFit': 'cover',
+										'opacity': '0.5',
+
+										'[data-state=checked] $': {
+											opacity: '1',
+										},
 									})"
 								>
-									<img
-										:src="mark.image"
-										:alt="mark.name"
-										:class="pika({
-											width: '100%',
-											height: '100%',
-											objectFit: 'cover',
-											transform: 'scale(1.1)',
-										})"
-									>
-								</div>
 
 								<!-- Badge count -->
 								<span
 									:class="pika({
-										fontSize: '14px',
-										fontWeight: '600',
+										position: 'absolute',
+										bottom: '4px',
+										right: '4px',
+										display: 'inline-block',
+										padding: '2px 6px',
+										borderRadius: '12px',
+										fontSize: '12px',
+										fontWeight: '300',
 										color: 'var(--color-primary-text)',
+										backgroundColor: 'var(--color-primary-bg)',
 									})"
 								>
 									{{ mark.count }}
