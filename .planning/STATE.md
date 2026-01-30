@@ -60,6 +60,10 @@ None yet.
 
 None yet.
 
+### Roadmap Evolution
+
+- Phase 4 added: 盡可能升級所有 dependencies 包含 devDependencies 並保持穩定狀態
+
 ## Session Continuity
 
 Last session: 2026-01-30
