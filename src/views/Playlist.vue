@@ -25,20 +25,26 @@ const selectedMarksArray = computed({
 	},
 })
 
-// Extract marks from current playlist
-const availableMarks = computed(() => {
+// Extract marks with images and counts from current playlist
+interface MarkItem {
+	name: string
+	image: string
+	count: number
+}
+
+const availableMarks = computed<MarkItem[]>(() => {
 	const currentPlaylist = getPlaylist(props.playlistId)
 	if (!currentPlaylist)
 		return []
 
-	const marks: string[] = []
+	const marks: MarkItem[] = []
 
-	// Get all tracks grouped by their mark from all playlists
+	// Get all tracks in current playlist
 	const allTracks = currentPlaylist.list
 		.map(id => getMusicData(id))
 		.filter((t): t is MusicData => t != null)
 
-	// Group by mark to maintain order
+	// Group by mark to maintain order and get cover image
 	const seenMarks = new Set<string>()
 	for (const track of allTracks) {
 		const mark = track.data.mark
@@ -47,35 +53,18 @@ const availableMarks = computed(() => {
 			continue
 
 		seenMarks.add(mark)
-		marks.push(mark)
+
+		// Count tracks for this mark
+		const count = allTracks.filter(t => t.data.mark === mark).length
+
+		marks.push({
+			name: mark,
+			image: track.cover, // Use track's cover as mark image
+			count,
+		})
 	}
 
 	return marks
-})
-
-// Calculate badge counts for each mark
-const markBadgeCounts = computed(() => {
-	const currentPlaylist = getPlaylist(props.playlistId)
-	if (!currentPlaylist)
-		return new Map<string, number>()
-
-	const counts = new Map<string, number>()
-
-	// Get all tracks in current playlist
-	const allTracks = currentPlaylist.list
-		.map(id => getMusicData(id))
-		.filter((t): t is MusicData => t != null)
-
-	// Count occurrences of each mark
-	for (const track of allTracks) {
-		const mark = track.data.mark
-		if (!mark)
-			continue
-
-		counts.set(mark, (counts.get(mark) || 0) + 1)
-	}
-
-	return counts
 })
 
 // Filter tracks based on selected marks using OR logic
@@ -208,7 +197,6 @@ useRafFn(() => {
 			<PlaylistFilterDropdown
 				v-model="selectedMarksArray"
 				:marks="availableMarks"
-				:markCounts="markBadgeCounts"
 			/>
 			<UiTooltip>
 				<template #trigger>
