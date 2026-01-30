@@ -2,7 +2,6 @@
 import {
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
-	DropdownMenuItemIndicator,
 	DropdownMenuPortal,
 	DropdownMenuRoot,
 	DropdownMenuSeparator,
