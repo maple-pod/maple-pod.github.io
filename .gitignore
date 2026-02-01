@@ -205,8 +205,7 @@ dist
 .pnp.*
 
 # pikacss auto generated files
-pika.gen.ts
-pika.dev.css
+pika.gen.*
 
 # auto generated files
 auto-imports.d.ts
