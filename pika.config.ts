@@ -1,10 +1,12 @@
 /** @type {import('./pika.gen')} */
 import { icons } from '@pikacss/plugin-icons'
-import { defineEngineConfig } from '@pikacss/vite-plugin-pikacss'
+import { reset } from '@pikacss/plugin-reset'
+import { defineEngineConfig } from '@pikacss/unplugin-pikacss'
 
 export default defineEngineConfig({
 	// Add your PikaCSS engine config here
 	plugins: [
+		reset(),
 		icons(),
 	],
 

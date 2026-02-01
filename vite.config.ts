@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
-import PikaCSS from '@pikacss/vite-plugin-pikacss'
+import PikaCSS from '@pikacss/unplugin-pikacss/vite'
 import Vue from '@vitejs/plugin-vue'
 import simpleGit from 'simple-git'
 import Imports from 'unplugin-auto-import/vite'
@@ -110,9 +110,7 @@ export default defineConfig(async () => ({
 				],
 			},
 		}),
-		PikaCSS({
-			target: ['**/*.vue', '**/*.ts'],
-		}),
+		PikaCSS(),
 		Vue(),
 		VueDevTools(),
 		Imports({

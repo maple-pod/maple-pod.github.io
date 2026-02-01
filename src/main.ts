@@ -3,8 +3,7 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import 'modern-normalize'
-import 'virtual:pika.css'
+import 'pika.css'
 import './styles/cursor.css'
 
 createApp(App)
