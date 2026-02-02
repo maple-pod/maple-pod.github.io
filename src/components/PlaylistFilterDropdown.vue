@@ -100,7 +100,7 @@ const marksInRows = computed(() => {
 						})"
 						@click="clearAll"
 					>
-						Clear all
+						Clear all{{ hasActiveFilters ? ` (${props.modelValue.length})` : '' }}
 					</button>
 				</div>
 
@@ -125,81 +125,81 @@ const marksInRows = computed(() => {
 				</div>
 
 				<!-- Mark grid with virtual scrolling -->
-				<UiVerticalList
+				<div
 					v-else
-					:items="marksInRows"
-					:itemHeight="60"
 					:class="pika({
 						maxHeight: '400px',
 					})"
 				>
-					<template #item="{ item: row }">
-						<div
-							:style="{
-								'--chunk-size': CHUNK_SIZE,
-							}"
-							:class="pika({
-								display: 'grid',
-								gridTemplateColumns: 'repeat(var(--chunk-size), 1fr)',
-								gap: '8px',
-							})"
-						>
-							<DropdownMenuCheckboxItem
-								v-for="mark in row"
-								:key="mark.name"
-								:modelValue="modelValue.includes(mark.name)"
-								:class="pika('hover-mask', {
-									'cursor': 'pointer',
-									'position': 'relative',
-									'width': '60px',
-									'height': '60px',
-									'padding': '2px',
-
-									'$[data-disabled]': {
-										opacity: '0.5',
-										cursor: 'not-allowed',
-									},
+					<UiVerticalList
+						:items="marksInRows"
+						:itemHeight="60"
+					>
+						<template #item="{ item: row }">
+							<div
+								:style="{
+									'--chunk-size': CHUNK_SIZE,
+								}"
+								:class="pika({
+									display: 'grid',
+									gridTemplateColumns: 'repeat(var(--chunk-size), 1fr)',
+									gap: '8px',
 								})"
-								@click.prevent="() => toggleMark(mark.name, !modelValue.includes(mark.name))"
-								@select.prevent
 							>
-								<!-- Mark image -->
-								<img
-									:src="mark.image"
-									:alt="mark.name"
-									:class="pika('card-border', {
-										'width': '100%',
-										'height': '100%',
-										'objectFit': 'cover',
-										'opacity': '0.5',
-
-										'[data-state=checked] $': {
-											opacity: '1',
+								<DropdownMenuCheckboxItem
+									v-for="mark in row"
+									:key="mark.name"
+									:modelValue="modelValue.includes(mark.name)"
+									:class="pika('hover-mask', {
+										'cursor': 'pointer',
+										'position': 'relative',
+										'width': '60px',
+										'height': '60px',
+										'padding': '2px',
+										'$[data-disabled]': {
+											opacity: '0.5',
+											cursor: 'not-allowed',
 										},
 									})"
+									@click.prevent="() => toggleMark(mark.name, !modelValue.includes(mark.name))"
+									@select.prevent
 								>
-
-								<!-- Badge count -->
-								<span
-									:class="pika({
-										position: 'absolute',
-										bottom: '4px',
-										right: '4px',
-										display: 'inline-block',
-										padding: '2px 6px',
-										borderRadius: '12px',
-										fontSize: '12px',
-										fontWeight: '300',
-										color: 'var(--color-primary-text)',
-										backgroundColor: 'var(--color-primary-bg)',
-									})"
-								>
-									{{ mark.count }}
-								</span>
-							</DropdownMenuCheckboxItem>
-						</div>
-					</template>
-				</UiVerticalList>
+									<!-- Mark image -->
+									<img
+										:src="mark.image"
+										:alt="mark.name"
+										:class="pika('card-border', {
+											'width': '100%',
+											'height': '100%',
+											'objectFit': 'cover',
+											'opacity': '0.5',
+											'[data-state=checked] $': {
+												opacity: '1',
+											},
+										})"
+									>
+									<!-- Badge count -->
+									<span
+										:class="pika({
+											position: 'absolute',
+											bottom: '4px',
+											right: '4px',
+											display: 'inline-block',
+											padding: '2px 6px',
+											borderRadius: '12px',
+											fontSize: '12px',
+											fontWeight: '300',
+											color: 'var(--color-primary-text)',
+											backgroundColor: 'var(--color-primary-bg)',
+										})"
+									>
+										{{ mark.count }}
+									</span>
+								</DropdownMenuCheckboxItem>
+							</div>
+						</template>
+					</UiVerticalList>
+				</div>
 			</DropdownMenuContent>
 		</DropdownMenuPortal>
 	</DropdownMenuRoot>
