@@ -1,4 +1,4 @@
-import { array, boolean, literal, maxValue, minValue, number, object, pipe, startsWith, string, union } from 'valibot'
+import { array, boolean, literal, maxValue, minValue, number, object, pipe, record, startsWith, string, union } from 'valibot'
 
 export const SavedUserDataSchema = object({
 	preferences: object({
@@ -33,4 +33,5 @@ export const SavedUserDataSchema = object({
 		title: string(),
 		list: array(string()),
 	})),
+	musicNotes: record(string(), string()),
 })

@@ -15,6 +15,8 @@ whenever(
 )
 
 const isOnline = useOnline()
+
+const route = useRoute()
 </script>
 
 <template>
@@ -108,6 +110,24 @@ const isOnline = useOnline()
 					</UiTooltip>
 				</RouterLink>
 
+				<UiTooltip>
+					<template #trigger>
+						<RouterLink
+							:to="{ name: Routes.Notes }"
+							:data-active="route.name === Routes.Notes || undefined"
+							:class="pika('icon-btn', {
+								'$[data-active]': {
+									color: 'var(--color-primary-1)',
+								},
+							})"
+						>
+							<div :class="pika('i-f7:doc-text')" />
+						</RouterLink>
+					</template>
+					<template #content>
+						Notes
+					</template>
+				</UiTooltip>
 				<DownloadManagerDropdownMenu />
 				<SettingsDropdownMenu />
 			</div>

@@ -14,6 +14,7 @@ export const Routes = {
 	ImportPlaylist: 'ImportPlaylist',
 	Playlists: 'Playlists',
 	Playlist: 'Playlist',
+	Notes: 'Notes',
 } as const
 
 const middlewares = {
@@ -164,6 +165,11 @@ const router = createRouter({
 					},
 					component: () => import('@/views/Playlist.vue'),
 					props: to => ({ playlistId: to.params.playlistId as PlaylistId }),
+				},
+				{
+					name: Routes.Notes,
+					path: 'notes',
+					component: () => import('@/views/Notes.vue'),
 				},
 			],
 		},

@@ -2,6 +2,7 @@
 import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
 import type { PlaylistId } from '@/types'
 import CreatePlaylistDialog from '@/components/CreatePlaylistDialog.vue'
+import MusicNoteDialog from '@/components/MusicNoteDialog.vue'
 
 const props = defineProps<{
 	playlistId: PlaylistId
@@ -10,11 +11,15 @@ const props = defineProps<{
 
 const musicStore = useMusicStore()
 const { likedPlaylist, savedPlaylists, offlineReadyMusics, offlineMusicDownloadingProgress } = storeToRefs(musicStore)
-const { toggleMusicInPlaylist, isAddedInPlaylist, getPlayMusicLink, saveMusicForOffline } = musicStore
+const { toggleMusicInPlaylist, isAddedInPlaylist, getPlayMusicLink, saveMusicForOffline, getMusicNote } = musicStore
 
 const { dialog } = useAppDialog()
 function handleStartCreatePlaylist() {
 	return dialog(CreatePlaylistDialog, {})
+}
+
+function handleOpenNoteDialog() {
+	return dialog(MusicNoteDialog, { musicId: props.musicId })
 }
 
 const { handleShowMusicInPlaylist } = useAppStore()
@@ -92,6 +97,11 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 			saveMusicForOffline(props.musicId)
 		},
 		disabled: isReadyForOffline.value || isDownloading.value,
+	},
+	{
+		icon: pika('i-f7:square-pencil'),
+		label: getMusicNote(props.musicId) !== '' ? 'Edit Note' : 'Add Note',
+		onSelect: handleOpenNoteDialog,
 	},
 ])
 </script>

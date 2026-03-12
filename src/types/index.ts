@@ -10,6 +10,7 @@ export interface SavedUserData {
 	liked: Playlist<'liked'>
 	playlists: Playlist<CustomPlaylistId>[]
 	history: string[]
+	musicNotes: Record<string, string>
 }
 
 export interface ResourceBgm {

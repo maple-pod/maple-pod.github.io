@@ -28,6 +28,7 @@ function createInitialSavedUserData(): SavedUserData {
 		},
 		playlists: [],
 		history: [],
+		musicNotes: {},
 	}
 }
 
@@ -58,6 +59,10 @@ export const useSavedUserData = createSharedComposable(() => {
 		get: () => savedUserData.value.history,
 		set: value => savedUserData.value.history = value,
 	})
+	const musicNotes = computed({
+		get: () => savedUserData.value.musicNotes,
+		set: value => savedUserData.value.musicNotes = value,
+	})
 
 	return {
 		savedUserData,
@@ -70,5 +75,6 @@ export const useSavedUserData = createSharedComposable(() => {
 		likedPlaylist,
 		savedPlaylists,
 		history,
+		musicNotes,
 	}
 })

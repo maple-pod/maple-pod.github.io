@@ -205,7 +205,25 @@ export const useMusicStore = defineStore('music', () => {
 
 	const MAX_HISTORY_LENGTH = 50
 	const RECORD_AFTER = 3000
-	const { history } = useSavedUserData()
+	const { history, musicNotes } = useSavedUserData()
+
+	function getMusicNote(musicId: string): string {
+		return musicNotes.value[musicId] ?? ''
+	}
+	function setMusicNote(musicId: string, note: string): void {
+		const trimmed = note.trim()
+		if (trimmed === '') {
+			delete musicNotes.value[musicId]
+		}
+		else {
+			musicNotes.value = { ...musicNotes.value, [musicId]: trimmed }
+		}
+	}
+	function deleteMusicNote(musicId: string): void {
+		const next = { ...musicNotes.value }
+		delete next[musicId]
+		musicNotes.value = next
+	}
 	let historyTimer = 0
 	watch(
 		currentMusic,
@@ -361,6 +379,10 @@ export const useMusicStore = defineStore('music', () => {
 		cancelOfflineMusicDownload,
 		removeSavedOfflineMusic,
 		isMusicDisabled,
+		musicNotes,
+		getMusicNote,
+		setMusicNote,
+		deleteMusicNote,
 		ready,
 	}
 })
