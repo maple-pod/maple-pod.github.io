@@ -2,3 +2,11 @@ onlyBuiltDependencies:
   - esbuild
   - simple-git-hooks
   - unrs-resolver
+
+# Supply-chain security baseline (see DevilTea/hub templates/pnpm-security.md)
+minimumReleaseAge: 4320
+trustPolicy: no-downgrade
+blockExoticSubdeps: true
+strictDepBuilds: true
+ignoredBuiltDependencies:
+  - vue-demi
