@@ -1,12 +1,33 @@
+# Supply-chain security baseline (see DevilTea/hub templates/pnpm-security.md)
+minimumReleaseAge: 4320
+trustPolicy: no-downgrade
+# Exact-version exclusions for no-downgrade false positives on old-major
+# backport releases (published on a legacy line after the current major adopted
+# provenance/trusted publishing):
+# - semver@6.3.1: final 6.x backport, dep of @babel/core
+# - rollup@2.80.0: 2.x security backport named as patched by GHSA advisory,
+#   dep of workbox-build
+trustPolicyExclude:
+  - semver@6.3.1
+  - rollup@2.80.0
+blockExoticSubdeps: true
+strictDepBuilds: true
+shellEmulator: true
+overrides:
+  # GHSA-5c6j-r48x-rmvq / GHSA-qj8w-gfj5-8c6v: no patched 6.x exists; v7 is a
+  # drop-in for @rollup/plugin-terser (its 1.0.0 uses ^7.0.3 with the same API).
+  '@rollup/plugin-terser>serialize-javascript': ^7.0.5
+  # limit: workbox 7.4.1 depends on @trickfilm400/rollup-plugin-off-main-thread
+  # @3.0.0-pre1, an unattested fork prerelease that trips trustPolicy
+  # no-downgrade. Pin to 7.4.0 (uses the provenance-attested @surma original).
+  # Upgrade path: drop these pins once that fork ships a trusted release, or
+  # add it to trustPolicyExclude after review.
+  workbox-build: 7.4.0
+  workbox-window: 7.4.0
+ignoredBuiltDependencies:
+  - vue-demi
+
 onlyBuiltDependencies:
   - esbuild
   - simple-git-hooks
   - unrs-resolver
-
-# Supply-chain security baseline (see DevilTea/hub templates/pnpm-security.md)
-minimumReleaseAge: 4320
-trustPolicy: no-downgrade
-blockExoticSubdeps: true
-strictDepBuilds: true
-ignoredBuiltDependencies:
-  - vue-demi
