@@ -30,8 +30,8 @@
 		"vue-router": "^5.1.0"
 	},
 	"devDependencies": {
-		"@deviltea/eslint-config": "^6.0.1",
-		"@deviltea/tsconfig": "^0.0.8",
+		"@deviltea/eslint-config": "^8.0.2",
+		"@deviltea/tsconfig": "^0.0.10",
 		"@iconify-json/f7": "^1.2.2",
 		"@iconify-json/svg-spinners": "^1.2.4",
 		"@pikacss/plugin-icons": "0.0.39",

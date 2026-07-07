@@ -1,5 +1,9 @@
 # Supply-chain security baseline (see DevilTea/hub templates/pnpm-security.md)
 minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - '@deviltea/eslint-config'
+  - '@deviltea/tsconfig'
+shellEmulator: true
 trustPolicy: no-downgrade
 # Exact-version exclusions for no-downgrade false positives on old-major
 # backport releases (published on a legacy line after the current major adopted
@@ -12,7 +16,6 @@ trustPolicyExclude:
   - rollup@2.80.0
 blockExoticSubdeps: true
 strictDepBuilds: true
-shellEmulator: true
 overrides:
   # GHSA-5c6j-r48x-rmvq / GHSA-qj8w-gfj5-8c6v: no patched 6.x exists; v7 is a
   # drop-in for @rollup/plugin-terser (its 1.0.0 uses ^7.0.3 with the same API).
