@@ -19,7 +19,12 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 	}
 
 	function findLastPlayableIndex(list: string[]): number {
-		return list.findLastIndex(id => !options.isMusicDisabled(id))
+		for (let i = list.length - 1; i >= 0; i--) {
+			const id: string = list[i]!
+			if (!options.isMusicDisabled(id))
+				return i
+		}
+		return -1
 	}
 
 	function initQueue(audioIdList: string[], audioId?: string | null | undefined) {

@@ -25,7 +25,7 @@ export const useAppStore = defineStore('app', () => {
 		if (bgData.value == null) {
 			return []
 		}
-		return bgData.value.list.toSorted(() => Math.random() - 0.5)
+		return [...bgData.value.list].sort(() => Math.random() - 0.5)
 	})
 	const currentAutoBgImageIndex = ref(0)
 	function nextAutoBgImage() {
