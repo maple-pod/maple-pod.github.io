@@ -26,12 +26,6 @@ export default defineConfig(async () => ({
 
 		VitePWA({
 			registerType: 'autoUpdate',
-			devOptions: {
-				enabled: true,
-				type: 'module',
-				navigateFallback: 'index.html',
-				suppressWarnings: true,
-			},
 			manifest: {
 				name: 'Maple Pod',
 				short_name: 'Maple Pod',
