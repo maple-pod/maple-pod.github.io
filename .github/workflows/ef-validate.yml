@@ -1,14 +1,16 @@
 # Validates the EF engineering-file state (.engineering/) on every push to
-# master. Runs `ef validate --scope transition` between the pre-push tip and
-# the pushed commit, so active-content changes that bypass the CHG-backed
-# workflow (see AGENTS.md § Engineering Workflow) fail here.
+# master, so active-content changes that bypass the CHG-backed workflow (see
+# AGENTS.md § Engineering Workflow) fail here.
 #
-# Transition scope requires the integration ref (refs/heads/master) to still
-# point at the baseline, so the job rewinds the runner's local master ref and
-# holds the proposed state on a detached HEAD. A push whose baseline is
-# EF-free (the adoption push) is validated as bootstrap + remainder
-# transition instead. Falls back to snapshot scope when no usable baseline
-# exists (force push, manual dispatch).
+# EF validates one commit boundary at a time: transition scope requires the
+# proposed commit's first parent to be exactly the baseline, and bootstrap
+# scope requires the candidate's first parent to be the integration ref's
+# tip. The job therefore walks the pushed range along the first-parent chain,
+# and for each commit touching .engineering/ rewinds the runner's local
+# master ref to that commit's parent and validates the single step (bootstrap
+# scope when the parent is EF-free, transition scope otherwise), finishing
+# with a snapshot check of the pushed tip. Falls back to snapshot-only when
+# no usable baseline exists (force push, manual dispatch).
 name: EF validation
 
 on:
@@ -47,36 +49,44 @@ jobs:
           BEFORE: ${{ github.event.before }}
           SHA: ${{ github.sha }}
         run: |
+          snapshot_tip() {
+            git checkout --detach "$SHA"
+            git update-ref refs/heads/master "$SHA"
+            pnpm exec ef validate --scope snapshot --strict --format json --no-input
+          }
+
           if [ "$EVENT_NAME" != "push" ] \
             || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
             || ! git cat-file -e "$BEFORE" 2>/dev/null; then
-            echo "No usable baseline commit; running snapshot validation instead"
-            pnpm exec ef validate --scope snapshot --strict --format json --no-input
+            echo "No usable baseline commit; running snapshot validation only"
+            snapshot_tip
             exit "$?"
           fi
 
-          if git cat-file -e "$BEFORE:.engineering/ef.yaml" 2>/dev/null; then
-            # Normal case: baseline holds an authoritative EF snapshot.
-            git checkout --detach "$SHA"
-            git update-ref refs/heads/master "$BEFORE"
-            pnpm exec ef validate --scope transition --baseline "$BEFORE" --proposed "$SHA" --strict --format json --no-input
-            exit "$?"
-          fi
+          for C in $(git rev-list --reverse --first-parent "$BEFORE..$SHA"); do
+            if ! PARENT=$(git rev-parse -q --verify "$C^"); then
+              echo "::group::bootstrap-validate root commit $C"
+              git checkout --detach "$C"
+              git update-ref -d refs/heads/master
+              pnpm exec ef validate --scope bootstrap --proposed "$C" --strict --format json --no-input
+              echo "::endgroup::"
+              continue
+            fi
+            if git diff --quiet "$PARENT" "$C" -- .engineering; then
+              continue # no EF change in this step
+            fi
+            git checkout --detach "$C"
+            git update-ref refs/heads/master "$PARENT"
+            if git cat-file -e "$PARENT:.engineering/ef.yaml" 2>/dev/null; then
+              echo "::group::transition-validate $PARENT -> $C"
+              pnpm exec ef validate --scope transition --baseline "$PARENT" --proposed "$C" --strict --format json --no-input
+            else
+              echo "::group::bootstrap-validate $C"
+              pnpm exec ef validate --scope bootstrap --proposed "$C" --strict --format json --no-input
+            fi
+            echo "::endgroup::"
+          done
 
-          # Baseline is EF-free: this push introduces EF. Validate the
-          # bootstrap commit itself, then the remaining commits (if any) as a
-          # transition on top of it.
-          BOOT=$(git log --reverse --diff-filter=A --format=%H "$BEFORE..$SHA" -- .engineering/ef.yaml | head -n 1)
-          if [ -z "$BOOT" ]; then
-            echo "Neither baseline nor push contains .engineering/ef.yaml; running snapshot validation"
-            pnpm exec ef validate --scope snapshot --strict --format json --no-input
-            exit "$?"
-          fi
-          git checkout --detach "$BOOT"
-          git update-ref refs/heads/master "$BEFORE"
-          pnpm exec ef validate --scope bootstrap --proposed "$BOOT" --strict --format json --no-input
-          if [ "$BOOT" != "$SHA" ]; then
-            git checkout --detach "$SHA"
-            git update-ref refs/heads/master "$BOOT"
-            pnpm exec ef validate --scope transition --baseline "$BOOT" --proposed "$SHA" --strict --format json --no-input
-          fi
+          echo "::group::snapshot-validate pushed tip $SHA"
+          snapshot_tip
+          echo "::endgroup::"
