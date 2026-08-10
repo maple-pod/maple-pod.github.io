@@ -14,7 +14,7 @@ src/views/                # Route views (Playlist, Playlists)
 src/router/index.ts       # vue-router routes (exports Routes, auto-imported)
 src/schemas/              # valibot schemas for saved/imported user data
 src/utils/common.ts       # Shared helpers (auto-imported)
-pika.config.ts            # PikaCSS engine config (theme variables, preflights, icons)
+pika.config.ts            # PikaCSS engine config (design tokens for theme colors, preflights, selectors, shortcuts, icons)
 vite.config.ts            # Vite + PWA manifest/workbox + dev proxy + auto-imports
 public/                   # PWA icons, logo
 .github/workflows/        # deploy-pages.yml, security-audit.yml
@@ -45,8 +45,8 @@ pnpm type-check
 
 ## Code Style
 
-- TypeScript via `@deviltea/tsconfig` (project references: `tsconfig.app.json` extends `@deviltea/tsconfig/dom`, `tsconfig.node.json` for tooling)
-- ESLint flat config extending `@deviltea/eslint-config` (tabs, single quotes, no semicolons); `.planning/**` is ignored
+- TypeScript via `@deviltea/tsconfig` (project references: `tsconfig.app.json` extends `@deviltea/tsconfig/browser`, `tsconfig.node.json` for tooling)
+- ESLint flat config extending `@deviltea/eslint-config` (tabs, single quotes, no semicolons); `.planning/**` and tool-managed agent skill/hook files (`.agents/`, `.claude/`, `.codex/`, `.github/{agents,hooks,skills}/`, `skills-lock.json`) are ignored
 - Auto-imports (unplugin-auto-import): `vue`, `vue-router`, `pinia`, `@vueuse/core`, `Routes` from `@/router/index`, plus everything in `src/composables/` and `src/utils/` — do not add manual imports for these
 - Components are auto-registered (unplugin-vue-components); `auto-imports.d.ts` / `components.d.ts` / `pika.gen.ts` are generated — never edit by hand
 - Path alias `@` -> `src/`
@@ -54,8 +54,7 @@ pnpm type-check
 
 ## Release
 
-- Push to `master` triggers `.github/workflows/deploy-pages.yml`: pnpm install, writes `.env.production` from repo secrets (`WORKER_URL`, `MAGIC_HEADER_KEY`, `MAGIC_HEADER_VALUE` -> `VITE_APP_*`), `pnpm build`, copies `dist/index.html` to `dist/404.html` (SPA fallback), deploys `dist/` to GitHub Pages
-- The workflow fails fast if any of the three secrets is empty
+- Push to `master` triggers `.github/workflows/deploy-pages.yml`: pnpm install, `pnpm build`, copies `dist/index.html` to `dist/404.html` (SPA fallback), deploys `dist/` to GitHub Pages
 - `.github/workflows/security-audit.yml` runs `pnpm audit --audit-level=moderate` weekly (Sunday 21:00 UTC) and on manual dispatch
 
 ## Gotchas
@@ -63,6 +62,5 @@ pnpm type-check
 - `pnpm-workspace.yaml` holds the pnpm supply-chain baseline (`minimumReleaseAge`, `trustPolicy: no-downgrade` with `trustPolicyExclude` entries, `strictDepBuilds`, `overrides`) — each setting is commented in-file; new deps needing build scripts must be reviewed into `onlyBuiltDependencies`/`ignoredBuiltDependencies`
 - workbox is pinned to 7.4.0 (`workbox-build`/`workbox-window` overrides + exact `workbox-window` devDep) because 7.4.1 pulls an unattested fork prerelease that trips `trustPolicy` — see the `limit:` comment in `pnpm-workspace.yaml` before bumping
 - `__GIT_COMMIT_HASH__` is injected at build time from `git rev-parse` (via simple-git) — builds outside a git checkout get `'unknown'`
-- PWA dev options are enabled: the service worker also runs under `pnpm dev`
 - Node >= 24 required (`engines`); pnpm pinned via `packageManager` (10.34.4)
 - README is a stub; the PWA manifest in `vite.config.ts` is the source of the app name/description

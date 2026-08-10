@@ -5,9 +5,9 @@
 ## APIs & External Services
 
 **Music Resources API:**
-- Backend: https://maple-pod.deviltea.me (production) / http://localhost:8787 (development)
+- Backend: https://maple-pod.deviltea.me (proxied directly by the dev server; no separate worker/proxy service)
   - SDK/Client: ofetch 1.4.1
-  - Auth: Custom magic headers (env vars `VITE_APP_MAGIC_HEADER_KEY` and `VITE_APP_MAGIC_HEADER_VALUE`)
+  - Auth: None
   - Endpoints:
     - `/resources/data.json` - Music metadata, BGM list, cover marks
     - `/resources/bgm/{filename}.mp3` - Audio file streaming
@@ -55,8 +55,6 @@
 
 **Auth Provider:**
 - None (no user accounts)
-  - Implementation: Magic header-based API authentication (server-side)
-  - Headers configured via environment variables
   - All data stored locally in browser
 
 ## Monitoring & Observability
@@ -79,24 +77,15 @@
 - GitHub Actions (`.github/workflows/deploy-pages.yml`)
   - Trigger: Push to `master` branch or manual dispatch
   - Build: pnpm install → pnpm build
-  - Environment secrets injection during build
   - Deploy: Upload to GitHub Pages
 
 **Required Secrets (GitHub):**
-- `WORKER_URL` - Production worker URL
-- `MAGIC_HEADER_KEY` - API auth header name
-- `MAGIC_HEADER_VALUE` - API auth header value
+- None
 
 ## Environment Configuration
 
 **Required env vars:**
-- `VITE_APP_WORKER_URL` - Backend worker URL
-- `VITE_APP_MAGIC_HEADER_KEY` - Authentication header name
-- `VITE_APP_MAGIC_HEADER_VALUE` - Authentication header value
-
-**Secrets location:**
-- Development: `.env.development` (not committed)
-- Production: GitHub repository secrets → injected as `.env.production` during CI build
+- None
 
 ## Webhooks & Callbacks
 
@@ -115,7 +104,7 @@
   - Implementation: `src/composables/useMusicStore.ts` (lines 239-302)
 
 **Service Worker API:**
-- vite-plugin-pwa 1.0.0
+- vite-plugin-pwa ^1.3.0
   - Purpose: PWA capabilities, offline support, asset caching
   - Registration: `virtual:pwa-register/vue` in `src/components/PwaReloadPrompt.vue`
   - Strategy: autoUpdate with prompt for new versions

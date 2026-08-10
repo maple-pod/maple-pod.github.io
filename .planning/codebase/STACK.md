@@ -65,7 +65,7 @@
 - @deviltea/vue-router-middleware 0.0.3 - Route middleware handling
 
 **PWA:**
-- vite-plugin-pwa 1.0.0 - Service worker and PWA manifest generation
+- vite-plugin-pwa ^1.3.0 - Service worker and PWA manifest generation
 - Workbox - Runtime caching (configured for Google Fonts, resources)
 
 **Development:**
@@ -76,12 +76,7 @@
 ## Configuration
 
 **Environment:**
-- Development: `.env.development` (worker URL, magic headers for dev proxy)
-- Production: `.env.production` (created by CI/CD from GitHub secrets)
-- Required env vars:
-  - `VITE_APP_WORKER_URL` - Backend worker URL
-  - `VITE_APP_MAGIC_HEADER_KEY` - Authentication header name
-  - `VITE_APP_MAGIC_HEADER_VALUE` - Authentication header value
+- No custom env vars; dev server proxies `/resources/*` directly to `https://maple-pod.deviltea.me`
 
 **Build:**
 - `vite.config.ts` - Build configuration, plugins, dev server proxy
