@@ -111,7 +111,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 						:class="pika('card', {
 							padding: '8px',
 							minWidth: '200px',
-							zIndex: 2,
+							zIndex: '2',
 						})"
 					>
 						<template
@@ -160,7 +160,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 						:class="pika('card', {
 							padding: '8px',
 							minWidth: '200px',
-							zIndex: 2,
+							zIndex: '2',
 						})"
 					>
 						<slot :name="item.id" />
@@ -180,7 +180,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 				:class="pika('card', {
 					padding: '8px',
 					minWidth: '200px',
-					zIndex: 2,
+					zIndex: '2',
 				})"
 			>
 				<slot name="menu">

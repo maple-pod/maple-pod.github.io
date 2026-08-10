@@ -35,7 +35,7 @@ const _modelValue = computed<[number]>({
 			},
 
 			'$[data-disabled]': {
-				opacity: 0.5,
+				opacity: '0.5',
 				cursor: 'not-allowed',
 			},
 		})"

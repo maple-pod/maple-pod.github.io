@@ -68,12 +68,12 @@ const bg = computed(() => (loadedBg.value.preview == null && loadedBg.value.full
 			'$::after': {
 				content: '\'\'',
 				position: 'absolute',
-				top: 0,
-				left: 0,
+				top: '0',
+				left: '0',
 				width: '100%',
 				height: '100%',
 				backdropFilter: 'blur(var(--blur))',
-				zIndex: 0,
+				zIndex: '0',
 				transition: 'backdrop-filter 0.3s ease-in-out',
 			},
 		})"

@@ -1,13 +1,15 @@
 /** @type {import('./pika.gen')} */
-import { icons } from '@pikacss/plugin-icons'
+import { defineEngineConfig } from '@pikacss/core'
+import { designTokens } from '@pikacss/plugin-design-tokens'
+import { icons } from '@pikacss/plugin-icons/node'
 import { reset } from '@pikacss/plugin-reset'
-import { defineEngineConfig } from '@pikacss/unplugin-pikacss'
 
 export default defineEngineConfig({
 	// Add your PikaCSS engine config here
 	plugins: [
 		reset(),
 		icons(),
+		designTokens(),
 	],
 
 	preflights: [
@@ -29,51 +31,62 @@ export default defineEngineConfig({
 		},
 	],
 
-	variables: {
-		variables: {
-			'--color-primary-1': 'rgb(219, 66, 66)',
-			'--color-secondary-1': 'rgb(255, 193, 95)',
-			'--color-danger-1': 'rgb(255, 82, 82)',
+	designTokens: {
+		sources: {
+			color: {
+				'primary-1': { $value: 'rgb(219, 66, 66)', $type: 'color' },
+				'secondary-1': { $value: 'rgb(255, 193, 95)', $type: 'color' },
+				'danger-1': { $value: 'rgb(255, 82, 82)', $type: 'color' },
 
-			'--color-primary-text': 'rgb(17, 17, 17)',
-			'--color-secondary-text': 'rgba(77, 77, 77, 1)',
-			'--color-primary-bg': 'rgb(254, 254, 254)',
-			'--color-secondary-bg': 'rgb(153, 153, 153)',
-			'--color-border': 'rgba(102, 102, 102, 0.2)',
-			'--color-site-bg': 'rgb(220, 220, 220)',
-			'--color-card-bg': 'rgba(254, 254, 254, 0.7)',
-			'--color-hover-mask': 'rgba(16, 15, 15, 0.4)',
-
-			'@dark': {
-				'--color-primary-1': 'rgb(227, 98, 98)',
-				'--color-primary-text': 'rgb(238, 238, 238)',
-				'--color-secondary-text': 'rgb(170, 170, 170)',
-				'--color-primary-bg': 'rgb(1, 1, 1)',
-				'--color-secondary-bg': 'rgb(102, 102, 102)',
-				'--color-border': 'rgba(170, 170, 170, 0.2)',
-				'--color-site-bg': 'rgb(50, 50, 50)',
-				'--color-card-bg': 'rgba(1, 1, 1, 0.6)',
-				'--color-hover-mask': 'rgba(255, 255, 255, 0.4)',
+				'primary-text': { $value: 'rgb(17, 17, 17)', $type: 'color' },
+				'secondary-text': { $value: 'rgba(77, 77, 77, 1)', $type: 'color' },
+				'primary-bg': { $value: 'rgb(254, 254, 254)', $type: 'color' },
+				'secondary-bg': { $value: 'rgb(153, 153, 153)', $type: 'color' },
+				'border': { $value: 'rgba(102, 102, 102, 0.2)', $type: 'color' },
+				'site-bg': { $value: 'rgb(220, 220, 220)', $type: 'color' },
+				'card-bg': { $value: 'rgba(254, 254, 254, 0.7)', $type: 'color' },
+				'hover-mask': { $value: 'rgba(16, 15, 15, 0.4)', $type: 'color' },
 			},
 		},
+		themes: {
+			dark: {
+				selector: '[color-scheme="dark"]',
+				sources: {
+					color: {
+						'primary-1': { $value: 'rgb(227, 98, 98)', $type: 'color' },
+						'primary-text': { $value: 'rgb(238, 238, 238)', $type: 'color' },
+						'secondary-text': { $value: 'rgb(170, 170, 170)', $type: 'color' },
+						'primary-bg': { $value: 'rgb(1, 1, 1)', $type: 'color' },
+						'secondary-bg': { $value: 'rgb(102, 102, 102)', $type: 'color' },
+						'border': { $value: 'rgba(170, 170, 170, 0.2)', $type: 'color' },
+						'site-bg': { $value: 'rgb(50, 50, 50)', $type: 'color' },
+						'card-bg': { $value: 'rgba(1, 1, 1, 0.6)', $type: 'color' },
+						'hover-mask': { $value: 'rgba(255, 255, 255, 0.4)', $type: 'color' },
+					},
+				},
+			},
+		},
+	},
+
+	variables: {
 		safeList: ['--color-site-bg', '--color-primary-text'],
 	},
 
 	keyframes: {
-		keyframes: [
+		definitions: [
 			['fade-in', {
-				from: { opacity: 0 },
-				to: { opacity: 1 },
+				from: { opacity: '0' },
+				to: { opacity: '1' },
 			}],
 			['fade-out', {
-				from: { opacity: 1 },
-				to: { opacity: 0 },
+				from: { opacity: '1' },
+				to: { opacity: '0' },
 			}],
 		],
 	},
 
 	selectors: {
-		selectors: [
+		definitions: [
 			['@light', '[color-scheme="light"]'],
 			['@dark', '[color-scheme="dark"]'],
 			['@docpip', '@media all and (display-mode: picture-in-picture)'],
@@ -125,7 +138,7 @@ export default defineEngineConfig({
 	},
 
 	shortcuts: {
-		shortcuts: [
+		definitions: [
 			[
 				'card-border',
 				{
@@ -175,7 +188,7 @@ export default defineEngineConfig({
 					'display': 'inline-flex',
 					'alignItems': 'center',
 					'justifyContent': 'center',
-					'flexShrink': 0,
+					'flexShrink': '0',
 					'padding': '8px 16px',
 					'fontSize': '16px',
 					'borderRadius': '8px',
@@ -183,7 +196,7 @@ export default defineEngineConfig({
 					'transition': 'all 0.1s',
 
 					'$:disabled': {
-						opacity: 0.3,
+						opacity: '0.3',
 						cursor: 'not-allowed',
 					},
 
@@ -201,7 +214,7 @@ export default defineEngineConfig({
 				[
 					'base-btn',
 					{
-						color: 'var(--color-gray-1)',
+						color: 'var(--color-primary-bg)',
 						backgroundColor: 'var(--color-primary-1)',
 					},
 				],
@@ -273,7 +286,7 @@ export default defineEngineConfig({
 				([, weight]) => ({
 					fontFamily: 'Comfortaa',
 					fontOpticalSizing: 'auto',
-					fontWeight: weight ? -Number(weight) : 400,
+					fontWeight: weight ? String(-Number(weight)) : '400',
 					fontStyle: 'normal',
 				}),
 				[

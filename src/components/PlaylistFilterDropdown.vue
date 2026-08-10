@@ -73,7 +73,7 @@ const marksInRows = computed(() => {
 					padding: '12px',
 					minWidth: '200px',
 					maxWidth: '500px',
-					zIndex: 2,
+					zIndex: '2',
 				})"
 			>
 				<!-- Control buttons -->

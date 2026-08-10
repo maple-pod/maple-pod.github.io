@@ -15,11 +15,11 @@ import { TooltipArrow, TooltipContent, TooltipPortal, TooltipProvider, TooltipRo
 					:class="pika('card', {
 						padding: '4px 8px',
 						fontSize: '14px',
-						zIndex: 2,
+						zIndex: '2',
 					})"
 					:sideOffset="8"
 				>
-					<span :class="pika({ opacity: 0.7 })">
+					<span :class="pika({ opacity: '0.7' })">
 						<slot name="content" />
 					</span>
 					<TooltipArrow
