@@ -212,3 +212,5 @@ auto-imports.d.ts
 components.d.ts
 
 dev-dist
+# Claude Code personal local settings (impeccable hooks live here per-machine)
+.claude/settings.local.json

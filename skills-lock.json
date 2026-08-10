@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "pikacss-use": {
+      "source": "pikacss/pikacss",
+      "sourceType": "github",
+      "skillPath": "skills/pikacss-use/SKILL.md",
+      "computedHash": "58e49b6f9686c380beb36d9880c0e37520f81fc58ce8565d7f5db1371fb80a3c"
+    }
+  }
+}
