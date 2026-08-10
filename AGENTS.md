@@ -17,11 +17,23 @@ src/utils/common.ts       # Shared helpers (auto-imported)
 pika.config.ts            # PikaCSS engine config (design tokens for theme colors, preflights, selectors, shortcuts, icons)
 vite.config.ts            # Vite + PWA manifest/workbox + dev proxy + auto-imports
 public/                   # PWA icons, logo
-.github/workflows/        # deploy-pages.yml, security-audit.yml
+.github/workflows/        # deploy-pages.yml, security-audit.yml, ef-validate.yml
 .engineering/             # EF engineering files (PROJECT/PRD/REQ/ADR/POL/CHG) managed via the `ef` CLI (@deviltea/ef)
 ```
 
-Engineering knowledge (product intent, requirements, decisions, policies) lives in `.engineering/` and is managed with the `ef` CLI (`pnpm exec ef help`) — use the `author-engineering-files` skill to author or change these files; never edit active EF content without its CHG-backed workflow.
+Engineering knowledge (product intent, requirements, decisions, policies) lives in `.engineering/` and is managed with the `ef` CLI (`pnpm exec ef help`) — see the Engineering Workflow section below.
+
+## Engineering Workflow (EF)
+
+Every feature request or behavior change follows this loop — not only edits to `.engineering/` files. Use the `author-engineering-files` skill when authoring EF content and `review-engineering-change` when reviewing a proposed change.
+
+1. **Discover context** — answer "what does the project intend?" with `ef query list/search/lookup` against `.engineering/`, not by re-reading source for intent.
+2. **Draft first** — capture the new requirement/decision as a draft PRD/REQ/ADR (`ef artifact create <type>`) and confirm wording with the maintainer before implementing. Drafts are freely editable and need no CHG.
+3. **Implement** the code change as usual (lint, type-check, verify).
+4. **Complete via CHG** — create a CHG Artifact recording the transaction (`introduces`/`modifies`/`retires` effect relations), flip accepted drafts to `active`, and fill the CHG's Rationale / Sources / Changes / Verification sections.
+5. **Validate, then integrate** — `ef validate --scope snapshot` on the working tree; build the candidate commit on a detached HEAD; `ef validate --scope transition --baseline <master tip> --proposed <candidate>`; fast-forward `master` only after it passes. Transition validation exits 2 (EF-VAL-002) if `master` already points at the candidate — always validate before moving the ref.
+
+Hard rules: any change to *active* EF content — frontmatter, body, tags, relations, Resources, `ef.yaml`, even a typo — requires a CHG; PROJECT is edited only via CHG (it is never recreated); pure questions need only `ef query` and no mutation. CI re-runs transition validation on every push (`.github/workflows/ef-validate.yml`), so changes that bypass this workflow fail there.
 
 ## Setup Commands
 
