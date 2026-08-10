@@ -5,8 +5,10 @@
 #
 # Transition scope requires the integration ref (refs/heads/master) to still
 # point at the baseline, so the job rewinds the runner's local master ref and
-# holds the proposed state on a detached HEAD. Falls back to snapshot scope
-# when no usable baseline exists (force push, manual dispatch).
+# holds the proposed state on a detached HEAD. A push whose baseline is
+# EF-free (the adoption push) is validated as bootstrap + remainder
+# transition instead. Falls back to snapshot scope when no usable baseline
+# exists (force push, manual dispatch).
 name: EF validation
 
 on:
@@ -52,6 +54,29 @@ jobs:
             pnpm exec ef validate --scope snapshot --strict --format json --no-input
             exit "$?"
           fi
-          git checkout --detach "$SHA"
+
+          if git cat-file -e "$BEFORE:.engineering/ef.yaml" 2>/dev/null; then
+            # Normal case: baseline holds an authoritative EF snapshot.
+            git checkout --detach "$SHA"
+            git update-ref refs/heads/master "$BEFORE"
+            pnpm exec ef validate --scope transition --baseline "$BEFORE" --proposed "$SHA" --strict --format json --no-input
+            exit "$?"
+          fi
+
+          # Baseline is EF-free: this push introduces EF. Validate the
+          # bootstrap commit itself, then the remaining commits (if any) as a
+          # transition on top of it.
+          BOOT=$(git log --reverse --diff-filter=A --format=%H "$BEFORE..$SHA" -- .engineering/ef.yaml | head -n 1)
+          if [ -z "$BOOT" ]; then
+            echo "Neither baseline nor push contains .engineering/ef.yaml; running snapshot validation"
+            pnpm exec ef validate --scope snapshot --strict --format json --no-input
+            exit "$?"
+          fi
+          git checkout --detach "$BOOT"
           git update-ref refs/heads/master "$BEFORE"
-          pnpm exec ef validate --scope transition --baseline "$BEFORE" --proposed "$SHA" --strict --format json --no-input
+          pnpm exec ef validate --scope bootstrap --proposed "$BOOT" --strict --format json --no-input
+          if [ "$BOOT" != "$SHA" ]; then
+            git checkout --detach "$SHA"
+            git update-ref refs/heads/master "$BOOT"
+            pnpm exec ef validate --scope transition --baseline "$BOOT" --proposed "$SHA" --strict --format json --no-input
+          fi
