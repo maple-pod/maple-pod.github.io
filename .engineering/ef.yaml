@@ -1,0 +1,6 @@
+schema: ef/config@1
+repository:
+  integration_ref: refs/heads/master
+linked_repositories: []
+schemas:
+  artifact_write_major: 1

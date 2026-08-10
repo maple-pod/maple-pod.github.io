@@ -18,7 +18,10 @@ pika.config.ts            # PikaCSS engine config (design tokens for theme color
 vite.config.ts            # Vite + PWA manifest/workbox + dev proxy + auto-imports
 public/                   # PWA icons, logo
 .github/workflows/        # deploy-pages.yml, security-audit.yml
+.engineering/             # EF engineering files (PROJECT/PRD/REQ/ADR/POL/CHG) managed via the `ef` CLI (@deviltea/ef)
 ```
+
+Engineering knowledge (product intent, requirements, decisions, policies) lives in `.engineering/` and is managed with the `ef` CLI (`pnpm exec ef help`) — use the `author-engineering-files` skill to author or change these files; never edit active EF content without its CHG-backed workflow.
 
 ## Setup Commands
 
@@ -46,7 +49,7 @@ pnpm type-check
 ## Code Style
 
 - TypeScript via `@deviltea/tsconfig` (project references: `tsconfig.app.json` extends `@deviltea/tsconfig/browser`, `tsconfig.node.json` for tooling)
-- ESLint flat config extending `@deviltea/eslint-config` (tabs, single quotes, no semicolons); `.planning/**` and tool-managed agent skill/hook files (`.agents/`, `.claude/`, `.codex/`, `skills-lock.json`) are ignored
+- ESLint flat config extending `@deviltea/eslint-config` (tabs, single quotes, no semicolons); `.engineering/**` (canonically formatted by the `ef` CLI) and tool-managed agent skill/hook files (`.agents/`, `.claude/`, `.codex/`, `skills-lock.json`) are ignored
 - Auto-imports (unplugin-auto-import): `vue`, `vue-router`, `pinia`, `@vueuse/core`, `Routes` from `@/router/index`, plus everything in `src/composables/` and `src/utils/` — do not add manual imports for these
 - Components are auto-registered (unplugin-vue-components); `auto-imports.d.ts` / `components.d.ts` / `pika.gen.ts` are generated — never edit by hand
 - Path alias `@` -> `src/`

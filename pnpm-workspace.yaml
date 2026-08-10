@@ -3,6 +3,7 @@ minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - '@deviltea/eslint-config'
   - '@deviltea/tsconfig'
+  - '@deviltea/ef'
 shellEmulator: true
 trustPolicy: no-downgrade
 # Exact-version exclusions for no-downgrade false positives on old-major

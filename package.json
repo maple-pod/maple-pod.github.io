@@ -30,6 +30,7 @@
 		"vue-router": "^5.2.0"
 	},
 	"devDependencies": {
+		"@deviltea/ef": "^0.0.1",
 		"@deviltea/eslint-config": "^9.0.0",
 		"@deviltea/tsconfig": "^1.0.0",
 		"@iconify-json/f7": "^1.2.2",
