@@ -7,9 +7,6 @@ export default deviltea({
 		'.agents/**',
 		'.claude/**',
 		'.codex/**',
-		'.github/agents/**',
-		'.github/hooks/**',
-		'.github/skills/**',
 		'skills-lock.json',
 	],
 })

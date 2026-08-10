@@ -46,7 +46,7 @@ pnpm type-check
 ## Code Style
 
 - TypeScript via `@deviltea/tsconfig` (project references: `tsconfig.app.json` extends `@deviltea/tsconfig/browser`, `tsconfig.node.json` for tooling)
-- ESLint flat config extending `@deviltea/eslint-config` (tabs, single quotes, no semicolons); `.planning/**` and tool-managed agent skill/hook files (`.agents/`, `.claude/`, `.codex/`, `.github/{agents,hooks,skills}/`, `skills-lock.json`) are ignored
+- ESLint flat config extending `@deviltea/eslint-config` (tabs, single quotes, no semicolons); `.planning/**` and tool-managed agent skill/hook files (`.agents/`, `.claude/`, `.codex/`, `skills-lock.json`) are ignored
 - Auto-imports (unplugin-auto-import): `vue`, `vue-router`, `pinia`, `@vueuse/core`, `Routes` from `@/router/index`, plus everything in `src/composables/` and `src/utils/` — do not add manual imports for these
 - Components are auto-registered (unplugin-vue-components); `auto-imports.d.ts` / `components.d.ts` / `pika.gen.ts` are generated — never edit by hand
 - Path alias `@` -> `src/`
