@@ -32,21 +32,24 @@ interface MarkItem {
 	count: number
 }
 
-const availableMarks = computed<MarkItem[]>(() => {
+// All resolvable tracks in the current playlist, before any filtering
+const allTracks = computed<MusicData[]>(() => {
 	const currentPlaylist = getPlaylist(props.playlistId)
 	if (!currentPlaylist)
 		return []
 
-	const marks: MarkItem[] = []
-
-	// Get all tracks in current playlist
-	const allTracks = currentPlaylist.list
+	return currentPlaylist.list
 		.map(id => getMusicData(id))
 		.filter((t): t is MusicData => t != null)
+})
+
+const availableMarks = computed<MarkItem[]>(() => {
+	const tracks = allTracks.value
+	const marks: MarkItem[] = []
 
 	// Group by mark to maintain order and get cover image
 	const seenMarks = new Set<string>()
-	for (const track of allTracks) {
+	for (const track of tracks) {
 		const mark = track.data.mark
 		// Skip empty/null marks
 		if (!mark || seenMarks.has(mark))
@@ -55,7 +58,7 @@ const availableMarks = computed<MarkItem[]>(() => {
 		seenMarks.add(mark)
 
 		// Count tracks for this mark
-		const count = allTracks.filter(t => t.data.mark === mark).length
+		const count = tracks.filter(t => t.data.mark === mark).length
 
 		marks.push({
 			name: mark,
@@ -67,25 +70,22 @@ const availableMarks = computed<MarkItem[]>(() => {
 	return marks
 })
 
+const hasActiveFilters = computed(() => selectedMarks.value.size > 0)
+
 // Filter tracks based on selected marks using OR logic
 const filteredTracks = computed(() => {
-	const playlist = getPlaylist(props.playlistId)
-	if (!playlist)
-		return []
-
-	const allTracks = playlist.list
-		.map(id => getMusicData(id))
-		.filter((t): t is MusicData => t != null)
-
 	// Default state: show all tracks when no marks selected
-	if (selectedMarks.value.size === 0) {
-		return allTracks
+	if (hasActiveFilters.value === false) {
+		return allTracks.value
 	}
 
 	// OR logic: show track if its mark is in the selected set
 	// Set.has() provides O(1) lookup performance
-	return allTracks.filter(track => selectedMarks.value.has(track.data.mark))
+	return allTracks.value.filter(track => selectedMarks.value.has(track.data.mark))
 })
+
+// Filters are active but hide every track: the list would otherwise render as blank
+const hasNoFilterResults = computed(() => hasActiveFilters.value && filteredTracks.value.length === 0)
 
 // Clear filter state when playlist changes
 watch(() => props.playlistId, () => {
@@ -184,16 +184,35 @@ useRafFn(() => {
 					Back to playlists
 				</template>
 			</UiTooltip>
-			<UiMarquee
+			<div
 				:class="pika({
-					maxWidth: '250px',
-					fontSize: '24px',
-					fontWeight: '100',
+					display: 'flex',
+					alignItems: 'baseline',
+					gap: '8px',
+					minWidth: '0',
 					marginRight: 'auto',
 				})"
 			>
-				{{ title }}
-			</UiMarquee>
+				<UiMarquee
+					:class="pika({
+						maxWidth: '250px',
+						fontSize: '24px',
+						fontWeight: '100',
+					})"
+				>
+					{{ title }}
+				</UiMarquee>
+				<span
+					v-if="hasActiveFilters"
+					:class="pika({
+						fontSize: '12px',
+						color: 'var(--color-secondary-text)',
+						whiteSpace: 'nowrap',
+					})"
+				>
+					{{ filteredTracks.length }}/{{ allTracks.length }} tracks
+				</span>
+			</div>
 			<PlaylistFilterDropdown
 				v-model="selectedMarksArray"
 				:marks="availableMarks"
@@ -246,7 +265,24 @@ useRafFn(() => {
 				minHeight: '0',
 			})"
 		>
+			<div
+				v-if="hasNoFilterResults"
+				:class="pika({
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'center',
+					width: '100%',
+					height: '100%',
+					fontSize: '14px',
+					color: 'var(--color-secondary-text)',
+					textAlign: 'center',
+				})"
+			>
+				No tracks match the selected filters
+			</div>
+
 			<UiVerticalList
+				v-else
 				ref="uiVerticalListRef"
 				:items
 				:itemHeight="72"
