@@ -3,6 +3,20 @@ import { icons } from '@pikacss/plugin-icons/node'
 import { reset } from '@pikacss/plugin-reset'
 import { defineConfig } from '@pikacss/unplugin-pikacss'
 
+const semanticColorTokens = {
+	'action-primary': { $value: '{color.primary-1}', $type: 'color' },
+	'action-secondary': { $value: '{color.secondary-1}', $type: 'color' },
+	'action-danger': { $value: '{color.danger-1}', $type: 'color' },
+	'text-primary': { $value: '{color.primary-text}', $type: 'color' },
+	'text-secondary': { $value: '{color.secondary-text}', $type: 'color' },
+	'surface-canvas': { $value: '{color.site-bg}', $type: 'color' },
+	'surface-card': { $value: '{color.card-bg}', $type: 'color' },
+	'surface-solid': { $value: '{color.primary-bg}', $type: 'color' },
+	'border-subtle': { $value: '{color.border}', $type: 'color' },
+	'focus-ring': { $value: '{color.primary-1}', $type: 'color' },
+	'state-hover-mask': { $value: '{color.hover-mask}', $type: 'color' },
+} as const
+
 export default defineConfig({
 	engine: {
 		// Add your PikaCSS engine config here
@@ -51,17 +65,7 @@ export default defineConfig({
 					'card-bg': { $value: 'rgba(254, 254, 254, 0.7)', $type: 'color' },
 					'hover-mask': { $value: 'rgba(16, 15, 15, 0.4)', $type: 'color' },
 
-					'action-primary': { $value: '{color.primary-1}', $type: 'color' },
-					'action-secondary': { $value: '{color.secondary-1}', $type: 'color' },
-					'action-danger': { $value: '{color.danger-1}', $type: 'color' },
-					'text-primary': { $value: '{color.primary-text}', $type: 'color' },
-					'text-secondary': { $value: '{color.secondary-text}', $type: 'color' },
-					'surface-canvas': { $value: '{color.site-bg}', $type: 'color' },
-					'surface-card': { $value: '{color.card-bg}', $type: 'color' },
-					'surface-solid': { $value: '{color.primary-bg}', $type: 'color' },
-					'border-subtle': { $value: '{color.border}', $type: 'color' },
-					'focus-ring': { $value: '{color.primary-1}', $type: 'color' },
-					'state-hover-mask': { $value: '{color.hover-mask}', $type: 'color' },
+					...semanticColorTokens,
 				},
 				spacing: {
 					1: { $value: '4px', $type: 'dimension' },
@@ -101,6 +105,9 @@ export default defineConfig({
 							'site-bg': { $value: 'rgb(50, 50, 50)', $type: 'color' },
 							'card-bg': { $value: 'rgba(1, 1, 1, 0.6)', $type: 'color' },
 							'hover-mask': { $value: 'rgba(255, 255, 255, 0.4)', $type: 'color' },
+
+							// Semantic aliases are scoped again so they resolve against dark foundations.
+							...semanticColorTokens,
 						},
 					},
 				},

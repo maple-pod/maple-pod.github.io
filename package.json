@@ -10,10 +10,11 @@
 	"scripts": {
 		"dev": "vite",
 		"preview": "vite preview",
-		"build": "vite build",
+		"build": "vite build && pnpm verify:theme",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",
-		"type-check": "pikacss prepare && vue-tsc --build --noEmit"
+		"type-check": "pikacss prepare && vue-tsc --build --noEmit",
+		"verify:theme": "node scripts/verify-theme-tokens.mjs"
 	},
 	"dependencies": {
 		"@deviltea/vue-router-middleware": "^0.0.4",
