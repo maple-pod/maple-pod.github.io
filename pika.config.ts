@@ -12,6 +12,7 @@ const semanticColorTokens = {
 	'surface-canvas': { $value: '{color.site-bg}', $type: 'color' },
 	'surface-card': { $value: '{color.card-bg}', $type: 'color' },
 	'surface-solid': { $value: '{color.primary-bg}', $type: 'color' },
+	'slider-thumb': { $value: 'rgb(254, 254, 254)', $type: 'color' },
 	'border-subtle': { $value: '{color.border}', $type: 'color' },
 	'focus-ring': { $value: '{color.primary-1}', $type: 'color' },
 	'state-hover-mask': { $value: '{color.hover-mask}', $type: 'color' },

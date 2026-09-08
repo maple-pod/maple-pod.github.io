@@ -19,6 +19,7 @@ const required = [
 	'--color-text-secondary:',
 	'--color-surface-card:',
 	'--color-surface-solid:',
+	'--color-slider-thumb:#fefefe',
 	'--color-border-subtle:',
 	'--color-focus-ring:',
 	'--color-state-hover-mask:',

@@ -101,7 +101,7 @@ const _modelValue = computed<[number]>({
 					'width': '16px',
 					'height': '16px',
 					'borderRadius': '50%',
-					'backgroundColor': 'var(--color-surface-solid)',
+					'backgroundColor': 'var(--color-slider-thumb)',
 					'boxShadow': '0 2px 6px rgba(0, 0, 0, 0.2)',
 
 					'$::before': {

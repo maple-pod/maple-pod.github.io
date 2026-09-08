@@ -10,6 +10,7 @@ colors:
   surface-canvas: "rgb(220, 220, 220)"
   surface-card: "rgba(254, 254, 254, 0.7)"
   surface-solid: "rgb(254, 254, 254)"
+  slider-thumb: "rgb(254, 254, 254)"
   border-subtle: "rgba(102, 102, 102, 0.2)"
   state-hover-mask: "rgba(16, 15, 15, 0.4)"
   focus-ring: "rgb(219, 66, 66)"
@@ -98,6 +99,7 @@ The palette uses a single restrained red action voice over neutral translucent s
 - **Secondary Text** (`rgb(77, 77, 77)`; dark `rgb(170, 170, 170)`): supporting copy and resting icon color.
 - **Canvas** (`rgb(220, 220, 220)`; dark `rgb(50, 50, 50)`): fallback page background beneath artwork.
 - **Glass Card** (`rgba(254, 254, 254, 0.7)`; dark `rgba(1, 1, 1, 0.6)`): main translucent surface.
+- **Slider Thumb** (`rgb(254, 254, 254)` in both themes): the visible 16px slider handle stays light so its position remains legible against both the quiet rail and dark player surfaces.
 - **Subtle Border** (`rgba(102, 102, 102, 0.2)`; dark `rgba(170, 170, 170, 0.2)`): structural separation without heavy chrome.
 
 ### Named Rules
@@ -188,6 +190,7 @@ Interactive size and visible size are separate concepts. Primary touch controls 
 
 ### Slider / Progress
 - **Track:** visually quiet 6px rail with primary-red filled range.
+- **Thumb:** 16px high-contrast light neutral using the `slider-thumb` semantic role; it must remain visibly distinct from the rail and surrounding surface in both light and dark themes.
 - **Touch area:** the slider control and thumb expose a 44px interaction target while the visible thumb remains 16px.
 - **Focus:** the thumb uses the shared focus-ring treatment.
 - **Reduced motion:** animated progress/marquee movement becomes immediate or non-spatial while preserving the represented state.
