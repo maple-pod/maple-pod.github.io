@@ -143,6 +143,20 @@ external `reference` - Core never fetches it and it can never be
 the owner is active, Resource changes fall under the same CHG boundary as any
 other active content change.
 
+## Terminology ordering (PROJECT)
+
+PROJECT's `Terminology` table has no `ef artifact create` step - it is
+authored by direct file edit, either via `ef init`'s `--terminology`
+Markdown table (`references/project-init.md`) or, once PROJECT is active, a
+CHG-backed edit (`references/chg-planning.md`). The same canonical-order
+discipline as tags and relations above applies: canonical `Term` cells MUST
+use Unicode NFC, MUST be unique after trimming surrounding whitespace, and
+MUST be sorted by the trimmed plain-text UTF-8 byte sequence - ordering
+`Term`, not `Definition` or `Avoid or aliases`. A missing, malformed,
+duplicated, or invalid term is `EF-BODY-018` (error); rows present but out of
+canonical order is `EF-BODY-019` (a warning that only fails validation under
+`--strict` or `--warnings-as-errors`).
+
 ## Guardrails
 
 - Never create PROJECT, or an Artifact of the wrong type for the knowledge

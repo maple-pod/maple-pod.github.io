@@ -204,8 +204,8 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# pikacss auto generated files
-pika.gen.*
+# PikaCSS generated state
+.pikacss/
 
 # auto generated files
 auto-imports.d.ts

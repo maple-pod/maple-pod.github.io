@@ -5,19 +5,19 @@
       "source": "DevilTea/deviltea-labs",
       "sourceType": "github",
       "skillPath": "packages/ef/skills/author-engineering-files/SKILL.md",
-      "computedHash": "610d803196f9ef5155b4cdc418f75d6c2a408fdf4a6c76ecd90dcbce83e07734"
+      "computedHash": "117252dcab4c565fbdee0b815de75776e150a0511e6ca38b0a82a7d5b1dbe55b"
     },
     "pikacss-use": {
       "source": "pikacss/pikacss",
       "sourceType": "github",
       "skillPath": "skills/pikacss-use/SKILL.md",
-      "computedHash": "58e49b6f9686c380beb36d9880c0e37520f81fc58ce8565d7f5db1371fb80a3c"
+      "computedHash": "42666adc1a4fbbb63000dfc894c11c20680b2f35e0e0b3d3e003922fc8bd5d2e"
     },
     "review-engineering-change": {
       "source": "DevilTea/deviltea-labs",
       "sourceType": "github",
       "skillPath": "packages/ef/skills/review-engineering-change/SKILL.md",
-      "computedHash": "d6611ef1aac3972fa59d650bfdc3c2de30f66de63c4fb67f30b468f2f457d6e8"
+      "computedHash": "c5124f4fe5db2ff689d6cf9d3a085bc2cd885292eab639661a18a6a7e8e89b69"
     }
   }
 }

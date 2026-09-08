@@ -101,6 +101,16 @@ semantics:
   created only by `ef init` in Step 4 - never by `ef artifact create`. The
   draft/active status boundary below, and the `ef artifact create` loop in
   Step 5, apply only to PRD/REQ/ADR/POL entries.
+- **Terminology candidates** - recurring or domain-specific terms surfaced by
+  Step 1 archaeology (README/docs prose, code and API identifiers, tests,
+  issues/PRs) are candidates under the same Step 2 rule as everything else:
+  observed repository vocabulary is not yet accepted project terminology.
+  Propose each candidate term with its evidence (where it recurs, and any
+  competing or ambiguous existing naming) and let the human accept, edit, or
+  reject it exactly like a PRD/REQ/ADR/POL candidate. Only accepted terms
+  become PROJECT `Terminology` rows, with human-confirmed `Definition` text -
+  see `references/draft-authoring.md` for the canonical Terminology content
+  and row-ordering rules that apply once these accepted terms are written.
 - **PRD** - a meaningful product problem, user need, or desired outcome; not
   a module inventory.
 - **REQ** - one observable system contract; not every function, class, or
@@ -152,8 +162,12 @@ issues their targets' IDs.
 Reuse only the `ef init` procedure from `references/project-init.md`: its
 preconditions to confirm with the human, and its `--dry-run` plan -> human
 confirmation -> identical command with `--yes` sequence, using the confirmed
-integration ref and the human-accepted PROJECT content from the inventory.
-After `init` reports `applied: true`, do not restart any workflow from the
+integration ref and the human-accepted PROJECT content from the inventory -
+including any Terminology candidates accepted in Step 3, passed as `ef
+init`'s `--terminology` Markdown table (`references/project-init.md`). Doing
+so puts the accepted glossary into the initial PROJECT state directly, so
+that filling the table does not routinely require an immediate post-bootstrap
+CHG. After `init` reports `applied: true`, do not restart any workflow from the
 top: return directly here, to Step 5 below. Do **not** stop after `init` and
 publish an init-only tree: the bootstrap commit in Step 7 must carry the
 complete accepted initial state, not just the skeleton. If the accepted
@@ -163,7 +177,12 @@ inventory includes PROJECT-owned Resources, place the Resource files under
 `references/draft-authoring.md` - the bootstrap exception permits direct
 PROJECT edits only before the first authoritative integration. PROJECT's
 owner ID (`PROJECT`) is already known, so its Resources need no allocated
-ID. Defer any accepted PROJECT `references` relations to Step 5's relation
+ID. The same direct-edit allowance covers Terminology: if further terms are
+accepted while drafting Step 5's Artifacts, add them to
+`.engineering/PROJECT.md`'s `Terminology` table by direct edit rather than
+deferring them to a post-bootstrap CHG, keeping the canonical NFC/uniqueness/
+bytewise-order rules from `references/draft-authoring.md`. Defer any accepted
+PROJECT `references` relations to Step 5's relation
 application phase instead: their targets are PRD/REQ/ADR/POL Artifacts
 whose IDs do not exist until the Step 5 allocator issues them.
 

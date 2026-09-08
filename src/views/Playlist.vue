@@ -123,7 +123,8 @@ const { pointerPosition, placeholderIndex, isDragging, items } = useDragAndSort(
 		},
 	}),
 	modifyGhostElement(ghostElement) {
-		ghostElement.classList.add(...pika.arr('card', { padding: '0' }))
+		ghostElement.classList.add(...pika('card', { padding: '0' })
+			.split(' '))
 	},
 })
 function calcScrollSpeed(pointerY: number, scrollZoneTop: number, scrollZoneBottom: number): number {

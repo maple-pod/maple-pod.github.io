@@ -35,7 +35,12 @@ archaeology and the human-confirmed initial knowledge inventory around the
   include terms the human has explicitly approved; when in doubt, omit the
   flag entirely and let `ef init` emit the canonical empty Terminology table
   (header row, zero data rows) for the human to fill in later as a draft
-  edit.
+  edit. For brownfield adoption, accepted terms come from the terminology
+  candidates proposed in Step 3 of `references/existing-project-bootstrap.md`
+  - not from silently promoting observed repository vocabulary. Rows MUST
+  follow the canonical Terminology content and row-ordering rules in
+  `references/draft-authoring.md` (NFC term text, unique after trimming,
+  sorted by trimmed UTF-8 byte sequence).
 
 ## Command
 

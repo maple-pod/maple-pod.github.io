@@ -46,6 +46,15 @@ shape or assume a result without executing the command.
    mutated, or that a CHG's declared effects are true. Say so explicitly
    whenever a requester conflates the two. See "Snapshot vs. transition"
    below.
+6. **Treat a moved `integration_ref` as disqualifying, not as a detail.** If
+   the commit under review is already the tip of `integration_ref`, or the
+   ref has advanced since a prior transition/bootstrap result was produced,
+   that result no longer proves a pre-publication boundary and must not be
+   reported as if it does - see "The candidate -> validate -> integrate
+   boundary" in `references/validation-recipes.md`. The candidate under
+   review does not need to be checked out; pass `--project <repo-root>` with
+   the explicit `--baseline`/`--proposed` OIDs instead of asking the
+   requester to check it out.
 
 ## Workflow
 
@@ -98,8 +107,9 @@ ordinary change, and never pass `--baseline` with it.
 ## Reference index
 
 - `references/validation-recipes.md` - full `ef validate` flag reference for
-  snapshot, transition, and bootstrap scope; what a trusted baseline means;
-  the JSON envelope fields; the CI-parity command.
+  snapshot, transition, bootstrap, and range scope; what a trusted baseline
+  means; the candidate -> validate -> integrate boundary and how to recognize
+  a stale result; the JSON envelope fields; the CI-parity command.
 - `references/query-recipes.md` - full `ef query *` and `ef resource read`
   command reference: impact, history, relations, trace, resolve-current,
   lookup, list, search, and the staged context-composition pattern.

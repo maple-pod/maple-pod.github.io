@@ -10,11 +10,13 @@ pnpm add -D @pikacss/plugin-fonts
 
 ```ts
 // pika.config.ts
-import { defineEngineConfig } from '@pikacss/core'
+import { defineConfig } from '@pikacss/unplugin-pikacss'
 import { fonts } from '@pikacss/plugin-fonts'
 
-export default defineEngineConfig({
+export default defineConfig({
+  engine: {
   plugins: [fonts()],
+  },
 })
 ```
 
@@ -34,7 +36,8 @@ pika('font-display', { fontWeight: '700' })
 The default provider is `google`:
 
 ```ts
-export default defineEngineConfig({
+export default defineConfig({
+  engine: {
   plugins: [fonts()],
   fonts: {
     provider: 'google',
@@ -52,6 +55,7 @@ export default defineEngineConfig({
       ],
     },
   },
+  },
 })
 ```
 
@@ -61,13 +65,13 @@ A token may map to one font entry or an array. Array entries are combined into t
 
 | Provider | Purpose |
 |---|---|
-| `google` | Google Fonts CSS API; default |
-| `bunny` | Bunny Fonts |
-| `fontshare` | Fontshare CSS API |
-| `coollabs` | Coollabs Google Fonts proxy |
+| `google` | Google Fonts; resolved through `unifont` at build time; default |
+| `bunny` | Bunny Fonts; resolved through `unifont` at build time |
+| `fontshare` | Fontshare; resolved through `unifont` at build time |
+| `coollabs` | Coollabs Google Fonts proxy; stylesheet import path |
 | `none` | No external request; useful for generic or already-loaded family names |
 
-A per-font `provider` overrides the global provider.
+A per-font `provider` overrides the global provider. Google, Bunny, and Fontshare are converted to concrete `@font-face` rules during engine initialization. If `unifont` cannot resolve a family, that entry falls back to the legacy stylesheet import and emits `fonts-provider-resolution-failed` when the failure is an exception. Coollabs and custom providers always use the stylesheet path. An explicit custom provider registered under a built-in name (for example `providers.google`) overrides the `unifont` integration entirely.
 
 ### Font entry forms
 
@@ -110,7 +114,8 @@ This still creates `font-system` and `font-mono` shortcuts.
 ## Self-Hosted `@font-face`
 
 ```ts
-export default defineEngineConfig({
+export default defineConfig({
+  engine: {
   plugins: [fonts()],
   fonts: {
     faces: [
@@ -132,6 +137,7 @@ export default defineEngineConfig({
         provider: 'none',
       },
     },
+  },
   },
 })
 ```
@@ -166,27 +172,34 @@ Pass the URL itself, not a complete `@import` statement.
 | `faces` | `FontFaceDefinition[]` | `[]` | Explicit `@font-face` rules |
 | `display` | `string` | `'swap'` | Display mode sent to providers |
 | `providers` | `Record<string, FontsProviderDefinition>` | `{}` | Custom provider implementations |
-| `providerOptions` | `Record<string, FontsProviderOptions>` | `{}` | Global options keyed by provider |
+| `providerOptions` | `Record<string, FontsProviderOptions>` | `{}` | Global provider defaults; per-font options shallow-override them |
 
-Provider options are filtered by each provider. Current built-ins recognize `text`; unsupported keys are ignored.
+Provider options are resolved once before provider execution: `fonts.providerOptions[provider]` supplies global defaults and each font object's `providerOptions` shallow-overrides them. Explicit `null` or `undefined` deletes an inherited option and is removed during normalization. The resulting active-only effective map is the only option source used by unifont, built-in stylesheet fallbacks, Coollabs, and custom providers. Google `text` maps to `unifont` glyph subsetting; Bunny and Fontshare use their stylesheet path when effective `text` is present. Unsupported built-in keys are ignored.
 
 ## Custom Providers
 
 Use the package's `defineFontsProvider` helper:
 
 ```ts
-import { defineEngineConfig } from '@pikacss/core'
+import { defineConfig } from '@pikacss/unplugin-pikacss'
 import { defineFontsProvider, fonts } from '@pikacss/plugin-fonts'
 
 const internal = defineFontsProvider({
   buildImportUrls(entries, context) {
-    return entries.map(entry =>
-      `https://fonts.example.test/css?family=${encodeURIComponent(entry.name)}&display=${encodeURIComponent(context.display)}`,
-    )
+    return entries.map((entry) => {
+      const text = entry.providerOptions.text
+      const query = new URLSearchParams({
+        family: entry.name,
+        display: context.display,
+        ...(text == null ? {} : { text: [text].flat().join(',') }),
+      })
+      return `https://fonts.example.test/css?${query}`
+    })
   },
 })
 
-export default defineEngineConfig({
+export default defineConfig({
+  engine: {
   plugins: [fonts()],
   fonts: {
     provider: 'internal',
@@ -195,10 +208,11 @@ export default defineEngineConfig({
       sans: 'Example Sans:400,700',
     },
   },
+  },
 })
 ```
 
-A custom provider may return one URL, multiple URLs, or no URL. Unknown provider names emit a structured diagnostic instead of silently loading from another provider.
+A custom provider may return one URL, multiple URLs, or no URL. Each entry's `providerOptions` is already the active-only `EffectiveFontsProviderOptions` map; deletion markers and global defaults have already been resolved; `context` contains only `provider` and `display`. Unknown provider names emit a structured diagnostic instead of silently loading from another provider.
 
 ## Diagnostics
 

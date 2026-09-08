@@ -19,13 +19,15 @@ Use `/node` in ordinary bundler config when `sources` contains paths:
 
 ```ts
 // pika.config.ts
-import { defineEngineConfig } from '@pikacss/core'
+import { defineConfig } from '@pikacss/unplugin-pikacss'
 import { designTokens } from '@pikacss/plugin-design-tokens/node'
 
-export default defineEngineConfig({
+export default defineConfig({
+  engine: {
   plugins: [designTokens()],
   designTokens: {
     sources: ['./design.tokens.json'],
+  },
   },
 })
 ```
@@ -39,7 +41,8 @@ The neutral entry works with inline W3C-style token groups:
 ```ts
 import { designTokens } from '@pikacss/plugin-design-tokens'
 
-export default defineEngineConfig({
+export default defineConfig({
+  engine: {
   plugins: [designTokens()],
   designTokens: {
     sources: {
@@ -48,6 +51,7 @@ export default defineEngineConfig({
         accent: { $value: '{color.primary}' },
       },
     },
+  },
   },
 })
 ```
@@ -65,11 +69,13 @@ With the Node adapter:
 - Invalid or unreadable sources emit structured diagnostics and are skipped rather than partially crashing token resolution.
 
 ```ts
-export default defineEngineConfig({
+export default defineConfig({
+  engine: {
   plugins: [designTokens()],
   designTokens: {
     root: './design',
     sources: ['tokens.json', 'components.md'],
+  },
   },
 })
 ```
@@ -114,7 +120,8 @@ Base variables are emitted under `:root`. Theme variables use:
 3. The default `.<themeName>` selector.
 
 ```ts
-export default defineEngineConfig({
+export default defineConfig({
+  engine: {
   plugins: [designTokens()],
   designTokens: {
     sources: ['./tokens.json'],
@@ -124,6 +131,7 @@ export default defineEngineConfig({
         sources: ['./tokens.dark.json'],
       },
     },
+  },
   },
 })
 ```
@@ -219,7 +227,7 @@ A violation is reported as a core `Diagnostic` (`{ level, code, message, plugin:
 
 - Every diagnostic is logged live, so a `'warning'` surfaces immediately (including in dev).
 - `'error'`-level diagnostics are collected and re-thrown as one aggregated `Error` at `buildEnd`, so an error-severity violation **fails a production build**. (Trade-off: the error surfaces after the full build, not inline on the producing module.)
-- Do **not** throw from a custom diagnostic handler: core `emitDiagnostic` swallows handler throws, so throwing cannot fail the build. Customization of the handler is only possible through the integration's `createCtx({ onDiagnostic })` seam, not through the unplugin.
+- Do **not** throw from a custom diagnostic handler: core `emitDiagnostic` isolates handler throws, so throwing cannot fail the build. The unplugin/Nuxt adapters own their diagnostic policy and expose no `onDiagnostic` option. A custom Integration host can provide `onDiagnostic` to `createPikaCSSContext(...)`; low-level Engine tests can pass it to `createEngine(...)`.
 
 ## Custom Loaders and Normalizers
 
@@ -267,20 +275,32 @@ designTokens: {
 }
 ```
 
-`LoaderCtx`: `readFile`, `cwd`, `root`, `addDependency`. `NormalizeCtx`: `id` (resolved path, or `'inline'`), `root`, `sourceIds` (all ids this pass, base first then theme, for cross-source refs). Package a loader/normalizer pair as its own module to reuse a vendor adapter across projects.
+`LoaderCtx`: `readFile`, `projectRoot` (the engine host's effective project root, #118), `root` (the effective design-token root: absolute `config.root`, or a relative one resolved from `projectRoot`, or `projectRoot` itself), `cwd` (legacy runtime working directory — not project identity), `addDependency`. `NormalizeCtx`: `id` (resolved path, or `'inline'`), `root`, `sourceIds` (all ids this pass, base first then theme, for cross-source refs). Package a loader/normalizer pair as its own module to reuse a vendor adapter across projects.
 
 ## Usage Report
 
-When the plugin is registered, `engine.designTokens` exposes `report()` and `strictTypes()`. `report()` returns a `DesignTokensReport`: `totalTokens`, `used[]`, `unused[]` (referenced directly or via a transitive `var()`-in-`var()` chain), `deprecatedInUse[]`, and cumulative `strictViolations { warning, error }` — computed from the current atomic-style store. There is no diagnostics queue to drain; strict violations are delivered live through `onDiagnostic`.
+When registered, the Design Tokens plugin preserves one real Engine-generation capability: `engine.designTokens.report()`. It returns the domain report (`totalTokens`, `used[]`, `unused[]`, `deprecatedInUse[]`, and strict-violation counts). Strict TypeScript narrowing is contributed directly to Core Typegen property constraints during initialization; there is no `engine.designTokens.strictTypes()` side channel.
 
-Surface it through the build plugin's `report` option (build mode only; a no-op without the design-tokens plugin). `true` logs a concise summary once per build; `{ output }` additionally writes the full report as JSON to that path (resolved against the project root):
+Production report execution is configured on the canonical **project entry**, not in bundler/Nuxt adapter options:
 
 ```ts
-pika({ report: true })
-pika({ report: { output: './design-tokens-report.json' } })
+import { defineConfig } from '@pikacss/unplugin-pikacss'
+import { designTokens } from '@pikacss/plugin-design-tokens/node'
+
+export default defineConfig({
+  report: true,
+  engine: {
+    plugins: [designTokens()],
+    designTokens: {
+      sources: ['./tokens.json'],
+    },
+  },
+})
 ```
 
-Nuxt mirrors the unplugin options (`ModuleOptions = Omit<PluginOptions, 'currentPackageName'>`), so `report` works the same way under the `pikacss` key in `nuxt.config.ts`.
+Use `{ output: './design-tokens-report.json' }` to additionally write JSON. The path is a config-authored filesystem value and resolves from the selected config file's directory. Report finalization runs only after a successful production build; dev and `pikacss prepare` do not run it.
+
+Multi-entry projects configure `report` independently per entry. Nuxt does not duplicate report semantics in module options; it consumes the same canonical project config.
 
 ## Runtime Capabilities for Custom Hosts
 
@@ -299,7 +319,7 @@ Use this only for non-Node hosts or custom integrations. Application bundler con
 
 ## Diagnostics and File Watching
 
-The plugin reports structured diagnostics through the current engine's diagnostic handler. File-backed sources register every resolved path with `engine.addConfigDependency`, including missing paths, so official integrations can recreate the engine after changes.
+The plugin reports structured diagnostics through the current engine's diagnostic handler. File-backed sources register every resolved path, including missing paths, as an initialization-time Engine config dependency through the plugin's `configureEngine` runtime capability, so official integrations can recreate the generation after changes.
 
 When testing failures, pass `onDiagnostic` to `createEngine` and assert diagnostic codes such as file-loader unavailable, read failure, invalid JSON, or unsupported value. Do not rely on console spying.
 
