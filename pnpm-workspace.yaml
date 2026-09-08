@@ -1,6 +1,8 @@
 # Supply-chain security baseline (see DevilTea/hub templates/pnpm-security.md)
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
+  # First-party packages maintained by the project owner; allow immediate releases.
+  - '@pikacss/*'
   - '@deviltea/eslint-config'
   - '@deviltea/tsconfig'
   - '@deviltea/ef'
@@ -28,10 +30,10 @@ overrides:
   # add it to trustPolicyExclude after review.
   workbox-build: 7.4.0
   workbox-window: 7.4.0
-ignoredBuiltDependencies:
-  - vue-demi
-
-onlyBuiltDependencies:
-  - esbuild
-  - simple-git-hooks
-  - unrs-resolver
+# pnpm 12 unified build-script policy. true = reviewed/allowed; false =
+# explicitly denied. With strictDepBuilds, any unlisted build script fails.
+allowBuilds:
+  esbuild: true
+  simple-git-hooks: true
+  unrs-resolver: true
+  vue-demi: false

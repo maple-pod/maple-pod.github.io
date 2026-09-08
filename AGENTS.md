@@ -63,7 +63,7 @@ pnpm type-check
 - TypeScript via `@deviltea/tsconfig` (project references: `tsconfig.app.json` extends `@deviltea/tsconfig/browser`, `tsconfig.node.json` for tooling)
 - ESLint flat config extending `@deviltea/eslint-config` (tabs, single quotes, no semicolons); `.engineering/**` (canonically formatted by the `ef` CLI) and tool-managed agent skill/hook files (`.agents/`, `.claude/`, `.codex/`, `skills-lock.json`) are ignored
 - Auto-imports (unplugin-auto-import): `vue`, `vue-router`, `pinia`, `@vueuse/core`, `Routes` from `@/router/index`, plus everything in `src/composables/` and `src/utils/` — do not add manual imports for these
-- Components are auto-registered (unplugin-vue-components); `auto-imports.d.ts` / `components.d.ts` / `pika.gen.ts` are generated — never edit by hand
+- Components are auto-registered (unplugin-vue-components); `auto-imports.d.ts` / `components.d.ts` / `.pikacss/` are generated — never edit by hand
 - Path alias `@` -> `src/`
 - Pre-commit hook (simple-git-hooks) runs lint-staged (`eslint --fix` on js/ts/vue)
 
@@ -74,8 +74,8 @@ pnpm type-check
 
 ## Gotchas
 
-- `pnpm-workspace.yaml` holds the pnpm supply-chain baseline (`minimumReleaseAge`, `trustPolicy: no-downgrade` with `trustPolicyExclude` entries, `strictDepBuilds`, `overrides`) — each setting is commented in-file; new deps needing build scripts must be reviewed into `onlyBuiltDependencies`/`ignoredBuiltDependencies`
+- `pnpm-workspace.yaml` holds the pnpm supply-chain baseline (`minimumReleaseAge`, `trustPolicy: no-downgrade` with `trustPolicyExclude` entries, `strictDepBuilds`, `overrides`) — each setting is commented in-file; new deps needing build scripts must be reviewed into `allowBuilds`
 - workbox is pinned to 7.4.0 (`workbox-build`/`workbox-window` overrides + exact `workbox-window` devDep) because 7.4.1 pulls an unattested fork prerelease that trips `trustPolicy` — see the `limit:` comment in `pnpm-workspace.yaml` before bumping
 - `__GIT_COMMIT_HASH__` is injected at build time from `git rev-parse` (via simple-git) — builds outside a git checkout get `'unknown'`
-- Node >= 24 required (`engines`); pnpm pinned via `packageManager` (10.34.4)
+- Node >= 24 required (`engines`); pnpm pinned via `packageManager` (12.3.4)
 - README is a stub; the PWA manifest in `vite.config.ts` is the source of the app name/description

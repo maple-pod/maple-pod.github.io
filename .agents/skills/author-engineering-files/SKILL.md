@@ -119,13 +119,14 @@ its shape or assume a result without executing the command.
   pattern, and initialization guardrails.
 - `references/existing-project-bootstrap.md` - first-time EF adoption for an
   established codebase: bounded repository archaeology, human-confirmed
-  initial knowledge inventory, the initial draft/active status boundary, and
-  one complete bootstrap state validated with snapshot then bootstrap scope.
+  initial knowledge inventory (including Terminology candidates), the initial
+  draft/active status boundary, and one complete bootstrap state validated
+  with snapshot then bootstrap scope.
 - `references/context-discovery.md` - the staged query composition, exact
   `ef query *` / `ef resource read` syntax, and why no step may be skipped.
 - `references/draft-authoring.md` - `ef artifact create <type>`, required
-  envelope fields, per-type required body headings, relation ontology, and
-  Resource attachment.
+  envelope fields, per-type required body headings, relation ontology,
+  Resource attachment, and PROJECT Terminology row ordering.
 - `references/chg-planning.md` - when a CHG is required vs. optional, effect
   classification (`introduces`/`modifies`/`retires`), completed/retired CHG
   body requirements, and why there is no CLI command for this step.
