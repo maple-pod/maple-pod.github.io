@@ -15,6 +15,10 @@ function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playli
 	}
 }
 
+function getResourceBgmSrc(bgm: Resources['bgms'][number]): string {
+	return `/resources/bgm/${bgm.audio?.file ?? `${bgm.filename}.mp3`}`
+}
+
 function groupByMark(data: MusicData[]): Map<string, MusicData[]> {
 	const map = new Map<string, MusicData[]>()
 	for (const item of data) {
@@ -44,7 +48,7 @@ export const useMusicStore = defineStore('music', () => {
 				id: bgm.filename,
 				title: bgm.metadata.title,
 				cover: await decodeImageFromBinary(marks[bgm.mark]!),
-				src: `/resources/bgm/${bgm.filename}.mp3`,
+				src: getResourceBgmSrc(bgm),
 				duration: bgm.duration,
 				data: bgm,
 			})))
@@ -159,8 +163,7 @@ export const useMusicStore = defineStore('music', () => {
 		if (musicData == null)
 			return
 
-		const src = `/resources/bgm/${musicData.data.filename}.mp3`
-		await _saveMusicForOffline(musicId, src)
+		await _saveMusicForOffline(musicId, musicData.src)
 	}
 
 	const audioPlayerLogic = useAudioPlayer({
@@ -168,7 +171,11 @@ export const useMusicStore = defineStore('music', () => {
 			if (id == null)
 				return null
 
-			const blob = await getSavedOfflineMusicBlob(id)
+			const musicData = getMusicData(id)
+			if (musicData == null)
+				return null
+
+			const blob = await getSavedOfflineMusicBlob(id, musicData.src)
 			if (blob != null) {
 				const objUrl = URL.createObjectURL(blob)
 				return {
@@ -177,8 +184,7 @@ export const useMusicStore = defineStore('music', () => {
 				}
 			}
 
-			const musicData = getMusicData(id)
-			return musicData?.src ?? null
+			return musicData.src
 		},
 		isMusicDisabled: id => isMusicDisabled(id ?? ''),
 	})
@@ -303,7 +309,7 @@ export const useMusicStore = defineStore('music', () => {
 	const ready = until(isDataReady)
 		.toBe(true)
 		.then(async () => {
-			await loadOfflineMusics()
+			await loadOfflineMusics(id => getMusicData(id)?.src)
 			// ensure the saved playlists are valid
 			savedPlaylists.value = savedPlaylists.value
 				.filter((playlist) => {
@@ -364,11 +370,46 @@ export const useMusicStore = defineStore('music', () => {
 })
 
 function useOfflineMusics() {
+	interface OfflineMusicEntry {
+		source: string
+		blob: Blob
+	}
+
+	function isOfflineMusicEntry(value: unknown): value is OfflineMusicEntry {
+		return value != null
+			&& typeof value === 'object'
+			&& 'source' in value
+			&& typeof value.source === 'string'
+			&& 'blob' in value
+			&& value.blob instanceof Blob
+	}
+
 	const storage = localforage.createInstance({ name: 'maple-pod' })
 	const offlineReadyMusics = ref(new Set<string>())
-	async function loadOfflineMusics() {
+	async function loadOfflineMusics(getExpectedSource: (musicId: string) => string | undefined) {
 		const keys = await storage.keys()
-		offlineReadyMusics.value = new Set<string>(keys)
+		const ready = new Set<string>()
+		await Promise.all(keys.map(async (musicId) => {
+			const value = await storage.getItem<unknown>(musicId)
+			const expectedSource = getExpectedSource(musicId)
+			if (expectedSource != null && isOfflineMusicEntry(value) && value.source === expectedSource) {
+				ready.add(musicId)
+				return
+			}
+
+			const legacySource = `/resources/bgm/${musicId}.mp3`
+			if (value instanceof Blob && expectedSource === legacySource) {
+				await storage.setItem<OfflineMusicEntry>(musicId, { source: legacySource, blob: value })
+				ready.add(musicId)
+				return
+			}
+
+			// Entries for an old representation must not silently override the
+			// source-selected audio after its resource path changes.
+			if (value != null)
+				await storage.removeItem(musicId)
+		}))
+		offlineReadyMusics.value = ready
 	}
 	const cancelFns = new Map<string, () => void>()
 	const offlineMusicDownloadingProgress = ref<Map<string, 'pending' | number>>(new Map())
@@ -389,7 +430,7 @@ function useOfflineMusics() {
 			return
 		}
 
-		await storage.setItem(musicId, blob)
+		await storage.setItem<OfflineMusicEntry>(musicId, { source: src, blob })
 		offlineReadyMusics.value.add(musicId)
 	}
 	const offlineMusicsQueue = new PromiseQueue(5)
@@ -408,8 +449,21 @@ function useOfflineMusics() {
 			cancelFns.delete(musicId)
 		})
 	}
-	async function getSavedOfflineMusicBlob(musicId: string): Promise<Blob | null> {
-		return await storage.getItem(musicId) || null
+	async function getSavedOfflineMusicBlob(musicId: string, expectedSource: string): Promise<Blob | null> {
+		const value = await storage.getItem<unknown>(musicId)
+		if (isOfflineMusicEntry(value) && value.source === expectedSource)
+			return value.blob
+
+		const legacySource = `/resources/bgm/${musicId}.mp3`
+		if (value instanceof Blob && expectedSource === legacySource) {
+			await storage.setItem<OfflineMusicEntry>(musicId, { source: legacySource, blob: value })
+			return value
+		}
+
+		if (value != null)
+			await storage.removeItem(musicId)
+		offlineReadyMusics.value.delete(musicId)
+		return null
 	}
 	function cancelOfflineMusicDownload(musicId: string) {
 		cancelFns.get(musicId)?.()
