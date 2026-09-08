@@ -167,20 +167,20 @@ importers:
         specifier: ^1.2.4
         version: 1.2.4
       '@pikacss/core':
-        specifier: 0.0.67
-        version: 0.0.67
+        specifier: 0.0.68
+        version: 0.0.68
       '@pikacss/plugin-design-tokens':
-        specifier: 0.0.67
-        version: 0.0.67(@pikacss/core@0.0.67)
+        specifier: 0.0.68
+        version: 0.0.68(@pikacss/core@0.0.68)
       '@pikacss/plugin-icons':
-        specifier: 0.0.67
-        version: 0.0.67(@pikacss/core@0.0.67)
+        specifier: 0.0.68
+        version: 0.0.68(@pikacss/core@0.0.68)
       '@pikacss/plugin-reset':
-        specifier: 0.0.67
-        version: 0.0.67(@pikacss/core@0.0.67)
+        specifier: 0.0.68
+        version: 0.0.68(@pikacss/core@0.0.68)
       '@pikacss/unplugin-pikacss':
-        specifier: 0.0.67
-        version: 0.0.67(esbuild@0.28.1)(rolldown@1.2.7)(rollup@2.80.0)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.4)(yaml@2.9.0))
+        specifier: 0.0.68
+        version: 0.0.68(esbuild@0.28.1)(rolldown@1.2.7)(rollup@2.80.0)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.4)(yaml@2.9.0))
       '@types/node':
         specifier: ^26.4.1
         version: 26.4.1
@@ -1413,35 +1413,35 @@ packages:
   '@oxc-project/types@0.148.0':
     resolution: {integrity: sha512-Nm4s/jB+4FpFsPhWGEC4h7rzksesmtnMXomo6rCMcg/b8zLQuOziRgkCS1fxDCXOlJB/6Q8oABOZ/OP6RIPj9A==}
 
-  '@pikacss/config@0.0.67':
-    resolution: {integrity: sha512-jwo+j3ywDWa89FDdiv+csi9ryPYsrFrzMZpK/j1Pv7wtcHSUBvUXAPCVloRTeMT2BBQQ+ucTV7VQgho6PI2y8A==}
+  '@pikacss/config@0.0.68':
+    resolution: {integrity: sha512-L0E8S8to//aV88pAOjUrHC2olFDCO/l6aHTdlmBFBKtnSy/IsJtU3U4oQVrCRRa6USQvxyy3ZCFwCqJkOqIVYw==}
     engines: {node: '>=22.19.0'}
 
-  '@pikacss/core@0.0.67':
-    resolution: {integrity: sha512-jxjfeyVRjNBCkDp3FyVqTr8UFja4eywPy+ovRkX/HwRfyu+jcz/7+8XGuTeu7mwClP7yTON75da62wr36Lnd1w==}
+  '@pikacss/core@0.0.68':
+    resolution: {integrity: sha512-mHosAvFkMTTErRaHyZlX3YKewGS5UmWflYhHffhJ/W1nYjxEo7SLaTbABklhMwsLdJ/Y4UqdIWdYM3zxKF0NYw==}
 
-  '@pikacss/integration@0.0.67':
-    resolution: {integrity: sha512-9kKdL+5JATOcGZIi1oSrhOpi3MuzGpYErpAlFKUyUTES7ppauJX41Do8EGIIL3pmttzvVDOQTQrCNwirDM7I4A==}
+  '@pikacss/integration@0.0.68':
+    resolution: {integrity: sha512-cFijLqQEtR+VlAAjv2hJ+63yllkqn8MfTb8lhKbNnJzKtXK0oocYLcFUT2vuDh5LntibO5ROalz/35ddIrk+wA==}
     engines: {node: '>=22.19.0'}
 
-  '@pikacss/plugin-design-tokens@0.0.67':
-    resolution: {integrity: sha512-XkVbqYJXGn/eTLn6pPInbp/ALwNCNihOfIqlX/C1utFgQgaLy/9hlpk8eEN6Fp0Od71ddLXiC/CfYNMQQaDjMg==}
+  '@pikacss/plugin-design-tokens@0.0.68':
+    resolution: {integrity: sha512-SY5S3p4UpuJ/7yz9mVyACew+BHkT25SCk5/vnJ1p38iKacxiIQBv32mEczjrbL8Jjn4X3wfQ8qTYu6clHrHq8A==}
     peerDependencies:
-      '@pikacss/core': 0.0.67
+      '@pikacss/core': 0.0.68
 
-  '@pikacss/plugin-icons@0.0.67':
-    resolution: {integrity: sha512-Nw1bwMCN5nPdmRPUVwz7Pur9qHuSG5qKA7DRjM/DztNHiMBxBtT7oJtTzZ5AUN/J2sWy1+UBFjSGEQgWHGAHsQ==}
+  '@pikacss/plugin-icons@0.0.68':
+    resolution: {integrity: sha512-8F2Zo31UzCltXAM9QqmyhADT9VyAmatLcGVGANaxuJZRNdebJHWOthRvE04PEtleM9fKSOFiOdqAraN6jnstVg==}
     peerDependencies:
-      '@pikacss/core': 0.0.67
+      '@pikacss/core': 0.0.68
 
-  '@pikacss/plugin-reset@0.0.67':
-    resolution: {integrity: sha512-pbaEswmDMVznjRPJwL5Tq11/+6dG96+Q5j/GUMZzVFqyFNaF5qAJTL6GxtdCoNZfhuh73KNyHaiXbrvIU0QHmw==}
+  '@pikacss/plugin-reset@0.0.68':
+    resolution: {integrity: sha512-5pDTqkUluEUl22seYQmqF3kWHMJwdDLWTIjQmJn10VEs4AwY5NQqO53YEjNQZDf+ZpC7uVpi6whLIIzr1G4TVg==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
-      '@pikacss/core': 0.0.67
+      '@pikacss/core': 0.0.68
 
-  '@pikacss/unplugin-pikacss@0.0.67':
-    resolution: {integrity: sha512-4oc2LCW7KOyov+l2dJ7kaLce/Cw35dkHyWuk79iMnEhbZBqVUhA1zVCDeEKw/AQ6boDbmdyuLaE61LD5bzHJbg==}
+  '@pikacss/unplugin-pikacss@0.0.68':
+    resolution: {integrity: sha512-OTEunlQFIMPp/wRK0/9OzvxoaDMDn9ylAHmOsEtxtTrNZuJdcP74+Cr8YATcukrFBth+Q3oiP6FRedpXOylGBg==}
     engines: {node: '>=22.19.0'}
     hasBin: true
     peerDependencies:
@@ -5458,22 +5458,22 @@ snapshots:
 
   '@oxc-project/types@0.148.0': {}
 
-  '@pikacss/config@0.0.67':
+  '@pikacss/config@0.0.68':
     dependencies:
-      '@pikacss/core': 0.0.67
+      '@pikacss/core': 0.0.68
       jiti: 2.7.0
       pathe: 2.0.3
       picomatch: 4.0.7
 
-  '@pikacss/core@0.0.67': {}
+  '@pikacss/core@0.0.68': {}
 
-  '@pikacss/integration@0.0.67':
+  '@pikacss/integration@0.0.68':
     dependencies:
       '@babel/parser': 8.0.4
       '@babel/traverse': 8.0.4
       '@babel/types': 8.0.4
-      '@pikacss/config': 0.0.67
-      '@pikacss/core': 0.0.67
+      '@pikacss/config': 0.0.68
+      '@pikacss/core': 0.0.68
       '@vue/compiler-sfc': 3.5.42
       alien-signals: 3.2.1
       globby: 16.2.4
@@ -5483,25 +5483,25 @@ snapshots:
       pathe: 2.0.3
       picomatch: 4.0.7
 
-  '@pikacss/plugin-design-tokens@0.0.67(@pikacss/core@0.0.67)':
+  '@pikacss/plugin-design-tokens@0.0.68(@pikacss/core@0.0.68)':
     dependencies:
-      '@pikacss/core': 0.0.67
+      '@pikacss/core': 0.0.68
       pathe: 2.0.3
 
-  '@pikacss/plugin-icons@0.0.67(@pikacss/core@0.0.67)':
+  '@pikacss/plugin-icons@0.0.68(@pikacss/core@0.0.68)':
     dependencies:
       '@iconify/utils': 3.1.5
-      '@pikacss/core': 0.0.67
+      '@pikacss/core': 0.0.68
       local-pkg: 1.2.1
       ofetch: 1.5.1
 
-  '@pikacss/plugin-reset@0.0.67(@pikacss/core@0.0.67)':
+  '@pikacss/plugin-reset@0.0.68(@pikacss/core@0.0.68)':
     dependencies:
-      '@pikacss/core': 0.0.67
+      '@pikacss/core': 0.0.68
 
-  '@pikacss/unplugin-pikacss@0.0.67(esbuild@0.28.1)(rolldown@1.2.7)(rollup@2.80.0)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.4)(yaml@2.9.0))':
+  '@pikacss/unplugin-pikacss@0.0.68(esbuild@0.28.1)(rolldown@1.2.7)(rollup@2.80.0)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.4)(yaml@2.9.0))':
     dependencies:
-      '@pikacss/integration': 0.0.67
+      '@pikacss/integration': 0.0.68
       pathe: 2.0.3
       unplugin: 3.3.0(esbuild@0.28.1)(rolldown@1.2.7)(rollup@2.80.0)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.4)(yaml@2.9.0))
     optionalDependencies:
