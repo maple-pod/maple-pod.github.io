@@ -163,7 +163,6 @@ export const useMusicStore = defineStore('music', () => {
 		await _saveMusicForOffline(musicId, src)
 	}
 
-	const objUrls: string[] = []
 	const audioPlayerLogic = useAudioPlayer({
 		getAudioSrc: async (id) => {
 			if (id == null)
@@ -171,12 +170,11 @@ export const useMusicStore = defineStore('music', () => {
 
 			const blob = await getSavedOfflineMusicBlob(id)
 			if (blob != null) {
-				const toRevoke = [...objUrls]
-				objUrls.length = 0
-				toRevoke.forEach(url => URL.revokeObjectURL(url))
 				const objUrl = URL.createObjectURL(blob)
-				objUrls.push(objUrl)
-				return objUrl
+				return {
+					src: objUrl,
+					release: () => URL.revokeObjectURL(objUrl),
+				}
 			}
 
 			const musicData = getMusicData(id)

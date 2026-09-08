@@ -1,8 +1,13 @@
+type AudioPlayerSource = string | {
+	src: string
+	release?: () => void
+}
+
 export function useAudioPlayer({
 	getAudioSrc,
 	isMusicDisabled,
 }: {
-	getAudioSrc: (id: string | null) => string | null | Promise<string | null>
+	getAudioSrc: (id: string | null) => AudioPlayerSource | null | Promise<AudioPlayerSource | null>
 	isMusicDisabled: (id: string | null) => boolean
 }) {
 	const {
@@ -75,8 +80,11 @@ export function useAudioPlayer({
 	const isPaused = audioLogic.isPaused
 	const isWaiting = audioLogic.isWaiting
 	const canPlay = audioLogic.canPlay
+	const hasError = audioLogic.hasError
 
-	const load = useDebounceFn(audioLogic.load, 300)
+	const TRACK_SWITCH_FADE_MS = 30
+	let sourceRequestId = 0
+	let releaseCurrentSource: (() => void) | null = null
 
 	const audioQueueLogic = useAudioQueue({
 		isMusicDisabled,
@@ -90,16 +98,52 @@ export function useAudioPlayer({
 	watch(
 		currentAudioId,
 		async (audioId) => {
-			// stop the current playing audio first
-			audioLogic.load('')
+			const requestId = ++sourceRequestId
+			const resolvedSource = await getAudioSrc(audioId)
+			const source = typeof resolvedSource === 'string'
+				? { src: resolvedSource }
+				: resolvedSource
 
-			const audioSrc = await getAudioSrc(audioId)
-			if (audioSrc == null)
+			if (requestId !== sourceRequestId) {
+				source?.release?.()
 				return
+			}
 
-			load(audioSrc)
+			await audioLogic.fadeOutputTo(0, TRACK_SWITCH_FADE_MS)
+			if (requestId !== sourceRequestId) {
+				source?.release?.()
+				return
+			}
+
+			releaseCurrentSource?.()
+			releaseCurrentSource = null
+
+			if (source == null) {
+				audioLogic.unload()
+				return
+			}
+
+			releaseCurrentSource = source.release ?? null
+			audioLogic.load(source.src)
+			if (audio.value.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+				await until(computed(() => canPlay.value || hasError.value))
+					.toBe(true)
+			}
+
+			if (requestId !== sourceRequestId)
+				return
+			if (hasError.value) {
+				await audioLogic.fadeOutputTo(1, 0)
+				return
+			}
+			await audioLogic.fadeOutputTo(1, TRACK_SWITCH_FADE_MS)
 		},
 	)
+
+	tryOnScopeDispose(() => {
+		releaseCurrentSource?.()
+		releaseCurrentSource = null
+	})
 
 	const play = audioQueueLogic.initQueue
 	function togglePlay() {
@@ -122,11 +166,18 @@ export function useAudioPlayer({
 	}
 
 	useEventListener(audio, 'ended', () => {
-		if (
-			(repeated.value === 'off' && audioQueueLogic.hasReachedEnd.value === false)
-			|| (repeated.value === 'repeat')
-		) {
+		if (repeated.value === 'off' && audioQueueLogic.hasReachedEnd.value === false) {
 			goNext()
+			return
+		}
+
+		if (repeated.value === 'repeat') {
+			const previousAudioId = currentAudioId.value
+			goNext()
+			if (currentAudioId.value === previousAudioId) {
+				currentTime.value = 0
+				audioLogic.play()
+			}
 		}
 	})
 

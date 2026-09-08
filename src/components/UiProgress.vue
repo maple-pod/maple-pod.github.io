@@ -34,6 +34,7 @@ withDefaults(
 				'height': '100%',
 				'border-radius': '9999px',
 				'transition': 'transform 660ms cubic-bezier(0.65, 0, 0.35, 1)',
+				'@reduced-motion': { transition: 'none' },
 			})"
 			:style="`transform: translateX(-${100 - value}%)`"
 		/>

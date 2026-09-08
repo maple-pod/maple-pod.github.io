@@ -50,11 +50,12 @@ whenever(
 					'backdropFilter': 'blur(8px)',
 					'zIndex': '10',
 					'$[data-state=open]': {
-						animation: 'fade-in 300ms ease-out',
+						animation: 'fade-in var(--duration-slow) ease-out',
 					},
 					'$[data-state=closed]': {
-						animation: 'fade-out 300ms ease-out',
+						animation: 'fade-out var(--duration-slow) ease-out',
 					},
+					'@reduced-motion': { animation: 'none' },
 				})"
 			/>
 			<DialogContent
@@ -69,11 +70,12 @@ whenever(
 						'flexDirection': 'column',
 						'maxWidth': 'calc(100vw - 32px)',
 						'$[data-state=open]': {
-							animation: 'fade-in 300ms ease-out',
+							animation: 'fade-in var(--duration-slow) ease-out',
 						},
 						'$[data-state=closed]': {
-							animation: 'fade-out 300ms ease-out',
+							animation: 'fade-out var(--duration-slow) ease-out',
 						},
+						'@reduced-motion': { animation: 'none' },
 					}),
 					contentClass,
 				)"

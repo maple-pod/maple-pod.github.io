@@ -13,10 +13,11 @@ const currentTime = defineModel<number>('currentTime', { required: true })
 	<div
 		:class="pika({
 			display: 'flex',
-			flexDirection: 'column',
-			gap: '8px',
+			alignItems: 'center',
+			gap: 'var(--spacing-2)',
 			width: '100%',
-			padding: '0 8px',
+			height: 'var(--size-touch-target)',
+			padding: '0 var(--spacing-2)',
 			userSelect: 'none',
 			touchAction: 'none',
 		})"
@@ -24,38 +25,45 @@ const currentTime = defineModel<number>('currentTime', { required: true })
 		<div
 			:data-can-play="canPlay"
 			:class="pika({
-				'display': 'flex',
-				'justifyContent': 'space-between',
-				'width': '100%',
+				'flexShrink': '0',
+				'fontSize': '12px',
+				'color': 'var(--color-text-secondary)',
 
-				'$[data-can-play=false]': {
-					visibility: 'hidden',
-				},
+				'$[data-can-play=false]': { visibility: 'hidden' },
 			})"
 		>
-			<div
-				:class="pika({
-					fontSize: '12px',
-					color: 'var(--color-secondary-text)',
-				})"
-			>
-				{{ formatTime(currentTime) }}
-			</div>
-			<div
-				:class="pika({
-					fontSize: '12px',
-					color: 'var(--color-secondary-text)',
-				})"
-			>
-				{{ formatTime(duration) }}
-			</div>
+			{{ formatTime(currentTime) }}
 		</div>
-		<UiSlider
-			v-model="currentTime"
-			:max="duration"
-			:step="0.1"
-			:disabled="canPlay === false"
-			aria-label="Playing Progress"
-		/>
+
+		<div
+			:class="pika({
+				display: 'flex',
+				alignItems: 'center',
+				flex: '1 1 0',
+				minWidth: '0',
+				height: 'var(--size-touch-target)',
+			})"
+		>
+			<UiSlider
+				v-model="currentTime"
+				:max="duration"
+				:step="0.1"
+				:disabled="canPlay === false"
+				aria-label="Playing Progress"
+			/>
+		</div>
+
+		<div
+			:data-can-play="canPlay"
+			:class="pika({
+				'flexShrink': '0',
+				'fontSize': '12px',
+				'color': 'var(--color-text-secondary)',
+
+				'$[data-can-play=false]': { visibility: 'hidden' },
+			})"
+		>
+			{{ formatTime(duration) }}
+		</div>
 	</div>
 </template>

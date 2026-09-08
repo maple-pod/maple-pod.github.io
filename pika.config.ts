@@ -32,6 +32,10 @@ export default defineConfig({
 		],
 
 		designTokens: {
+			strict: {
+				level: 'warn',
+				overrides: { dimension: 'off', duration: 'off' },
+			},
 			sources: {
 				color: {
 					'primary-1': { $value: 'rgb(219, 66, 66)', $type: 'color' },
@@ -46,6 +50,41 @@ export default defineConfig({
 					'site-bg': { $value: 'rgb(220, 220, 220)', $type: 'color' },
 					'card-bg': { $value: 'rgba(254, 254, 254, 0.7)', $type: 'color' },
 					'hover-mask': { $value: 'rgba(16, 15, 15, 0.4)', $type: 'color' },
+
+					'action-primary': { $value: '{color.primary-1}', $type: 'color' },
+					'action-secondary': { $value: '{color.secondary-1}', $type: 'color' },
+					'action-danger': { $value: '{color.danger-1}', $type: 'color' },
+					'text-primary': { $value: '{color.primary-text}', $type: 'color' },
+					'text-secondary': { $value: '{color.secondary-text}', $type: 'color' },
+					'surface-canvas': { $value: '{color.site-bg}', $type: 'color' },
+					'surface-card': { $value: '{color.card-bg}', $type: 'color' },
+					'surface-solid': { $value: '{color.primary-bg}', $type: 'color' },
+					'border-subtle': { $value: '{color.border}', $type: 'color' },
+					'focus-ring': { $value: '{color.primary-1}', $type: 'color' },
+					'state-hover-mask': { $value: '{color.hover-mask}', $type: 'color' },
+				},
+				spacing: {
+					1: { $value: '4px', $type: 'dimension' },
+					2: { $value: '8px', $type: 'dimension' },
+					3: { $value: '12px', $type: 'dimension' },
+					4: { $value: '16px', $type: 'dimension' },
+					6: { $value: '24px', $type: 'dimension' },
+					8: { $value: '32px', $type: 'dimension' },
+				},
+				radius: {
+					control: { $value: '8px', $type: 'dimension' },
+					surface: { $value: '16px', $type: 'dimension' },
+					pill: { $value: '9999px', $type: 'dimension' },
+				},
+				size: {
+					'touch-target': { $value: '44px', $type: 'dimension' },
+					'icon-default': { $value: '24px', $type: 'dimension' },
+					'icon-compact': { $value: '20px', $type: 'dimension' },
+				},
+				duration: {
+					fast: { $value: '100ms', $type: 'duration' },
+					normal: { $value: '200ms', $type: 'duration' },
+					slow: { $value: '300ms', $type: 'duration' },
 				},
 			},
 			themes: {
@@ -84,6 +123,7 @@ export default defineConfig({
 				{ name: '@light', value: '[color-scheme="light"]' },
 				{ name: '@dark', value: '[color-scheme="dark"]' },
 				{ name: '@docpip', value: '@media all and (display-mode: picture-in-picture)' },
+				{ name: '@reduced-motion', value: '@media (prefers-reduced-motion: reduce)' },
 				{
 					pattern: /^@screen (\*|\d+) to (\*|\d+)$/,
 					inputType: '`@screen $' + '{number | "*"} to $' + '{number | "*"}`',
@@ -133,8 +173,8 @@ export default defineConfig({
 				{
 					name: 'card-border',
 					value: {
-						border: '1px solid var(--color-border)',
-						borderRadius: '16px',
+						border: '1px solid var(--color-border-subtle)',
+						borderRadius: 'var(--radius-surface)',
 					},
 				},
 				{
@@ -142,8 +182,8 @@ export default defineConfig({
 					value: [
 						'card-border',
 						{
-							padding: '16px',
-							backgroundColor: 'var(--color-card-bg)',
+							padding: 'var(--spacing-4)',
+							backgroundColor: 'var(--color-surface-card)',
 							backdropFilter: 'blur(16px)',
 						},
 					],
@@ -161,10 +201,10 @@ export default defineConfig({
 							left: '0',
 							width: '100%',
 							height: '100%',
-							borderRadius: '16px',
-							backgroundColor: 'var(--color-hover-mask)',
+							borderRadius: 'var(--radius-surface)',
+							backgroundColor: 'var(--color-state-hover-mask)',
 							opacity: '0',
-							transition: 'opacity 0.1s',
+							transition: 'opacity var(--duration-fast)',
 							pointerEvents: 'none',
 						},
 						'$:not(:disabled,[data-disabled]):hover::before': {
@@ -180,15 +220,20 @@ export default defineConfig({
 						'alignItems': 'center',
 						'justifyContent': 'center',
 						'flexShrink': '0',
-						'padding': '8px 16px',
+						'padding': 'var(--spacing-2) var(--spacing-4)',
 						'fontSize': '16px',
-						'borderRadius': '8px',
+						'borderRadius': 'var(--radius-control)',
 						'cursor': 'pointer',
-						'transition': 'all 0.1s',
+						'transition': 'transform var(--duration-fast), color var(--duration-fast), background-color var(--duration-fast), opacity var(--duration-fast)',
 
 						'$:disabled': {
 							opacity: '0.3',
 							cursor: 'not-allowed',
+						},
+
+						'$:focus-visible': {
+							outline: '2px solid var(--color-focus-ring)',
+							outlineOffset: '2px',
 						},
 
 						'$:not(:disabled):hover': {
@@ -198,6 +243,12 @@ export default defineConfig({
 						'$:not(:disabled):active': {
 							transform: 'scale(0.95)',
 						},
+
+						'@reduced-motion': {
+							'transition': 'color var(--duration-fast), background-color var(--duration-fast), opacity var(--duration-fast)',
+							'$:not(:disabled):hover': { transform: 'none' },
+							'$:not(:disabled):active': { transform: 'none' },
+						},
 					},
 				},
 				{
@@ -205,8 +256,8 @@ export default defineConfig({
 					value: [
 						'base-btn',
 						{
-							color: 'var(--color-primary-bg)',
-							backgroundColor: 'var(--color-primary-1)',
+							color: 'var(--color-surface-solid)',
+							backgroundColor: 'var(--color-action-primary)',
 						},
 					],
 				},
@@ -216,7 +267,7 @@ export default defineConfig({
 						'base-btn',
 						'hover-mask',
 						{
-							color: 'var(--color-primary-1)',
+							color: 'var(--color-action-primary)',
 							backgroundColor: 'transparent',
 						},
 					],
@@ -227,16 +278,16 @@ export default defineConfig({
 						'base-btn',
 						'hover-mask',
 						{
-							'--size': '24px',
+							'--size': 'var(--size-icon-default)',
 							'--padding': 'calc(var(--size) / 4)',
 							'padding': 'var(--padding)',
 							'fontSize': 'var(--size)',
-							'color': 'var(--color-secondary-text)',
+							'color': 'var(--color-text-secondary)',
 							'backgroundColor': 'transparent',
 							'borderRadius': '50%',
 
 							'$:not(:disabled):hover': {
-								color: 'var(--color-primary-1)',
+								color: 'var(--color-action-primary)',
 							},
 
 							'$::before': {
@@ -244,7 +295,7 @@ export default defineConfig({
 							},
 
 							'@screen-sm-and-up': {
-								'--size': '20px',
+								'--size': 'var(--size-icon-compact)',
 							},
 						},
 					],
@@ -256,7 +307,7 @@ export default defineConfig({
 						{
 							'$[data-toggle=true]': {
 								position: 'relative',
-								color: 'var(--color-primary-1)',
+								color: 'var(--color-action-primary)',
 							},
 							'$[data-toggle=true]::after': {
 								content: '\'\'',
@@ -266,7 +317,7 @@ export default defineConfig({
 								width: '4px',
 								height: '4px',
 								borderRadius: '9999px',
-								backgroundColor: 'var(--color-primary-1)',
+								backgroundColor: 'var(--color-action-primary)',
 								transform: 'translateX(-50%)',
 							},
 						},

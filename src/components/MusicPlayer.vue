@@ -26,13 +26,55 @@ const {
 	getPlayMusicLink,
 } = musicStore
 
+const shortcutBlockingSelector = [
+	'a[href]',
+	'button',
+	'input',
+	'select',
+	'summary',
+	'textarea',
+	'[contenteditable]:not([contenteditable=\"false\"])',
+	'[role=\"button\"]',
+	'[role=\"checkbox\"]',
+	'[role=\"combobox\"]',
+	'[role=\"menuitem\"]',
+	'[role=\"option\"]',
+	'[role=\"radio\"]',
+	'[role=\"slider\"]',
+	'[role=\"switch\"]',
+	'[role=\"tab\"]',
+	'[tabindex]:not([tabindex=\"-1\"])',
+].join(',')
+
+function shouldHandlePlaybackShortcut(event: KeyboardEvent) {
+	if (
+		event.defaultPrevented
+		|| event.repeat
+		|| event.altKey
+		|| event.ctrlKey
+		|| event.metaKey
+		|| event.shiftKey
+	) {
+		return false
+	}
+
+	const target = event.target
+	if (!(target instanceof HTMLElement))
+		return true
+	if (target.isContentEditable)
+		return false
+
+	return target.closest(shortcutBlockingSelector) == null
+}
+
 useEventListener(
 	'keydown',
 	(event) => {
-		if (event.key === ' ') {
-			event.preventDefault()
-			canPlay.value && togglePlay()
-		}
+		if (event.key !== ' ' || canPlay.value === false || shouldHandlePlaybackShortcut(event) === false)
+			return
+
+		event.preventDefault()
+		togglePlay()
 	},
 )
 
@@ -54,6 +96,8 @@ function handleCopyMusicLink() {
 		})
 	}
 }
+
+const currentMusicLiked = computed(() => currentMusic.value != null && isMusicLiked(currentMusic.value.id))
 </script>
 
 <template>
@@ -68,15 +112,16 @@ function handleCopyMusicLink() {
 					height: '120px',
 				})"
 			>
-				<button
+				<UiIconButton
+					label="Close Picture-in-Picture"
 					data-toggle="true"
-					:class="pika('icon-btn-toggle', { '--size': '64px' })"
+					:class="pika({ '--size': '64px' })"
+					target="compact"
+					toggle
 					@click="stopPip()"
 				>
-					<div
-						:class="pika('i-f7:rectangle-on-rectangle')"
-					/>
-				</button>
+					<div :class="pika('i-f7:rectangle-on-rectangle')" />
+				</UiIconButton>
 			</div>
 		</template>
 
@@ -157,20 +202,22 @@ function handleCopyMusicLink() {
 									gap: '8px',
 								})"
 							>
-								<button
-									:data-liked="isMusicLiked(currentMusic?.id || '')"
-									:class="pika('icon-btn', {
-										'[data-music-loaded=false] $': { display: 'none' },
-									})"
+								<UiIconButton
+									label="Like Current Track"
+									:tooltip="currentMusicLiked ? 'Unlike Current Track' : 'Like Current Track'"
+									:pressed="currentMusicLiked"
+									:data-liked="currentMusicLiked"
+									:class="pika({ '[data-music-loaded=false] $': { display: 'none' } })"
+									target="compact"
 									@click="toggleMusicLike(currentMusic?.id || '')"
 								>
 									<div
 										:class="pika({
-											'[data-liked=true] $': ['i-f7:heart-fill', { color: 'var(--color-primary-1)' }],
+											'[data-liked=true] $': ['i-f7:heart-fill', { color: 'var(--color-action-primary)' }],
 											'[data-liked=false] $': ['i-f7:heart'],
 										})"
 									/>
-								</button>
+								</UiIconButton>
 								<div
 									:class="pika({
 										flex: '1 1 0',

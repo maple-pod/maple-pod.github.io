@@ -39,15 +39,16 @@ const tabs = [
 		>
 			<TabsIndicator
 				:class="pika({
-					position: 'absolute',
-					bottom: '0',
-					left: '0',
-					width: 'var(--reka-tabs-indicator-size)',
-					height: '2px',
-					backgroundColor: 'var(--color-primary-1)',
-					borderRadius: '9999px',
-					transform: 'translate(var(--reka-tabs-indicator-position), 1px)',
-					transition: 'transform 0.1s',
+					'position': 'absolute',
+					'bottom': '0',
+					'left': '0',
+					'width': 'var(--reka-tabs-indicator-size)',
+					'height': '2px',
+					'backgroundColor': 'var(--color-primary-1)',
+					'borderRadius': '9999px',
+					'transform': 'translate(var(--reka-tabs-indicator-position), 1px)',
+					'transition': 'transform var(--duration-fast)',
+					'@reduced-motion': { transition: 'none' },
 				})"
 			/>
 			<TabsTrigger

@@ -57,10 +57,13 @@ const volumeLevel = computed(() => {
 					aria-label="Volume"
 				/>
 			</div>
-			<button
+			<UiIconButton
+				label="Mute"
+				:tooltip="muted ? 'Unmute' : 'Mute'"
+				:pressed="muted"
 				:data-volume="volumeLevel"
 				:data-toggle="muted"
-				:class="pika('icon-btn-toggle')"
+				toggle
 				@click="$emit('toggleMuted')"
 			>
 				<div
@@ -72,7 +75,7 @@ const volumeLevel = computed(() => {
 						'[data-volume=max] > $': ['i-f7:speaker-3'],
 					})"
 				/>
-			</button>
+			</UiIconButton>
 		</div>
 	</div>
 </template>

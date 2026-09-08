@@ -5,6 +5,12 @@ export interface UseAudioOptions {
 	volume?: number
 }
 
+const AUDIO_TRANSITION_STEP_MS = 5
+
+function clampUnitInterval(value: number) {
+	return Math.min(1, Math.max(0, value))
+}
+
 function createAudioRef(options: UseAudioOptions = {}) {
 	const { autoplay = true, loop = false, muted = false, volume = 1 } = options
 	const audio = ref<HTMLAudioElement>(new Audio())
@@ -45,7 +51,59 @@ export function useAudio(options: UseAudioOptions = {}) {
 		isPaused: audio.value.paused,
 		isWaiting: false,
 		canPlay: false,
+		hasError: false,
 	})
+
+	let outputGain = 1
+	let fadeRevision = 0
+
+	function applyOutputVolume() {
+		const effectiveVolume = clampUnitInterval(audioStatus.value.volume * outputGain)
+		if (audio.value.volume !== effectiveVolume)
+			audio.value.volume = effectiveVolume
+	}
+
+	function setOutputGain(value: number) {
+		outputGain = clampUnitInterval(value)
+		applyOutputVolume()
+	}
+
+	async function fadeOutputTo(value: number, durationMs: number) {
+		const targetGain = clampUnitInterval(value)
+		const initialGain = outputGain
+		const revision = ++fadeRevision
+
+		if (
+			durationMs <= 0
+			|| initialGain === targetGain
+			|| (targetGain === 0 && audio.value.paused)
+			|| audioStatus.value.muted
+			|| audioStatus.value.volume === 0
+		) {
+			setOutputGain(targetGain)
+			return
+		}
+
+		const startedAt = performance.now()
+		await new Promise<void>((resolve) => {
+			const step = () => {
+				if (revision !== fadeRevision) {
+					resolve()
+					return
+				}
+
+				const progress = Math.min(1, (performance.now() - startedAt) / durationMs)
+				setOutputGain(initialGain + ((targetGain - initialGain) * progress))
+				if (progress >= 1) {
+					resolve()
+					return
+				}
+
+				window.setTimeout(step, AUDIO_TRANSITION_STEP_MS)
+			}
+			step()
+		})
+	}
 
 	const duration = computed(() => audioStatus.value.duration)
 	const currentTime = computed({
@@ -54,11 +112,17 @@ export function useAudio(options: UseAudioOptions = {}) {
 	})
 	const volume = computed({
 		get: () => audioStatus.value.volume,
-		set: value => audio.value.volume = value,
+		set: (value) => {
+			audioStatus.value.volume = clampUnitInterval(value)
+			applyOutputVolume()
+		},
 	})
 	const muted = computed({
 		get: () => audioStatus.value.muted,
-		set: value => audio.value.muted = value,
+		set: (value) => {
+			audioStatus.value.muted = value
+			audio.value.muted = value
+		},
 	})
 	const loop = computed({
 		get: () => audioStatus.value.loop,
@@ -67,9 +131,25 @@ export function useAudio(options: UseAudioOptions = {}) {
 	const isPaused = computed(() => audioStatus.value.isPaused)
 	const isWaiting = computed(() => audioStatus.value.isWaiting)
 	const canPlay = computed(() => audioStatus.value.canPlay)
+	const hasError = computed(() => audioStatus.value.hasError)
 
 	function load(src: string) {
+		audioStatus.value.canPlay = false
+		audioStatus.value.hasError = false
+		audioStatus.value.isWaiting = true
 		audio.value.src = src
+	}
+
+	function unload() {
+		fadeRevision++
+		audio.value.pause()
+		audio.value.removeAttribute('src')
+		audio.value.load()
+		audioStatus.value.duration = 0
+		audioStatus.value.currentTime = 0
+		audioStatus.value.isWaiting = false
+		audioStatus.value.canPlay = false
+		audioStatus.value.hasError = false
 	}
 
 	function play() {
@@ -86,7 +166,6 @@ export function useAudio(options: UseAudioOptions = {}) {
 		audioStatus.value.currentTime = audio.value.currentTime
 	})
 	useEventListener(audio, 'volumechange', () => {
-		audioStatus.value.volume = audio.value.volume
 		audioStatus.value.muted = audio.value.muted
 	})
 	useEventListener(audio, 'pause', () => {
@@ -106,6 +185,12 @@ export function useAudio(options: UseAudioOptions = {}) {
 	})
 	useEventListener(audio, 'canplay', () => {
 		audioStatus.value.canPlay = true
+		audioStatus.value.hasError = false
+	})
+	useEventListener(audio, 'error', () => {
+		audioStatus.value.isWaiting = false
+		audioStatus.value.canPlay = false
+		audioStatus.value.hasError = true
 	})
 	useEventListener(audio, 'loadstart', () => {
 		audioStatus.value.canPlay = false
@@ -116,8 +201,7 @@ export function useAudio(options: UseAudioOptions = {}) {
 
 	tryOnScopeDispose(() => {
 		audio.value.autoplay = false
-		audio.value.pause()
-		audio.value.src = ''
+		unload()
 	})
 
 	return {
@@ -130,8 +214,11 @@ export function useAudio(options: UseAudioOptions = {}) {
 		isPaused,
 		isWaiting,
 		canPlay,
+		hasError,
 		load,
+		unload,
 		play,
 		pause,
+		fadeOutputTo,
 	}
 }

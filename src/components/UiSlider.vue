@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { SliderRange, SliderRoot, SliderThumb, SliderTrack } from 'reka-ui'
 
-defineProps<{
+const props = defineProps<{
 	orientation?: 'horizontal' | 'vertical'
 	max?: number
 	step?: number
@@ -17,69 +17,113 @@ const _modelValue = computed<[number]>({
 </script>
 
 <template>
-	<SliderRoot
-		v-model="_modelValue"
+	<div
+		:data-orientation="props.orientation ?? 'horizontal'"
 		:class="pika({
 			'position': 'relative',
-			'display': 'flex',
-			'alignItems': 'center',
 			'width': '100%',
 			'height': '6px',
-			'cursor': 'pointer',
-			'touchAction': 'none',
 
 			'$[data-orientation=vertical]': {
-				flexDirection: 'column',
 				width: '6px',
 				height: '100%',
 			},
-
-			'$[data-disabled]': {
-				opacity: '0.5',
-				cursor: 'not-allowed',
-			},
 		})"
-		:orientation
-		:max
-		:step
-		:disabled
 	>
-		<SliderTrack
+		<SliderRoot
+			v-model="_modelValue"
 			:class="pika({
-				position: 'relative',
-				width: '100%',
-				height: '100%',
-				display: 'inline-block',
-				backgroundColor: 'var(--color-secondary-bg)',
-				borderRadius: '6px',
+				'position': 'absolute',
+				'top': '50%',
+				'left': '0',
+				'display': 'flex',
+				'alignItems': 'center',
+				'width': '100%',
+				'height': 'var(--size-touch-target)',
+				'transform': 'translateY(-50%)',
+				'cursor': 'pointer',
+				'touchAction': 'none',
+
+				'$[data-orientation=vertical]': {
+					top: '0',
+					left: '50%',
+					flexDirection: 'column',
+					width: 'var(--size-touch-target)',
+					height: '100%',
+					transform: 'translateX(-50%)',
+				},
+
+				'$[data-disabled]': {
+					opacity: '0.5',
+					cursor: 'not-allowed',
+				},
 			})"
+			:orientation
+			:max
+			:step
+			:disabled
 		>
-			<SliderRange
+			<SliderTrack
 				:class="pika({
-					'position': 'absolute',
+					'position': 'relative',
+					'width': '100%',
+					'height': '6px',
 					'display': 'inline-block',
-					'backgroundColor': 'var(--color-primary-1)',
+					'backgroundColor': 'var(--color-secondary-bg)',
 					'borderRadius': '6px',
 
-					'$[data-orientation=horizontal]': {
+					'$[data-orientation=vertical]': {
+						width: '6px',
 						height: '100%',
 					},
+				})"
+			>
+				<SliderRange
+					:class="pika({
+						'position': 'absolute',
+						'display': 'inline-block',
+						'backgroundColor': 'var(--color-action-primary)',
+						'borderRadius': '6px',
 
-					'$[data-orientation=vertical]': {
-						width: '100%',
+						'$[data-orientation=horizontal]': {
+							height: '100%',
+						},
+
+						'$[data-orientation=vertical]': {
+							width: '100%',
+						},
+					})"
+				/>
+			</SliderTrack>
+			<SliderThumb
+				:class="pika({
+					'position': 'relative',
+					'width': '16px',
+					'height': '16px',
+					'borderRadius': '50%',
+					'backgroundColor': 'var(--color-surface-solid)',
+					'boxShadow': '0 2px 6px rgba(0, 0, 0, 0.2)',
+
+					'$::before': {
+						content: '\'\'',
+						position: 'absolute',
+						top: '50%',
+						left: '50%',
+						width: 'var(--size-touch-target)',
+						height: 'var(--size-touch-target)',
+						borderRadius: '50%',
+						backgroundColor: 'transparent',
+						transform: 'translate(-50%, -50%)',
+						pointerEvents: 'auto',
+					},
+
+					'$:focus-visible': {
+						outline: '2px solid var(--color-focus-ring)',
+						outlineOffset: '2px',
 					},
 				})"
+				:aria-label="ariaLabel"
 			/>
-		</SliderTrack>
-		<SliderThumb
-			:class="pika({
-				width: '16px',
-				height: '16px',
-				backgroundColor: '#FEFEFE',
-				borderRadius: '50%',
-				boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
-			})"
-			:aria-label="ariaLabel"
-		/>
-	</SliderRoot>
+		</SliderRoot>
+	</div>
 </template>

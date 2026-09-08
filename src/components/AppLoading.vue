@@ -16,6 +16,7 @@ const pickedGroups = Object.values(groups)
 	.sort(() => 0.5 - Math.random())
 	.slice(0, PICKED_GROUPS)
 
+const reducedMotion = usePreferredReducedMotion()
 const now = useNow()
 const emphasizedIndex = computed(() => Math.floor(now.value.getTime() / 500) % PICKED_GROUPS)
 const FRAME_DURATION = 300 // ms
@@ -43,12 +44,12 @@ const frameCounter = computed(() => Math.floor(now.value.getTime() / FRAME_DURAT
 			:key="index"
 			:src="group[frameCounter % group.length]"
 			:style="{
-				transition: 'all 0.3s ease',
+				transition: reducedMotion === 'reduce' ? 'none' : 'transform var(--duration-slow) ease',
 				width: '36px',
 				height: '36px',
 				objectFit: 'contain',
 				imageRendering: 'pixelated',
-				transform: emphasizedIndex === index ? 'translateY(-20%)' : 'translateY(0)',
+				transform: reducedMotion === 'reduce' ? 'none' : emphasizedIndex === index ? 'translateY(-20%)' : 'translateY(0)',
 			}"
 			alt="Animated Piece"
 		>

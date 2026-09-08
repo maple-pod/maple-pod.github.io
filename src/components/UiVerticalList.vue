@@ -86,8 +86,10 @@ defineExpose({
 				'backgroundColor': 'var(--color-secondary-bg)',
 				'borderRadius': '9999px',
 				'opacity': '0.2',
-				'transition': 'all 0.2s',
+				'transition': 'width var(--duration-normal), opacity var(--duration-normal)',
 				'touchAction': 'none',
+
+				'@reduced-motion': { transition: 'none' },
 
 				'$:hover': {
 					width: '16px',

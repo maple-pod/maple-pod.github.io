@@ -17,59 +17,30 @@ defineEmits<{
 
 <template>
 	<div :class="pika({ display: 'flex', alignItems: 'center', gap: '0px', flexShrink: '0' })">
-		<UiTooltip
+		<UiIconButton
 			v-if="currentMusic != null"
+			label="Copy Music Link"
+			target="compact"
+			@click="$emit('copyMusicLink')"
 		>
-			<template #trigger>
-				<button
-					:class="pika('icon-btn')"
-					@click="$emit('copyMusicLink')"
-				>
-					<div
-						:class="pika('i-f7:link')"
-					/>
-				</button>
-			</template>
-			<template #content>
-				Copy Music Link
-			</template>
-		</UiTooltip>
-		<UiTooltip
+			<div :class="pika('i-f7:link')" />
+		</UiIconButton>
+		<UiIconButton
 			v-if="(currentMusic != null) && (isPipActive === false)"
+			label="Show in Playlist"
+			target="compact"
+			@click="$emit('showMusicInPlaylist')"
 		>
-			<template #trigger>
-				<button
-					:class="pika('icon-btn')"
-					@click="$emit('showMusicInPlaylist')"
-				>
-					<div
-						:class="pika('i-f7:compass')"
-					/>
-				</button>
-			</template>
-
-			<template #content>
-				Show in Playlist
-			</template>
-		</UiTooltip>
-		<UiTooltip
+			<div :class="pika('i-f7:compass')" />
+		</UiIconButton>
+		<UiIconButton
 			v-if="isPipSupported && (isPipActive === false)"
+			label="Open in Picture-in-Picture"
+			target="compact"
+			@click="$emit('startPip')"
 		>
-			<template #trigger>
-				<button
-					:class="pika('icon-btn')"
-					@click="$emit('startPip')"
-				>
-					<div
-						:class="pika('i-f7:rectangle-on-rectangle')"
-					/>
-				</button>
-			</template>
-
-			<template #content>
-				Open in Picture-in-Picture
-			</template>
-		</UiTooltip>
+			<div :class="pika('i-f7:rectangle-on-rectangle')" />
+		</UiIconButton>
 		<MusicDropdownMenu
 			v-if="(currentMusic != null) && (currentPlaylistId != null) && (isPipActive === false)"
 			:playlistId="currentPlaylistId"

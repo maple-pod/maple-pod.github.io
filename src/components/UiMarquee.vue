@@ -31,10 +31,14 @@ whenever(
 	<span
 		ref="el"
 		:class="pika({
-			display: 'inline-block',
-			overflow: 'hidden',
-			whiteSpace: 'nowrap',
-			textOverflow: 'clip',
+			'display': 'inline-block',
+			'overflow': 'hidden',
+			'whiteSpace': 'nowrap',
+			'textOverflow': 'clip',
+
+			'@reduced-motion': {
+				textOverflow: 'ellipsis',
+			},
 		})"
 		v-bind="$attrs"
 	>
@@ -54,6 +58,12 @@ whenever(
 					},
 					'$[data-marquee-direction=backward]': {
 						transform: 'translate3d(var(--marquee-distance), 0, 0)',
+					},
+
+					'@reduced-motion': {
+						display: 'inline',
+						transition: 'none',
+						transform: 'none',
 					},
 				}) : undefined,
 			]
