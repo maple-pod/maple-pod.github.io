@@ -15,6 +15,8 @@ whenever(
 )
 
 const isOnline = useOnline()
+const route = useRoute()
+const isWorldMapRoute = computed(() => route.name === Routes.WorldMap)
 </script>
 
 <template>
@@ -37,7 +39,7 @@ const isOnline = useOnline()
 			},
 		})"
 	>
-		<div
+		<header
 			:class="pika('card', {
 				display: 'flex',
 				flexDirection: 'column',
@@ -108,22 +110,56 @@ const isOnline = useOnline()
 					</UiTooltip>
 				</RouterLink>
 
+				<RouterLink
+					:to="{ name: Routes.WorldMap }"
+					:class="pika('hover-mask', {
+						'display': 'inline-flex',
+						'alignItems': 'center',
+						'gap': '4px',
+						'minHeight': '36px',
+						'padding': '6px 8px',
+						'borderRadius': 'var(--radius-control)',
+						'fontSize': '14px',
+						'whiteSpace': 'nowrap',
+						'color': 'var(--color-text-secondary)',
+						'$:focus-visible': {
+							outline: '2px solid var(--color-focus-ring)',
+							outlineOffset: '2px',
+						},
+					})"
+				>
+					<span
+						:class="pika('i-f7:map')"
+						aria-hidden="true"
+					/>
+					<span :class="pika({ 'display': 'none', '@screen-sm-and-up': { display: 'inline' } })">World Map</span>
+				</RouterLink>
+
 				<DownloadManagerDropdownMenu />
 				<SettingsDropdownMenu />
 			</div>
-		</div>
+		</header>
 
 		<div
-			:class="pika({
-				'display': 'grid',
-				'gridTemplateColumns': '1fr',
-				'columnGap': '4px',
-				'height': '100%',
+			:class="[
+				pika({
+					'display': 'grid',
+					'gridTemplateColumns': '1fr',
+					'columnGap': '4px',
+					'height': '100%',
 
-				'@screen-md-and-up': {
-					gridTemplateColumns: 'minmax(400px, 1fr) minmax(300px, 400px)',
-				},
-			})"
+					'@screen-md-and-up': {
+						gridTemplateColumns: 'minmax(400px, 1fr) minmax(300px, 400px)',
+					},
+				}),
+				isWorldMapRoute
+					? pika({
+						'@screen-md-and-up': {
+							gridTemplateColumns: 'minmax(480px, 1fr) minmax(260px, 320px)',
+						},
+					})
+					: '',
+			]"
 		>
 			<div
 				:class="[
