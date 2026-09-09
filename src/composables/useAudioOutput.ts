@@ -1,9 +1,13 @@
 import type { Ref } from 'vue'
 import { decibelsToLinearGain } from '@/utils/loudness'
 
+type CapturableAudioElement = HTMLAudioElement & {
+	captureStream?: () => MediaStream
+}
+
 interface AudioGraph {
 	context: AudioContext
-	source: MediaElementAudioSourceNode
+	source: MediaStreamAudioSourceNode | null
 	normalization: GainNode
 	transition: GainNode
 	userVolume: GainNode
@@ -26,24 +30,54 @@ export function useAudioOutput({ audio, getVolume, getMuted }: UseAudioOutputOpt
 	const normalizationEnabled = ref(false)
 	const normalizationGainDb = ref(0)
 	const audioGraphFailed = ref(false)
-	const normalizationSupported = computed(() => typeof AudioContext !== 'undefined' && audioGraphFailed.value === false)
+	const captureStreamSupported = typeof (audio.value as CapturableAudioElement).captureStream === 'function'
+	const normalizationSupported = computed(() => (
+		captureStreamSupported
+		&& typeof AudioContext !== 'undefined'
+		&& audioGraphFailed.value === false
+	))
 	let audioGraph: AudioGraph | null = null
+	let capturedStream: MediaStream | null = null
+	let boundCapturedTrack: MediaStreamTrack | null = null
 	let resumeAudioGraphPromise: Promise<void> | null = null
+	let outputMode: 'native' | 'enhanced' = 'native'
 	let outputGain = 1
 	let fadeRevision = 0
 
-	function syncOutputVolume() {
+	function switchToNativeOutput() {
+		outputMode = 'native'
 		if (audioGraph != null) {
-			if (audio.value.volume !== 1)
-				audio.value.volume = 1
 			audioGraph.transition.gain.value = outputGain
-			audioGraph.userVolume.gain.value = getMuted() ? 0 : getVolume()
-			return
+			audioGraph.userVolume.gain.value = 0
 		}
 
 		const effectiveVolume = clampUnitInterval(getVolume() * outputGain)
 		if (audio.value.volume !== effectiveVolume)
 			audio.value.volume = effectiveVolume
+	}
+
+	function canUseEnhancedOutput() {
+		return document.visibilityState === 'visible'
+			&& audioGraph?.source != null
+			&& audioGraph.context.state === 'running'
+	}
+
+	function switchToEnhancedOutput() {
+		if (!canUseEnhancedOutput())
+			return false
+
+		outputMode = 'enhanced'
+		audioGraph!.transition.gain.value = outputGain
+		audioGraph!.userVolume.gain.value = getMuted() ? 0 : getVolume()
+		if (audio.value.volume !== 0)
+			audio.value.volume = 0
+		return true
+	}
+
+	function syncOutputVolume() {
+		if (outputMode === 'enhanced' && switchToEnhancedOutput())
+			return
+		switchToNativeOutput()
 	}
 
 	function getNormalizationLinearGain() {
@@ -69,6 +103,45 @@ export function useAudioOutput({ audio, getVolume, getMuted }: UseAudioOutputOpt
 		param.linearRampToValueAtTime(gain, now + NORMALIZATION_RAMP_SECONDS)
 	}
 
+	function bindCapturedTrack(track: MediaStreamTrack) {
+		const graph = audioGraph
+		if (graph == null || graph.context.state === 'closed' || boundCapturedTrack?.id === track.id)
+			return
+
+		const previousSource = graph.source
+		const previousTrack = boundCapturedTrack
+		const source = graph.context.createMediaStreamSource(new MediaStream([track]))
+		source.connect(graph.normalization)
+		graph.source = source
+		boundCapturedTrack = track
+		previousSource?.disconnect()
+		if (previousTrack != null) {
+			previousTrack.stop()
+			capturedStream?.removeTrack(previousTrack)
+		}
+		if (!switchToEnhancedOutput())
+			switchToNativeOutput()
+	}
+
+	function handleCapturedTrack(event: MediaStreamTrackEvent) {
+		if (event.track.kind === 'audio')
+			bindCapturedTrack(event.track)
+	}
+
+	function ensureCapturedStream() {
+		if (capturedStream != null)
+			return capturedStream
+
+		const captureStream = (audio.value as CapturableAudioElement).captureStream
+		if (captureStream == null)
+			return null
+
+		const stream = captureStream.call(audio.value)
+		stream.addEventListener('addtrack', handleCapturedTrack)
+		capturedStream = stream
+		return stream
+	}
+
 	function ensureAudioGraph(): AudioGraph | null {
 		if (audioGraph != null)
 			return audioGraph
@@ -79,50 +152,74 @@ export function useAudioOutput({ audio, getVolume, getMuted }: UseAudioOutputOpt
 		try {
 			const createdContext = new AudioContext({ latencyHint: 'playback' })
 			context = createdContext
-			const source = createdContext.createMediaElementSource(audio.value)
 			const normalization = createdContext.createGain()
 			const transition = createdContext.createGain()
 			const userVolume = createdContext.createGain()
-			source.connect(normalization)
 			normalization.connect(transition)
 			transition.connect(userVolume)
 			userVolume.connect(createdContext.destination)
-			audioGraph = { context: createdContext, source, normalization, transition, userVolume }
+			audioGraph = { context: createdContext, source: null, normalization, transition, userVolume }
+
+			const stream = ensureCapturedStream()
+			if (stream == null)
+				throw new Error('HTMLMediaElement.captureStream() is unavailable.')
+			const latestTrack = stream.getAudioTracks()
+				.at(-1)
+			if (latestTrack != null)
+				bindCapturedTrack(latestTrack)
+
 			createdContext.addEventListener('statechange', () => {
-				if (
-					createdContext.state !== 'running'
-					&& createdContext.state !== 'closed'
-					&& !audio.value.paused
-					&& !audio.value.ended
-				) {
-					void resumeAudioGraph()
+				if (createdContext.state !== 'running') {
+					switchToNativeOutput()
+					if (
+						createdContext.state !== 'closed'
+						&& document.visibilityState === 'visible'
+						&& !audio.value.paused
+						&& !audio.value.ended
+					) {
+						void resumeAudioGraph()
+					}
+					return
 				}
+
+				if (document.visibilityState === 'visible')
+					switchToEnhancedOutput()
 			})
 			syncOutputVolume()
 			applyNormalizationGain(false)
 			return audioGraph
 		}
 		catch (error) {
-			console.warn('[audio] Could not create Web Audio graph; normalization remains bypassed.', error)
+			console.warn('[audio] Could not create captured Web Audio graph; normalization remains bypassed.', error)
 			audioGraphFailed.value = true
+			audioGraph = null
 			if (context != null && context.state !== 'closed')
 				void context.close()
+			syncOutputVolume()
 			return null
 		}
 	}
 
 	async function resumeAudioGraph() {
 		const context = audioGraph?.context
-		if (context == null || context.state === 'running' || context.state === 'closed')
+		if (context == null || context.state === 'closed')
 			return
+		if (context.state === 'running') {
+			if (document.visibilityState === 'visible')
+				switchToEnhancedOutput()
+			return
+		}
 		if (resumeAudioGraphPromise != null)
 			return resumeAudioGraphPromise
 
 		resumeAudioGraphPromise = (async () => {
 			try {
 				await context.resume()
+				if (context.state === 'running' && document.visibilityState === 'visible')
+					switchToEnhancedOutput()
 			}
 			catch (error) {
+				switchToNativeOutput()
 				console.warn('[audio] Could not resume AudioContext.', error)
 			}
 			finally {
@@ -135,7 +232,12 @@ export function useAudioOutput({ audio, getVolume, getMuted }: UseAudioOutputOpt
 	function preparePlayback() {
 		if (audioGraph == null)
 			ensureAudioGraph()
-		void resumeAudioGraph()
+		if (document.visibilityState !== 'visible') {
+			switchToNativeOutput()
+			return
+		}
+		if (!switchToEnhancedOutput())
+			void resumeAudioGraph()
 	}
 
 	function setNormalizationEnabled(value: boolean) {
@@ -207,12 +309,21 @@ export function useAudioOutput({ audio, getVolume, getMuted }: UseAudioOutputOpt
 	}
 
 	useEventListener(document, 'visibilitychange', () => {
-		if (document.visibilityState === 'visible' && !audio.value.paused)
+		if (document.visibilityState !== 'visible') {
+			switchToNativeOutput()
+			return
+		}
+
+		if (!audio.value.paused) {
+			ensureAudioGraph()
 			void resumeAudioGraph()
+		}
 	})
 	useEventListener(window, 'pageshow', () => {
-		if (!audio.value.paused)
+		if (!audio.value.paused && document.visibilityState === 'visible') {
+			ensureAudioGraph()
 			void resumeAudioGraph()
+		}
 	})
 
 	function cancelFade() {
@@ -221,6 +332,9 @@ export function useAudioOutput({ audio, getVolume, getMuted }: UseAudioOutputOpt
 
 	function dispose() {
 		cancelFade()
+		capturedStream?.removeEventListener('addtrack', handleCapturedTrack)
+		capturedStream?.getTracks()
+			.forEach(track => track.stop())
 		const context = audioGraph?.context
 		if (context != null && context.state !== 'closed')
 			void context.close()
