@@ -3,276 +3,158 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Maple Pod Dynamic MSE Queue Test</title>
+  <title>Maple Pod Bounded MSE Scheduler Test</title>
   <link rel="icon" href="data:,">
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
-    body { max-width: 48rem; margin: 0 auto; padding: 2rem 1rem; line-height: 1.5; }
+    body { max-width: 52rem; margin: 0 auto; padding: 2rem 1rem; line-height: 1.5; }
     audio { width: 100%; margin: 1rem 0; }
     button { margin: 0.25rem 0.25rem 0.25rem 0; padding: 0.6rem 0.8rem; }
     code { overflow-wrap: anywhere; }
-    #status, #queue, #current { font-weight: 600; }
+    #status, #current, #window, #metrics { font-weight: 600; }
   </style>
 </head>
 <body>
-  <h1>Dynamic MSE queue test</h1>
+  <h1>Bounded MSE scheduler test</h1>
   <p>
-    This page uses one native <code>&lt;audio controls&gt;</code> element whose <code>src</code> is assigned exactly once
-    to one <code>MediaSource</code> object URL. It does not load the Maple Pod Vue application and does not configure
-    Media Session.
-  </p>
-  <p>
-    The initial MSE timeline is <strong>A → B → C</strong>. While A is still current, use the mutation button to remove
-    the already-buffered B/C future and replace it with <strong>E → D</strong>. The authoritative <code>audio.src</code>
-    remains the same blob URL throughout the operation.
+    One native <code>&lt;audio&gt;</code> keeps one <code>MediaSource</code> blob URL for the entire test.
+    The scheduler keeps at most one previous track, the current track, and three future tracks in its MSE window.
+    Older media is evicted and later tracks are appended without replacing <code>audio.src</code>.
   </p>
 
-  <p id="status" role="status">Preparing track data…</p>
-  <p id="queue">Queue: preparing…</p>
+  <p id="status" role="status">Preparing bounded MSE queue…</p>
   <p id="current">Current: —</p>
+  <p id="window">Window: —</p>
+  <p id="metrics">Metrics: —</p>
   <audio id="audio" controls hidden></audio>
 
   <div>
-    <button id="mutate" disabled>Replace future B/C → E/D</button>
-    <button id="near-boundary" disabled>Jump to 10s before A boundary</button>
+    <button id="near-boundary" disabled>Jump to 3s before next boundary</button>
     <button id="previous" disabled>Previous</button>
     <button id="next" disabled>Next</button>
+    <button id="reorder" disabled>Reorder future</button>
+    <button id="jump-far" disabled>Jump to far queued track</button>
     <button type="button" onclick="location.reload()">Reset</button>
   </div>
 
-  <h2>Tracks</h2>
-  <ul>
-    <li>A — Gravity Core</li>
-    <li>B — War for the Castle</li>
-    <li>C — The Tragic Fate of Demian</li>
-    <li>E — Knight of Light</li>
-    <li>D — Summer Boating 1</li>
-  </ul>
+  <h2>Queue</h2>
+  <ol id="queue"></ol>
 
-  <h2>Recommended Android test</h2>
+  <h2>Recommended test</h2>
   <ol>
-    <li>Wait until the initial queue says <strong>A → B → C</strong> is ready.</li>
-    <li>Press Play.</li>
-    <li>While A is still playing, press <strong>Replace future B/C → E/D</strong>.</li>
-    <li>Confirm the queue changes to <strong>A → E → D</strong> without the audio control disappearing.</li>
-    <li>Optionally press <strong>Jump to 10s before A boundary</strong>.</li>
-    <li>Background the browser or lock the screen and let playback cross A → E and E → D.</li>
-    <li>Observe whether playback stops or the browser media notification disappears.</li>
+    <li>Wait for <strong>Ready</strong>, then press Play.</li>
+    <li>Use <strong>Jump to 3s before next boundary</strong> repeatedly to cross several tracks quickly.</li>
+    <li>Watch the window evict old tracks and append later tracks while <code>src stable: yes</code> remains true.</li>
+    <li>Use <strong>Reorder future</strong> during playback, then cross another boundary.</li>
+    <li>Use <strong>Jump to far queued track</strong> to rebuild a distant bounded window without changing <code>audio.src</code>.</li>
+    <li>For Android background testing, leave playback running with at least three future tracks buffered and lock the screen.</li>
   </ol>
 
-  <script>
+  <script type="module">
+    import { MsePlaybackScheduler } from './mse-playback-scheduler.js'
+
     const audio = document.querySelector('#audio')
     const status = document.querySelector('#status')
-    const queue = document.querySelector('#queue')
     const current = document.querySelector('#current')
-    const mutateButton = document.querySelector('#mutate')
+    const windowState = document.querySelector('#window')
+    const metrics = document.querySelector('#metrics')
+    const queueList = document.querySelector('#queue')
     const nearBoundaryButton = document.querySelector('#near-boundary')
     const previousButton = document.querySelector('#previous')
     const nextButton = document.querySelector('#next')
+    const reorderButton = document.querySelector('#reorder')
+    const jumpFarButton = document.querySelector('#jump-far')
 
-    const mimeType = 'audio/webm; codecs="opus"'
     const resourceBase = 'https://cdn.jsdelivr.net/gh/maple-pod/resources@1a4a8d4123c1f8f71d34e718f94119a58f7f1358/bgm/'
     const tracks = {
-      A: { label: 'A', title: 'Gravity Core', file: 'Gravity Core.webm' },
-      B: { label: 'B', title: 'War for the Castle', file: 'MBlockbusterC.webm' },
-      C: { label: 'C', title: 'The Tragic Fate of Demian', file: 'Demian.webm' },
-      E: { label: 'E', title: 'Knight of Light', file: 'Knight of Light.webm' },
-      D: { label: 'D', title: 'Summer Boating 1', file: 'summerboating01.webm' },
+      A: { title: 'Summer Boating 1', file: 'summerboating01.webm' },
+      B: { title: 'Summer Boating 3', file: 'summerboating03.webm' },
+      C: { title: 'Sea Wave', file: 'SeaWave.webm' },
+      D: { title: 'War for the Castle', file: 'MBlockbusterC.webm' },
+      E: { title: 'Unknown Part of City', file: 'Unknown Part Of City.webm' },
+      F: { title: 'The Bloody Cage (Original)', file: 'BloodCage (Original).webm' },
+      G: { title: 'MMF Bad Guys', file: 'MMF_badGuys.webm' },
+      H: { title: 'Reborn Gods', file: 'Reborn gods.webm' },
+      I: { title: 'Corona Festival 3', file: 'CoronaFestival3.webm' },
+      J: { title: 'The Living Mountain', file: 'TheLivingMountain.webm' },
     }
-    const initialOrder = ['A', 'B', 'C']
-    const replacementOrder = ['E', 'D']
-    const trackData = new Map()
+    const initialOrder = Object.keys(tracks)
+    const scheduler = new MsePlaybackScheduler({
+      audio,
+      tracks,
+      resourceBase,
+      previousCount: 1,
+      futureCount: 3,
+    })
+    let reordered = false
 
-    let mediaSource
-    let sourceBuffer
-    let entries = []
-    let originalSrc
-    let mutated = false
-    let mutating = false
-
-    function waitForUpdateEnd() {
-      return new Promise((resolve, reject) => {
-        const cleanup = () => {
-          sourceBuffer.removeEventListener('updateend', handleUpdateEnd)
-          sourceBuffer.removeEventListener('error', handleError)
-        }
-        const handleUpdateEnd = () => {
-          cleanup()
-          resolve()
-        }
-        const handleError = () => {
-          cleanup()
-          reject(new Error('SourceBuffer failed while updating media.'))
-        }
-        sourceBuffer.addEventListener('updateend', handleUpdateEnd)
-        sourceBuffer.addEventListener('error', handleError)
-      })
+    function renderQueue(order, currentId) {
+      queueList.replaceChildren(...order.map((id) => {
+        const item = document.createElement('li')
+        item.textContent = `${id} — ${tracks[id].title}${id === currentId ? ' ← current' : ''}`
+        return item
+      }))
     }
 
-    function bufferedEnd() {
-      return sourceBuffer.buffered.length === 0
-        ? 0
-        : sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1)
+    function render(state) {
+      const currentTrack = state.currentId == null ? null : tracks[state.currentId]
+      current.textContent = currentTrack == null
+        ? 'Current: —'
+        : `Current: ${state.currentId} — ${currentTrack.title}`
+      windowState.textContent = `Window: ${state.window.map(entry => entry.id).join(' → ') || '—'}`
+      const buffered = state.buffered.map(range => `${range[0].toFixed(1)}–${range[1].toFixed(1)}s`).join(', ')
+      metrics.textContent = `Metrics: appended ${state.totalAppendedTracks} tracks / ${(state.totalAppendedBytes / 1_000_000).toFixed(2)} MB cumulative; buffered ${buffered || 'none'}; src stable: ${state.srcStable ? 'yes' : 'NO'}`
+      renderQueue(state.order, state.currentId)
     }
 
-    async function appendTrack(label) {
-      const start = bufferedEnd()
-      const updateFinished = waitForUpdateEnd()
-      sourceBuffer.appendBuffer(trackData.get(label))
-      await updateFinished
-      return {
-        ...tracks[label],
-        start,
-        end: bufferedEnd(),
-      }
+    function setBusy(message, busy) {
+      status.textContent = message
+      nearBoundaryButton.disabled = busy
+      previousButton.disabled = busy
+      nextButton.disabled = busy
+      reorderButton.disabled = busy || reordered
+      jumpFarButton.disabled = busy
     }
 
-    function renderQueue() {
-      queue.textContent = `Queue: ${entries.map(entry => entry.label).join(' → ')}`
-    }
-
-    function currentEntryIndex() {
-      const time = audio.currentTime
-      const containing = entries.findIndex(entry => time >= entry.start && time < entry.end)
-      if (containing !== -1)
-        return containing
-      return Math.max(0, entries.findLastIndex(entry => time >= entry.start))
-    }
-
-    function renderCurrent() {
-      if (entries.length === 0) {
-        current.textContent = 'Current: —'
-        return
-      }
-      const entry = entries[currentEntryIndex()]
-      const localTime = Math.max(0, audio.currentTime - entry.start)
-      current.textContent = `Current: ${entry.label} — ${entry.title} (${localTime.toFixed(1)}s)`
-    }
-
-    async function replaceFuture() {
-      if (mutated || mutating || entries.length === 0)
-        return
-
-      const keep = entries[0]
-      if (audio.currentTime >= keep.end) {
-        status.textContent = 'Mutation skipped — reset and replace the future while A is still current.'
-        return
-      }
-
-      mutating = true
-      mutateButton.disabled = true
-      status.textContent = 'Mutating future buffer: removing B/C…'
-
+    async function runOperation(message, operation) {
+      setBusy(message, true)
       try {
-        const oldEnd = bufferedEnd()
-        const removeFinished = waitForUpdateEnd()
-        sourceBuffer.remove(keep.end, oldEnd + 0.001)
-        await removeFinished
-
-        sourceBuffer.timestampOffset = keep.end
-        const nextEntries = [keep]
-        for (const label of replacementOrder) {
-          status.textContent = `Mutating future buffer: appending ${label}…`
-          nextEntries.push(await appendTrack(label))
-        }
-
-        entries = nextEntries
-        mutated = true
-        renderQueue()
-        renderCurrent()
-
-        if (mediaSource.readyState === 'open')
-          mediaSource.endOfStream()
-
-        const srcUnchanged = audio.src === originalSrc
-        status.textContent = `Ready — future replaced with A → E → D; audio.src unchanged: ${srcUnchanged ? 'yes' : 'NO'}.`
+        await operation()
+        render(scheduler.getState())
+        setBusy('Ready — bounded MSE scheduler active.', false)
       }
       catch (error) {
         console.error(error)
-        status.textContent = `Mutation failed: ${error.message}`
-        mutateButton.disabled = false
-      }
-      finally {
-        mutating = false
+        status.textContent = `Failed: ${error.message}`
       }
     }
 
-    function goNearFirstBoundary() {
-      if (entries.length === 0)
-        return
-      audio.currentTime = Math.max(entries[0].start, entries[0].end - 10)
-      renderCurrent()
-    }
-
-    function goNext() {
-      const index = currentEntryIndex()
-      const next = entries[index + 1]
+    nearBoundaryButton.addEventListener('click', () => {
+      const state = scheduler.getState()
+      const currentIndex = state.window.findIndex(entry => entry.id === state.currentId)
+      const next = state.window[currentIndex + 1]
       if (next != null)
-        audio.currentTime = next.start
-      renderCurrent()
-    }
+        audio.currentTime = Math.max(0, next.start - 3)
+    })
 
-    function goPrevious() {
-      const index = currentEntryIndex()
-      const entry = entries[index]
-      if (audio.currentTime - entry.start > 3 || index === 0)
-        audio.currentTime = entry.start
-      else
-        audio.currentTime = entries[index - 1].start
-      renderCurrent()
-    }
+    previousButton.addEventListener('click', () => runOperation('Moving previous…', () => scheduler.goPrevious()))
+    nextButton.addEventListener('click', () => runOperation('Moving next…', () => scheduler.goNext()))
+    reorderButton.addEventListener('click', () => runOperation('Reconciling reordered future…', async () => {
+      const state = scheduler.getState()
+      const future = state.order.slice(state.currentOrderIndex + 1)
+      if (future.length < 2)
+        return
+      const reorderedFuture = [future.at(-1), ...future.slice(0, -1)]
+      await scheduler.replaceFuture(reorderedFuture)
+      reordered = true
+    }))
+    jumpFarButton.addEventListener('click', () => runOperation('Rebuilding a distant bounded window…', () => scheduler.playTrack('H')))
 
-    async function prepare() {
-      if (!('MediaSource' in window) || !MediaSource.isTypeSupported(mimeType))
-        throw new Error(`MSE ${mimeType} is not supported by this browser.`)
+    scheduler.addEventListener('statechange', event => render(event.detail))
 
-      const labels = Object.keys(tracks)
-      for (let index = 0; index < labels.length; index++) {
-        const label = labels[index]
-        status.textContent = `Preparing track data… ${index + 1}/${labels.length}`
-        const response = await fetch(resourceBase + encodeURIComponent(tracks[label].file))
-        if (!response.ok)
-          throw new Error(`Failed to fetch ${tracks[label].file} (${response.status}).`)
-        trackData.set(label, await response.arrayBuffer())
-      }
-
-      mediaSource = new MediaSource()
-      originalSrc = URL.createObjectURL(mediaSource)
-      audio.src = originalSrc
-
-      await new Promise((resolve) => {
-        mediaSource.addEventListener('sourceopen', resolve, { once: true })
-      })
-
-      sourceBuffer = mediaSource.addSourceBuffer(mimeType)
-      sourceBuffer.mode = 'sequence'
-
-      entries = []
-      for (const label of initialOrder) {
-        status.textContent = `Building initial MSE queue… ${label}`
-        entries.push(await appendTrack(label))
-      }
-
-      renderQueue()
-      renderCurrent()
+    runOperation('Preparing bounded MSE queue…', async () => {
+      await scheduler.initialize(initialOrder, 'A')
       audio.hidden = false
-      mutateButton.disabled = false
-      nearBoundaryButton.disabled = false
-      previousButton.disabled = false
-      nextButton.disabled = false
-      status.textContent = `Ready — initial queue A → B → C, ${bufferedEnd().toFixed(3)} seconds buffered.`
-    }
-
-    mutateButton.addEventListener('click', replaceFuture)
-    nearBoundaryButton.addEventListener('click', goNearFirstBoundary)
-    previousButton.addEventListener('click', goPrevious)
-    nextButton.addEventListener('click', goNext)
-    audio.addEventListener('timeupdate', renderCurrent)
-    audio.addEventListener('seeked', renderCurrent)
-
-    prepare().catch((error) => {
-      console.error(error)
-      status.textContent = `Failed: ${error.message}`
     })
   </script>
 </body>
