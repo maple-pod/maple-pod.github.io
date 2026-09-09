@@ -68,6 +68,7 @@ export function useAudio(options: UseAudioOptions = {}) {
 	const audioGraphFailed = ref(false)
 	const normalizationSupported = computed(() => typeof AudioContext !== 'undefined' && audioGraphFailed.value === false)
 	let audioGraph: AudioGraph | null = null
+	let resumeAudioGraphPromise: Promise<void> | null = null
 	let outputGain = 1
 	let fadeRevision = 0
 
@@ -116,16 +117,27 @@ export function useAudio(options: UseAudioOptions = {}) {
 
 		let context: AudioContext | null = null
 		try {
-			context = new AudioContext()
-			const source = context.createMediaElementSource(audio.value)
-			const normalization = context.createGain()
-			const transition = context.createGain()
-			const userVolume = context.createGain()
+			const createdContext = new AudioContext()
+			context = createdContext
+			const source = createdContext.createMediaElementSource(audio.value)
+			const normalization = createdContext.createGain()
+			const transition = createdContext.createGain()
+			const userVolume = createdContext.createGain()
 			source.connect(normalization)
 			normalization.connect(transition)
 			transition.connect(userVolume)
-			userVolume.connect(context.destination)
-			audioGraph = { context, source, normalization, transition, userVolume }
+			userVolume.connect(createdContext.destination)
+			audioGraph = { context: createdContext, source, normalization, transition, userVolume }
+			createdContext.addEventListener('statechange', () => {
+				if (
+					createdContext.state !== 'running'
+					&& createdContext.state !== 'closed'
+					&& !audio.value.paused
+					&& !audio.value.ended
+				) {
+					void resumeAudioGraph()
+				}
+			})
 			applyOutputVolume()
 			applyNormalizationGain(false)
 			return audioGraph
@@ -140,14 +152,24 @@ export function useAudio(options: UseAudioOptions = {}) {
 	}
 
 	async function resumeAudioGraph() {
-		if (audioGraph?.context.state !== 'suspended')
+		const context = audioGraph?.context
+		if (context == null || context.state === 'running' || context.state === 'closed')
 			return
-		try {
-			await audioGraph.context.resume()
-		}
-		catch (error) {
-			console.warn('[audio] Could not resume AudioContext.', error)
-		}
+		if (resumeAudioGraphPromise != null)
+			return resumeAudioGraphPromise
+
+		resumeAudioGraphPromise = (async () => {
+			try {
+				await context.resume()
+			}
+			catch (error) {
+				console.warn('[audio] Could not resume AudioContext.', error)
+			}
+			finally {
+				resumeAudioGraphPromise = null
+			}
+		})()
+		return resumeAudioGraphPromise
 	}
 
 	function preparePlayback() {
@@ -272,13 +294,29 @@ export function useAudio(options: UseAudioOptions = {}) {
 		audioStatus.value.hasError = false
 	}
 
-	function play() {
+	async function play() {
 		preparePlayback()
-		audio.value.play()
+		try {
+			await audio.value.play()
+			return true
+		}
+		catch (error) {
+			console.warn('[audio] Playback request was rejected.', error)
+			return false
+		}
 	}
 	function pause() {
 		audio.value.pause()
 	}
+
+	useEventListener(document, 'visibilitychange', () => {
+		if (document.visibilityState === 'visible' && !audio.value.paused)
+			void resumeAudioGraph()
+	})
+	useEventListener(window, 'pageshow', () => {
+		if (!audio.value.paused)
+			void resumeAudioGraph()
+	})
 
 	useEventListener(audio, 'durationchange', () => {
 		audioStatus.value.duration = audio.value.duration

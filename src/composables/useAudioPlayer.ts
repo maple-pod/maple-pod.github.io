@@ -46,6 +46,7 @@ export function useAudioPlayer({
 	}
 
 	const audioLogic = useAudio({
+		autoplay: false,
 		volume: savedVolume.value,
 		muted: savedMuted.value,
 	})
@@ -130,6 +131,7 @@ export function useAudioPlayer({
 
 			releaseCurrentSource = source.release ?? null
 			audioLogic.load(source.src)
+			const playbackStarted = audioLogic.play()
 			if (audio.value.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
 				await until(computed(() => canPlay.value || hasError.value))
 					.toBe(true)
@@ -137,10 +139,12 @@ export function useAudioPlayer({
 
 			if (requestId !== sourceRequestId)
 				return
-			if (hasError.value) {
+			if (hasError.value || await playbackStarted === false) {
 				await audioLogic.fadeOutputTo(1, 0)
 				return
 			}
+			if (requestId !== sourceRequestId)
+				return
 			await audioLogic.fadeOutputTo(1, TRACK_SWITCH_FADE_MS)
 		},
 	)
