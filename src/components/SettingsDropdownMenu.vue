@@ -10,7 +10,7 @@ const appStore = useAppStore()
 const { toggleDark } = appStore
 const { bgData, savedBgImage, currentAutoBgPreview } = storeToRefs(appStore)
 
-const { savedUserData, experimentalLoudnessNormalization } = useSavedUserData()
+const { savedUserData } = useSavedUserData()
 
 function resetSavedUserData() {
 	savedUserData.value = undefined
@@ -117,17 +117,6 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 		label: 'Background',
 		disabled: bgData.value == null,
 		id: 'bg-menu',
-	},
-	{
-		icon: pika('i-f7:gear-alt'),
-		label: 'Experimental',
-		items: [
-			{
-				icon: experimentalLoudnessNormalization.value ? pika('i-f7:checkmark-circle') : pika('i-f7:equal'),
-				label: `Loudness Normalization: ${experimentalLoudnessNormalization.value ? 'On' : 'Off'}`,
-				onSelect: () => experimentalLoudnessNormalization.value = !experimentalLoudnessNormalization.value,
-			},
-		],
 	},
 	{
 		icon: pika('i-f7:archivebox'),

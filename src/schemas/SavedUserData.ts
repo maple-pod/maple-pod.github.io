@@ -1,4 +1,4 @@
-import { array, boolean, literal, maxValue, minValue, number, object, optional, pipe, startsWith, string, union } from 'valibot'
+import { array, boolean, literal, maxValue, minValue, number, object, pipe, startsWith, string, union } from 'valibot'
 
 export const SavedUserDataSchema = object({
 	preferences: object({
@@ -19,7 +19,6 @@ export const SavedUserDataSchema = object({
 			literal('repeat'),
 			literal('repeat-1'),
 		]),
-		experimentalLoudnessNormalization: optional(boolean(), false),
 	}),
 	liked: object({
 		id: literal('liked'),

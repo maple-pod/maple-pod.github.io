@@ -131,7 +131,7 @@ export function useAudio(options: UseAudioOptions = {}) {
 			return audioGraph
 		}
 		catch (error) {
-			console.warn('[audio-lab] Could not create Web Audio graph; normalization remains bypassed.', error)
+			console.warn('[audio] Could not create Web Audio graph; normalization remains bypassed.', error)
 			audioGraphFailed.value = true
 			if (context != null && context.state !== 'closed')
 				void context.close()
@@ -146,12 +146,12 @@ export function useAudio(options: UseAudioOptions = {}) {
 			await audioGraph.context.resume()
 		}
 		catch (error) {
-			console.warn('[audio-lab] Could not resume AudioContext.', error)
+			console.warn('[audio] Could not resume AudioContext.', error)
 		}
 	}
 
 	function preparePlayback() {
-		if (normalizationEnabled.value && audioGraph == null)
+		if (audioGraph == null)
 			ensureAudioGraph()
 		void resumeAudioGraph()
 	}
@@ -163,9 +163,8 @@ export function useAudio(options: UseAudioOptions = {}) {
 			return true
 		}
 
-		// A persisted experimental preference may be restored before the user
-		// starts playback. Defer AudioContext creation until play() in that case
-		// so browser user-activation policies cannot turn a valid track silent.
+		// Defer graph creation until playback when the media element is paused so
+		// browser user-activation policies cannot turn a valid track silent.
 		if (audio.value.paused)
 			return normalizationSupported.value
 

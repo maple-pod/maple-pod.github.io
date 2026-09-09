@@ -36,7 +36,6 @@ function groupByMark(data: MusicData[]): Map<string, MusicData[]> {
 }
 
 export const useMusicStore = defineStore('music', () => {
-	const { experimentalLoudnessNormalization } = useSavedUserData()
 	const loudnessNormalizationAvailable = ref(false)
 	const resourceBuiltAt = ref<number>()
 	let loudnessLoadPromise: Promise<boolean> | null = null
@@ -80,13 +79,13 @@ export const useMusicStore = defineStore('music', () => {
 					&& report.trackCount === musicDataList.value.length
 					&& report.resourceBuiltAt === resourceBuiltAt.value
 				if (!reportMatchesResources) {
-					console.warn('[audio-lab] Loudness report does not match the current resource build; normalization is unavailable.')
+					console.warn('[audio] Loudness report does not match the current resource build; normalization is unavailable.')
 					return false
 				}
 
 				const measurements = new Map(report.tracks.map(track => [track.filename, track]))
 				if (measurements.size !== musicDataList.value.length) {
-					console.warn('[audio-lab] Loudness report is incomplete; normalization is unavailable.')
+					console.warn('[audio] Loudness report is incomplete; normalization is unavailable.')
 					return false
 				}
 
@@ -96,7 +95,7 @@ export const useMusicStore = defineStore('music', () => {
 				return true
 			}
 			catch (error) {
-				console.warn('[audio-lab] Could not load loudness report; normalization is unavailable.', error)
+				console.warn('[audio] Could not load loudness report; normalization is unavailable.', error)
 				return false
 			}
 		})()
@@ -252,18 +251,12 @@ export const useMusicStore = defineStore('music', () => {
 	watch(currentMusic, syncCurrentNormalizationGain, { immediate: true })
 
 	watch(
-		[experimentalLoudnessNormalization, isDataReady],
-		async ([enabled, dataReady]) => {
+		isDataReady,
+		async (dataReady) => {
 			if (!dataReady)
 				return
-			if (!enabled) {
-				audioPlayerLogic.setNormalizationEnabled(false)
-				return
-			}
 
 			const loaded = await loadLoudnessMeasurements()
-			if (!experimentalLoudnessNormalization.value)
-				return
 			if (!loaded) {
 				audioPlayerLogic.setNormalizationEnabled(false)
 				return

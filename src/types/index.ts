@@ -6,7 +6,6 @@ export interface SavedUserData {
 		muted: boolean
 		random: boolean
 		repeated: 'off' | 'repeat' | 'repeat-1'
-		experimentalLoudnessNormalization: boolean
 	}
 	liked: Playlist<'liked'>
 	playlists: Playlist<CustomPlaylistId>[]

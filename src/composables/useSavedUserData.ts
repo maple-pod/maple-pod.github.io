@@ -20,7 +20,6 @@ function createInitialSavedUserData(): SavedUserData {
 			muted: false,
 			random: false,
 			repeated: 'off',
-			experimentalLoudnessNormalization: false,
 		},
 		liked: {
 			id: 'liked',
@@ -47,7 +46,6 @@ export const useSavedUserData = createSharedComposable(() => {
 	const muted = toSavedPreferenceRef(savedUserData, 'muted')
 	const random = toSavedPreferenceRef(savedUserData, 'random')
 	const repeated = toSavedPreferenceRef(savedUserData, 'repeated')
-	const experimentalLoudnessNormalization = toSavedPreferenceRef(savedUserData, 'experimentalLoudnessNormalization', false)
 	const likedPlaylist = computed({
 		get: () => savedUserData.value.liked,
 		set: value => savedUserData.value.liked = value,
@@ -69,7 +67,6 @@ export const useSavedUserData = createSharedComposable(() => {
 		muted,
 		random,
 		repeated,
-		experimentalLoudnessNormalization,
 		likedPlaylist,
 		savedPlaylists,
 		history,
