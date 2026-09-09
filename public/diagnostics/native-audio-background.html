@@ -3,42 +3,117 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Maple Pod Native Audio Background Test</title>
+  <title>Maple Pod MSE Background Audio Test</title>
+  <link rel="icon" href="data:,">
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
     body { max-width: 48rem; margin: 0 auto; padding: 2rem 1rem; line-height: 1.5; }
     audio { width: 100%; margin: 1rem 0; }
     code { overflow-wrap: anywhere; }
+    #status { font-weight: 600; }
   </style>
 </head>
 <body>
-  <h1>Native audio background test</h1>
+  <h1>MSE background audio test</h1>
   <p>
-    This page intentionally uses one native <code>&lt;audio controls&gt;</code> element and one media URL.
-    It does not load the Maple Pod Vue application, does not replace the source, and does not configure Media Session.
+    This page uses one native <code>&lt;audio controls&gt;</code> element whose <code>src</code> is assigned once to one
+    <code>MediaSource</code> object URL. Five independent WebM/Opus tracks are appended to one
+    <code>SourceBuffer</code> in <code>sequence</code> mode before playback starts.
+  </p>
+  <p>
+    It does not load the Maple Pod Vue application, does not configure Media Session, and does not replace
+    <code>audio.src</code> between tracks.
   </p>
 
-  <audio
-    controls
-    preload="metadata"
-    src="https://cdn.jsdelivr.net/gh/maple-pod/resources@1a4a8d4123c1f8f71d34e718f94119a58f7f1358/bgm/__diagnostic_native_audio_5track.webm">
-  </audio>
+  <p id="status" role="status">Preparing MSE audio…</p>
+  <audio id="audio" controls hidden></audio>
 
-  <p>The single WebM/Opus file is approximately 11 minutes long and concatenates these five tracks without audio re-encoding:</p>
+  <p>The resulting MSE timeline is approximately 9 minutes 20 seconds and contains:</p>
   <ol>
-    <li>Dragon Dream</li>
-    <li>Floral Life</li>
-    <li>Go Picnic</li>
-    <li>Rest N Peace</li>
-    <li>Fairy Tale</li>
+    <li>Gravity Core</li>
+    <li>War for the Castle</li>
+    <li>The Tragic Fate of Demian</li>
+    <li>Knight of Light</li>
+    <li>Summer Boating 1</li>
   </ol>
 
   <h2>Test</h2>
   <ol>
+    <li>Wait until the status says the entire MSE timeline is ready.</li>
     <li>Press Play using the browser's native audio controls.</li>
     <li>Background the browser or lock the screen.</li>
-    <li>Leave it playing past the point where Maple Pod normally stops.</li>
+    <li>Leave it playing across several track boundaries.</li>
     <li>Observe whether playback stops and whether the browser media notification disappears.</li>
   </ol>
+
+  <script>
+    const audio = document.querySelector('#audio')
+    const status = document.querySelector('#status')
+    const mimeType = 'audio/webm; codecs="opus"'
+    const resourceBase = 'https://cdn.jsdelivr.net/gh/maple-pod/resources@1a4a8d4123c1f8f71d34e718f94119a58f7f1358/bgm/'
+    const tracks = [
+      'Gravity Core.webm',
+      'MBlockbusterC.webm',
+      'Demian.webm',
+      'Knight of Light.webm',
+      'summerboating01.webm',
+    ]
+
+    function waitForUpdateEnd(sourceBuffer) {
+      return new Promise((resolve, reject) => {
+        const cleanup = () => {
+          sourceBuffer.removeEventListener('updateend', handleUpdateEnd)
+          sourceBuffer.removeEventListener('error', handleError)
+        }
+        const handleUpdateEnd = () => {
+          cleanup()
+          resolve()
+        }
+        const handleError = () => {
+          cleanup()
+          reject(new Error('SourceBuffer failed while appending media.'))
+        }
+        sourceBuffer.addEventListener('updateend', handleUpdateEnd)
+        sourceBuffer.addEventListener('error', handleError)
+      })
+    }
+
+    async function prepare() {
+      if (!('MediaSource' in window) || !MediaSource.isTypeSupported(mimeType)) {
+        throw new Error(`MSE ${mimeType} is not supported by this browser.`)
+      }
+
+      const mediaSource = new MediaSource()
+      audio.src = URL.createObjectURL(mediaSource)
+
+      await new Promise((resolve) => {
+        mediaSource.addEventListener('sourceopen', resolve, { once: true })
+      })
+
+      const sourceBuffer = mediaSource.addSourceBuffer(mimeType)
+      sourceBuffer.mode = 'sequence'
+
+      for (let index = 0; index < tracks.length; index++) {
+        status.textContent = `Preparing MSE audio… ${index + 1}/${tracks.length}`
+        const response = await fetch(resourceBase + encodeURIComponent(tracks[index]))
+        if (!response.ok)
+          throw new Error(`Failed to fetch ${tracks[index]} (${response.status}).`)
+
+        const data = await response.arrayBuffer()
+        const updateFinished = waitForUpdateEnd(sourceBuffer)
+        sourceBuffer.appendBuffer(data)
+        await updateFinished
+      }
+
+      mediaSource.endOfStream()
+      audio.hidden = false
+      status.textContent = `Ready — one MSE source, ${audio.duration.toFixed(3)} seconds buffered.`
+    }
+
+    prepare().catch((error) => {
+      console.error(error)
+      status.textContent = `Failed: ${error.message}`
+    })
+  </script>
 </body>
 </html>
