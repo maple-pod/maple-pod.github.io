@@ -55,6 +55,8 @@ const currentNodeId = ref<string>('')
 const activeTarget = shallowRef<ActiveTarget | null>(null)
 let activeTargetCloseTimer: ReturnType<typeof setTimeout> | null = null
 
+const worldMapInteractionSelector = '[data-world-map-hotspot], [data-world-map-popover]'
+
 const nodeById = computed(() => new Map((manifest.value?.nodes ?? []).map(node => [node.worldMapId, node])))
 const rootIds = computed(() => manifest.value?.roots.length
 	? manifest.value.roots
@@ -240,7 +242,19 @@ function scheduleActiveTargetClose() {
 	}, 120)
 }
 
-onBeforeUnmount(cancelActiveTargetClose)
+function onDocumentPointerDown(event: PointerEvent) {
+	if (canHover.value || activeTarget.value == null)
+		return
+	if (event.target instanceof Element && event.target.closest(worldMapInteractionSelector) != null)
+		return
+	activeTarget.value = null
+}
+
+onMounted(() => document.addEventListener('pointerdown', onDocumentPointerDown))
+onBeforeUnmount(() => {
+	cancelActiveTargetClose()
+	document.removeEventListener('pointerdown', onDocumentPointerDown)
+})
 
 function activateLink(link: WorldMapGraphLink) {
 	cancelActiveTargetClose()
@@ -593,6 +607,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						:key="`link:${link.id}`"
 						type="button"
 						:aria-label="linkAccessibleName(link)"
+						data-world-map-hotspot
 						:data-active="activeTarget?.kind === 'link' && activeTarget.id === link.id"
 						:style="linkHitStyle(link)"
 						:class="pika({
@@ -623,6 +638,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						:key="`spot:${spot.id}`"
 						type="button"
 						:aria-label="spotAccessibleName(spot)"
+						data-world-map-hotspot
 						:data-active="activeTarget?.kind === 'spot' && activeTarget.id === spot.id"
 						:data-playable="getWorldMapSpotRepresentative(spot)?.selection.trackId != null"
 						:style="spotHitStyle(spot)"
@@ -672,6 +688,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						v-if="activeTitle != null"
 						role="dialog"
 						aria-live="polite"
+						data-world-map-popover
 						:aria-label="activeTitle"
 						:style="tooltipStyle"
 						:class="pika({
