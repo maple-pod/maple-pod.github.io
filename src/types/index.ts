@@ -6,6 +6,7 @@ export interface SavedUserData {
 		muted: boolean
 		random: boolean
 		repeated: 'off' | 'repeat' | 'repeat-1'
+		experimentalLoudnessNormalization: boolean
 	}
 	liked: Playlist<'liked'>
 	playlists: Playlist<CustomPlaylistId>[]
@@ -40,6 +41,28 @@ export interface ResourceBgm {
 export interface Resources {
 	bgms: ResourceBgm[]
 	marks: Record<string, string>
+	builtAt?: number
+}
+
+export interface LoudnessAnalysisTrack {
+	filename: string
+	file: string
+	codec: string
+	container: string
+	duration: number
+	year: string | null
+	integratedLufs: number
+	truePeakDbtp: number
+	loudnessRangeLu: number
+	thresholdLufs: number
+}
+
+export interface LoudnessAnalysisReport {
+	resourceBuiltAt: number
+	trackCount: number
+	successCount: number
+	failureCount: number
+	tracks: LoudnessAnalysisTrack[]
 }
 
 export interface MusicData {
@@ -48,6 +71,7 @@ export interface MusicData {
 	cover: string
 	src: string
 	duration: number
+	loudness?: LoudnessAnalysisTrack
 
 	data: ResourceBgm
 }

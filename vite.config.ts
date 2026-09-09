@@ -101,6 +101,20 @@ export default defineConfig(async () => ({
 							},
 						},
 					},
+					{
+						urlPattern: /\/resources\/loudness-analysis\.json$/,
+						handler: 'NetworkFirst',
+						options: {
+							cacheName: 'maple-pod-loudness-cache',
+							expiration: {
+								maxEntries: 2,
+								maxAgeSeconds: 60 * 60 * 24 * 365,
+							},
+							cacheableResponse: {
+								statuses: [0, 200],
+							},
+						},
+					},
 				],
 			},
 		}),
@@ -139,6 +153,10 @@ export default defineConfig(async () => ({
 	server: {
 		proxy: {
 			'/resources/data.json': {
+				target: 'https://maple-pod.deviltea.me',
+				changeOrigin: true,
+			},
+			'/resources/loudness-analysis.json': {
 				target: 'https://maple-pod.deviltea.me',
 				changeOrigin: true,
 			},

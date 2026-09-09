@@ -1,5 +1,6 @@
 type AudioPlayerSource = string | {
 	src: string
+	normalizationGainDb?: number
 	release?: () => void
 }
 
@@ -81,6 +82,9 @@ export function useAudioPlayer({
 	const isWaiting = audioLogic.isWaiting
 	const canPlay = audioLogic.canPlay
 	const hasError = audioLogic.hasError
+	const normalizationSupported = audioLogic.normalizationSupported
+	const normalizationEnabled = audioLogic.normalizationEnabled
+	const normalizationGainDb = audioLogic.normalizationGainDb
 
 	const TRACK_SWITCH_FADE_MS = 30
 	let sourceRequestId = 0
@@ -117,6 +121,7 @@ export function useAudioPlayer({
 
 			releaseCurrentSource?.()
 			releaseCurrentSource = null
+			audioLogic.setNormalizationGainDb(source?.normalizationGainDb ?? 0)
 
 			if (source == null) {
 				audioLogic.unload()
@@ -145,7 +150,10 @@ export function useAudioPlayer({
 		releaseCurrentSource = null
 	})
 
-	const play = audioQueueLogic.initQueue
+	function play(...args: Parameters<typeof audioQueueLogic.initQueue>) {
+		audioLogic.preparePlayback()
+		return audioQueueLogic.initQueue(...args)
+	}
 	function togglePlay() {
 		if (isPaused.value)
 			audioLogic.play()
@@ -199,6 +207,12 @@ export function useAudioPlayer({
 		currentTime,
 		duration,
 		volume,
+
+		normalizationSupported,
+		normalizationEnabled,
+		normalizationGainDb,
+		setNormalizationEnabled: audioLogic.setNormalizationEnabled,
+		setNormalizationGainDb: audioLogic.setNormalizationGainDb,
 
 		muted,
 		toggleMuted,

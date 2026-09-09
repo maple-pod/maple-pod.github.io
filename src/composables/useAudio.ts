@@ -5,7 +5,16 @@ export interface UseAudioOptions {
 	volume?: number
 }
 
+interface AudioGraph {
+	context: AudioContext
+	source: MediaElementAudioSourceNode
+	normalization: GainNode
+	transition: GainNode
+	userVolume: GainNode
+}
+
 const AUDIO_TRANSITION_STEP_MS = 5
+const NORMALIZATION_RAMP_SECONDS = 0.025
 
 function clampUnitInterval(value: number) {
 	return Math.min(1, Math.max(0, value))
@@ -54,13 +63,124 @@ export function useAudio(options: UseAudioOptions = {}) {
 		hasError: false,
 	})
 
+	const normalizationEnabled = ref(false)
+	const normalizationGainDb = ref(0)
+	const audioGraphFailed = ref(false)
+	const normalizationSupported = computed(() => typeof AudioContext !== 'undefined' && audioGraphFailed.value === false)
+	let audioGraph: AudioGraph | null = null
 	let outputGain = 1
 	let fadeRevision = 0
 
 	function applyOutputVolume() {
+		if (audioGraph != null) {
+			if (audio.value.volume !== 1)
+				audio.value.volume = 1
+			audioGraph.transition.gain.value = outputGain
+			audioGraph.userVolume.gain.value = audioStatus.value.muted ? 0 : audioStatus.value.volume
+			return
+		}
+
 		const effectiveVolume = clampUnitInterval(audioStatus.value.volume * outputGain)
 		if (audio.value.volume !== effectiveVolume)
 			audio.value.volume = effectiveVolume
+	}
+
+	function getNormalizationLinearGain() {
+		return normalizationEnabled.value
+			? decibelsToLinearGain(normalizationGainDb.value)
+			: 1
+	}
+
+	function applyNormalizationGain(smooth: boolean) {
+		if (audioGraph == null)
+			return
+
+		const gain = getNormalizationLinearGain()
+		const param = audioGraph.normalization.gain
+		if (!smooth || audioGraph.context.state === 'closed') {
+			param.value = gain
+			return
+		}
+
+		const now = audioGraph.context.currentTime
+		param.cancelScheduledValues(now)
+		param.setValueAtTime(param.value, now)
+		param.linearRampToValueAtTime(gain, now + NORMALIZATION_RAMP_SECONDS)
+	}
+
+	function ensureAudioGraph(): AudioGraph | null {
+		if (audioGraph != null)
+			return audioGraph
+		if (!normalizationSupported.value)
+			return null
+
+		let context: AudioContext | null = null
+		try {
+			context = new AudioContext()
+			const source = context.createMediaElementSource(audio.value)
+			const normalization = context.createGain()
+			const transition = context.createGain()
+			const userVolume = context.createGain()
+			source.connect(normalization)
+			normalization.connect(transition)
+			transition.connect(userVolume)
+			userVolume.connect(context.destination)
+			audioGraph = { context, source, normalization, transition, userVolume }
+			applyOutputVolume()
+			applyNormalizationGain(false)
+			return audioGraph
+		}
+		catch (error) {
+			console.warn('[audio-lab] Could not create Web Audio graph; normalization remains bypassed.', error)
+			audioGraphFailed.value = true
+			if (context != null && context.state !== 'closed')
+				void context.close()
+			return null
+		}
+	}
+
+	async function resumeAudioGraph() {
+		if (audioGraph?.context.state !== 'suspended')
+			return
+		try {
+			await audioGraph.context.resume()
+		}
+		catch (error) {
+			console.warn('[audio-lab] Could not resume AudioContext.', error)
+		}
+	}
+
+	function preparePlayback() {
+		if (normalizationEnabled.value && audioGraph == null)
+			ensureAudioGraph()
+		void resumeAudioGraph()
+	}
+
+	function setNormalizationEnabled(value: boolean) {
+		normalizationEnabled.value = value
+		if (!value) {
+			applyNormalizationGain(true)
+			return true
+		}
+
+		// A persisted experimental preference may be restored before the user
+		// starts playback. Defer AudioContext creation until play() in that case
+		// so browser user-activation policies cannot turn a valid track silent.
+		if (audio.value.paused)
+			return normalizationSupported.value
+
+		if (ensureAudioGraph() == null) {
+			normalizationEnabled.value = false
+			return false
+		}
+		applyNormalizationGain(true)
+		void resumeAudioGraph()
+		return true
+	}
+
+	function setNormalizationGainDb(value: number) {
+		normalizationGainDb.value = Number.isFinite(value) ? value : 0
+		applyNormalizationGain(true)
 	}
 
 	function setOutputGain(value: number) {
@@ -122,6 +242,7 @@ export function useAudio(options: UseAudioOptions = {}) {
 		set: (value) => {
 			audioStatus.value.muted = value
 			audio.value.muted = value
+			applyOutputVolume()
 		},
 	})
 	const loop = computed({
@@ -153,6 +274,7 @@ export function useAudio(options: UseAudioOptions = {}) {
 	}
 
 	function play() {
+		preparePlayback()
 		audio.value.play()
 	}
 	function pause() {
@@ -173,6 +295,7 @@ export function useAudio(options: UseAudioOptions = {}) {
 	})
 	useEventListener(audio, 'play', () => {
 		audioStatus.value.isPaused = audio.value.paused
+		preparePlayback()
 	})
 	useEventListener(audio, 'ended', () => {
 		audioStatus.value.isPaused = audio.value.paused
@@ -202,6 +325,9 @@ export function useAudio(options: UseAudioOptions = {}) {
 	tryOnScopeDispose(() => {
 		audio.value.autoplay = false
 		unload()
+		const context = audioGraph?.context
+		if (context != null && context.state !== 'closed')
+			void context.close()
 	})
 
 	return {
@@ -215,10 +341,16 @@ export function useAudio(options: UseAudioOptions = {}) {
 		isWaiting,
 		canPlay,
 		hasError,
+		normalizationSupported,
+		normalizationEnabled,
+		normalizationGainDb,
 		load,
 		unload,
 		play,
 		pause,
+		preparePlayback,
+		setNormalizationEnabled,
+		setNormalizationGainDb,
 		fadeOutputTo,
 	}
 }

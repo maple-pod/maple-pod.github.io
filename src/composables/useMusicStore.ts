@@ -1,4 +1,4 @@
-import type { CustomPlaylistId, MusicData, Playlist, PlaylistId, Resources } from '@/types'
+import type { CustomPlaylistId, LoudnessAnalysisReport, MusicData, Playlist, PlaylistId, Resources } from '@/types'
 import localforage from 'localforage'
 import { ofetch } from 'ofetch'
 import { convertImageDataUrlToDataUrl512, decodeImageFromBinary } from '@/utils/common'
@@ -36,13 +36,17 @@ function groupByMark(data: MusicData[]): Map<string, MusicData[]> {
 }
 
 export const useMusicStore = defineStore('music', () => {
+	const { experimentalLoudnessNormalization } = useSavedUserData()
+	const loudnessNormalizationAvailable = ref(false)
+	const resourceBuiltAt = ref<number>()
+	let loudnessLoadPromise: Promise<boolean> | null = null
 	const {
 		state: musicDataList,
 		isReady: isDataReady,
 	} = useAsyncState(
 		async () => {
 			const res = await ofetch<Resources>('/resources/data.json')
-
+			resourceBuiltAt.value = res.builtAt
 			const marks = res.marks
 			return Promise.all<MusicData>(res.bgms.map(async bgm => ({
 				id: bgm.filename,
@@ -60,6 +64,47 @@ export const useMusicStore = defineStore('music', () => {
 
 	function getMusicData(id: string): MusicData | undefined {
 		return musicMap.value.get(id)
+	}
+
+	async function loadLoudnessMeasurements(): Promise<boolean> {
+		if (loudnessNormalizationAvailable.value)
+			return true
+		if (loudnessLoadPromise != null)
+			return loudnessLoadPromise
+
+		loudnessLoadPromise = (async () => {
+			try {
+				const report = await ofetch<LoudnessAnalysisReport>('/resources/loudness-analysis.json')
+				const reportMatchesResources = report.failureCount === 0
+					&& report.successCount === musicDataList.value.length
+					&& report.trackCount === musicDataList.value.length
+					&& report.resourceBuiltAt === resourceBuiltAt.value
+				if (!reportMatchesResources) {
+					console.warn('[audio-lab] Loudness report does not match the current resource build; normalization is unavailable.')
+					return false
+				}
+
+				const measurements = new Map(report.tracks.map(track => [track.filename, track]))
+				if (measurements.size !== musicDataList.value.length) {
+					console.warn('[audio-lab] Loudness report is incomplete; normalization is unavailable.')
+					return false
+				}
+
+				for (const music of musicDataList.value)
+					music.loudness = measurements.get(music.id)
+				loudnessNormalizationAvailable.value = true
+				return true
+			}
+			catch (error) {
+				console.warn('[audio-lab] Could not load loudness report; normalization is unavailable.', error)
+				return false
+			}
+		})()
+
+		const result = await loudnessLoadPromise
+		if (!result)
+			loudnessLoadPromise = null
+		return result
 	}
 
 	const playlistAll = computed(() => createAllPlaylist(musicsGroupedByCover.value))
@@ -175,21 +220,60 @@ export const useMusicStore = defineStore('music', () => {
 			if (musicData == null)
 				return null
 
+			const normalizationGainDb = musicData.loudness == null
+				? undefined
+				: calculateNormalizationGainDb(musicData.loudness)
 			const blob = await getSavedOfflineMusicBlob(id, musicData.src)
 			if (blob != null) {
 				const objUrl = URL.createObjectURL(blob)
 				return {
 					src: objUrl,
+					normalizationGainDb,
 					release: () => URL.revokeObjectURL(objUrl),
 				}
 			}
 
-			return musicData.src
+			return {
+				src: musicData.src,
+				normalizationGainDb,
+			}
 		},
 		isMusicDisabled: id => isMusicDisabled(id ?? ''),
 	})
 	const currentPlaylist = ref<Playlist | null>(null)
 	const currentMusic = computed(() => getMusicData(audioPlayerLogic.currentAudioId.value || '') ?? null)
+
+	function syncCurrentNormalizationGain() {
+		const measurement = currentMusic.value?.loudness
+		audioPlayerLogic.setNormalizationGainDb(measurement == null
+			? 0
+			: calculateNormalizationGainDb(measurement))
+	}
+	watch(currentMusic, syncCurrentNormalizationGain, { immediate: true })
+
+	watch(
+		[experimentalLoudnessNormalization, isDataReady],
+		async ([enabled, dataReady]) => {
+			if (!dataReady)
+				return
+			if (!enabled) {
+				audioPlayerLogic.setNormalizationEnabled(false)
+				return
+			}
+
+			const loaded = await loadLoudnessMeasurements()
+			if (!experimentalLoudnessNormalization.value)
+				return
+			if (!loaded) {
+				audioPlayerLogic.setNormalizationEnabled(false)
+				return
+			}
+
+			syncCurrentNormalizationGain()
+			audioPlayerLogic.setNormalizationEnabled(true)
+		},
+		{ immediate: true },
+	)
 	function play(playlistId: PlaylistId, musicId?: string): void
 	function play(playlist: Playlist, musicId?: string): void
 	function play(playlistOrId: Playlist | PlaylistId, musicId?: string) {
