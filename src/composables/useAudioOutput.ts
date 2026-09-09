@@ -274,6 +274,11 @@ export function useAudioOutput({ audio, getVolume, getMuted }: UseAudioOutputOpt
 	}
 
 	async function fadeOutputTo(value: number, durationMs: number) {
+		if (!enhancedOutputAllowed) {
+			setOutputGain(1)
+			return
+		}
+
 		const targetGain = clampUnitInterval(value)
 		const initialGain = outputGain
 		const revision = ++fadeRevision
