@@ -249,6 +249,18 @@ export function getWorldMapNodeLabel(node: WorldMapNodeSummary): string {
 		?? node.worldMapName
 }
 
+export function getWorldMapGmsNodeLabel(node: WorldMapNodeSummary): string {
+	const canonicalLabel = node.canonicalLabel?.trim()
+	if (canonicalLabel)
+		return canonicalLabel
+
+	const enUsName = node.localizedNames?.['en-US']?.name?.trim()
+	if (enUsName)
+		return enUsName
+
+	return node.worldMapName
+}
+
 export function getWorldMapNodeById(nodes: readonly WorldMapNodeSummary[] | null, worldMapId: string | null): WorldMapNodeSummary | null {
 	if (nodes == null || worldMapId == null)
 		return null

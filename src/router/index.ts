@@ -168,7 +168,7 @@ const router = createRouter({
 				},
 				{
 					name: Routes.WorldMap,
-					path: 'world-map',
+					path: 'world-map/:rootWorldMapId?/:worldMapId?',
 					component: () => import('@/views/WorldMap.vue'),
 				},
 			],

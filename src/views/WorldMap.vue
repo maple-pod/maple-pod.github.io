@@ -8,9 +8,9 @@ import type {
 } from '@/schemas'
 import {
 	getWorldMapBreadcrumb,
+	getWorldMapGmsNodeLabel,
 	getWorldMapNameRows,
 	getWorldMapNodeById,
-	getWorldMapNodeLabel,
 	getWorldMapSpotRepresentative,
 } from '@/composables/useWorldMaps'
 import { getWorldMapAssetPath } from '@/schemas'
@@ -41,19 +41,19 @@ const {
 } = useWorldMaps()
 const {
 	status: worldMapOfflineStatus,
-	progress: worldMapOfflineProgress,
 	setManifest: setWorldMapOfflineManifest,
 	downloadAll: downloadWorldMapsForOffline,
-	cancel: cancelWorldMapDownload,
-	remove: removeWorldMapsOffline,
 	isReady: worldMapOfflineReady,
 } = useWorldMapOffline()
 const canHover = useMediaQuery('(hover: hover) and (pointer: fine)')
 const isOnline = useOnline()
+const route = useRoute()
+const router = useRouter()
 
-const selectedRootId = ref<string>('WorldMap')
-const currentNodeId = ref<string>('WorldMap')
+const selectedRootId = ref<string>('')
+const currentNodeId = ref<string>('')
 const activeTarget = shallowRef<ActiveTarget | null>(null)
+let activeTargetCloseTimer: ReturnType<typeof setTimeout> | null = null
 
 const nodeById = computed(() => new Map((manifest.value?.nodes ?? []).map(node => [node.worldMapId, node])))
 const rootIds = computed(() => manifest.value?.roots.length
@@ -71,6 +71,14 @@ const displayNodeById = computed(() => {
 		nodes.set(node.worldMapId, node)
 	return nodes
 })
+const selectableRootOptions = computed(() => selectableRoots.value.map(root => ({
+	value: root.worldMapId,
+	label: getWorldMapGmsNodeLabel(displayNodeById.value.get(root.worldMapId) ?? root),
+})))
+const selectedRootModel = computed({
+	get: () => selectedRootId.value,
+	set: (worldMapId: string) => selectRoot(worldMapId),
+})
 const currentNodeSummary = computed(() => displayNodeById.value.get(currentNodeId.value) ?? null)
 const currentNodeState = computed(() => getNodeState(currentNodeId.value))
 const currentNodeLoading = computed(() => currentNodeState.value.status === 'loading')
@@ -87,7 +95,6 @@ const breadcrumb = computed(() => {
 		? trail
 		: [selectedRoot, ...trail.filter(node => node.worldMapId !== selectedRoot.worldMapId)]
 })
-const breadcrumbAfterRoot = computed(() => breadcrumb.value.filter(node => node.worldMapId !== selectedRootId.value))
 
 const activeLink = computed(() => {
 	if (activeTarget.value?.kind !== 'link')
@@ -123,29 +130,74 @@ const activeTitle = computed(() => {
 	return null
 })
 const activeLinkTargetNode = computed(() => activeLink.value == null ? null : nodeById.value.get(activeLink.value.targetWorldMapId) ?? null)
-const worldMapOfflinePercent = computed(() => {
-	const currentProgress = worldMapOfflineProgress.value
-	if (currentProgress == null || currentProgress.total === 0)
-		return 0
-	return Math.round((currentProgress.completed / currentProgress.total) * 100)
-})
 const worldMapOfflineDownloadDisabled = computed(() => isOnline.value === false || manifest.value == null || worldMapOfflineStatus.value === 'downloading' || worldMapOfflineReady.value)
 
-watch(manifest, (currentManifest) => {
+function routeParam(value: string | string[] | undefined): string | undefined {
+	return Array.isArray(value) ? value[0] : value
+}
+
+function getRootForNode(worldMapId: string): string | null {
+	let current = nodeById.value.get(worldMapId)
+	const visited = new Set<string>()
+	while (current != null && !visited.has(current.worldMapId)) {
+		visited.add(current.worldMapId)
+		if (rootIds.value.includes(current.worldMapId))
+			return current.worldMapId
+		current = current.parentWorldMapId == null ? undefined : nodeById.value.get(current.parentWorldMapId)
+	}
+	return null
+}
+
+function worldMapRouteLocation(rootWorldMapId: string, worldMapId = rootWorldMapId) {
+	return {
+		name: Routes.WorldMap,
+		params: {
+			rootWorldMapId,
+			worldMapId: worldMapId === rootWorldMapId ? undefined : worldMapId,
+		},
+	}
+}
+
+function nodeRouteLocation(worldMapId: string) {
+	const rootWorldMapId = getRootForNode(worldMapId) ?? selectedRootId.value
+	return worldMapRouteLocation(rootWorldMapId, worldMapId)
+}
+
+function routeMatches(rootWorldMapId: string, worldMapId: string) {
+	const routeRoot = routeParam(route.params.rootWorldMapId)
+	const routeNode = routeParam(route.params.worldMapId)
+	return routeRoot === rootWorldMapId
+		&& routeNode === (worldMapId === rootWorldMapId ? undefined : worldMapId)
+}
+
+watch([manifest, () => route.params.rootWorldMapId, () => route.params.worldMapId], ([currentManifest]) => {
 	if (currentManifest == null)
 		return
+
 	setWorldMapOfflineManifest(currentManifest)
-	const firstSelectable = rootIds.value.find(worldMapId => nodeById.value.has(worldMapId))
-	if (firstSelectable == null)
+	const firstRoot = rootIds.value.find(worldMapId => nodeById.value.has(worldMapId))
+	if (firstRoot == null)
 		return
-	if (nodeById.value.has(selectedRootId.value) === false || rootIds.value.includes(selectedRootId.value) === false)
-		selectedRootId.value = firstSelectable
-	if (nodeById.value.has(currentNodeId.value) === false)
-		currentNodeId.value = selectedRootId.value
+
+	const routeRoot = routeParam(route.params.rootWorldMapId)
+	const routeNode = routeParam(route.params.worldMapId)
+	const requestedNode = routeNode != null && nodeById.value.has(routeNode)
+		? routeNode
+		: routeRoot != null && nodeById.value.has(routeRoot)
+			? routeRoot
+			: firstRoot
+	const resolvedRoot = getRootForNode(requestedNode)
+		?? (routeRoot != null && rootIds.value.includes(routeRoot) ? routeRoot : firstRoot)
+
+	selectedRootId.value = resolvedRoot
+	currentNodeId.value = requestedNode
+
+	if (routeMatches(resolvedRoot, requestedNode) === false)
+		void router.replace(worldMapRouteLocation(resolvedRoot, requestedNode))
 }, { immediate: true })
 
 watch([manifest, currentNodeId], ([currentManifest, worldMapId]) => {
-	if (currentManifest == null || nodeById.value.has(worldMapId) === false)
+	if (currentManifest == null || worldMapId.length === 0 || nodeById.value.has(worldMapId) === false)
 		return
 	void loadNode(worldMapId)
 		.catch(() => null)
@@ -155,24 +207,48 @@ watch(currentNodeId, () => {
 	activeTarget.value = null
 })
 
+function goBackToPlaylists() {
+	return router.push({ name: Routes.Playlists })
+}
+
 function selectRoot(worldMapId: string) {
-	if (selectableRoots.value.some(root => root.worldMapId === worldMapId) === false)
+	if (selectableRoots.value.some(root => root.worldMapId === worldMapId) === false || worldMapId === selectedRootId.value)
 		return
-	selectedRootId.value = worldMapId
-	currentNodeId.value = worldMapId
+	void router.push(worldMapRouteLocation(worldMapId))
 }
 
 function navigateToNode(worldMapId: string) {
-	if (nodeById.value.has(worldMapId) === false)
+	if (nodeById.value.has(worldMapId) === false || worldMapId === currentNodeId.value)
 		return
-	currentNodeId.value = worldMapId
+	void router.push(nodeRouteLocation(worldMapId))
 }
 
+function cancelActiveTargetClose() {
+	if (activeTargetCloseTimer == null)
+		return
+	clearTimeout(activeTargetCloseTimer)
+	activeTargetCloseTimer = null
+}
+
+function scheduleActiveTargetClose() {
+	if (canHover.value === false)
+		return
+	cancelActiveTargetClose()
+	activeTargetCloseTimer = setTimeout(() => {
+		activeTarget.value = null
+		activeTargetCloseTimer = null
+	}, 120)
+}
+
+onBeforeUnmount(cancelActiveTargetClose)
+
 function activateLink(link: WorldMapGraphLink) {
+	cancelActiveTargetClose()
 	activeTarget.value = { kind: 'link', id: link.id }
 }
 
 function activateSpot(spot: WorldMapGraphSpot) {
+	cancelActiveTargetClose()
 	activeTarget.value = { kind: 'spot', id: spot.id }
 }
 
@@ -333,6 +409,59 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 		})"
 	>
 		<div
+			:class="pika({ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', minHeight: '60px' })"
+		>
+			<UiTooltip>
+				<template #trigger>
+					<button
+						type="button"
+						aria-label="Back to playlists"
+						:class="pika('icon-btn')"
+						@click="goBackToPlaylists"
+					>
+						<span
+							:class="pika('i-f7:chevron-left')"
+							aria-hidden="true"
+						/>
+					</button>
+				</template>
+
+				<template #content>
+					Back to playlists
+				</template>
+			</UiTooltip>
+
+			<UiSelect
+				v-model="selectedRootModel"
+				:options="selectableRootOptions"
+				label="World"
+				placeholder="World"
+				:disabled="selectableRootOptions.length === 0"
+			/>
+
+			<div :class="pika({ flex: '1 1 auto' })" />
+
+			<UiIconButton
+				v-if="worldMapOfflineReady === false"
+				:label="worldMapOfflineStatus === 'downloading' ? 'Downloading World Map' : 'Download World Map for offline'"
+				:disabled="worldMapOfflineDownloadDisabled"
+				target="compact"
+				@click="downloadWorldMapsForOffline"
+			>
+				<span
+					v-if="worldMapOfflineStatus === 'downloading'"
+					:class="pika('i-svg-spinners:3-dots-scale')"
+					aria-hidden="true"
+				/>
+				<span
+					v-else
+					:class="pika('i-f7:cloud-download')"
+					aria-hidden="true"
+				/>
+			</UiIconButton>
+		</div>
+
+		<div
 			v-if="loading"
 			role="status"
 			:class="pika({ padding: '32px 16px', textAlign: 'center', color: 'var(--color-secondary-text)' })"
@@ -362,124 +491,45 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 					alignItems: 'center',
 					gap: '6px',
 					width: '100%',
-					maxWidth: '640px',
-					margin: '0 auto',
-					minHeight: '44px',
+					minHeight: '40px',
 					flexWrap: 'wrap',
 					whiteSpace: 'normal',
 				})"
 			>
-				<select
-					:value="selectedRootId"
-					aria-label="World"
-					:class="pika({
-						'minHeight': '40px',
-						'padding': '7px 32px 7px 10px',
-						'border': '1px solid var(--color-border-subtle)',
-						'borderRadius': '8px',
-						'backgroundColor': 'var(--color-surface-solid)',
-						'color': 'var(--color-text-primary)',
-						'font': 'inherit',
-						'cursor': 'pointer',
-						'$:focus-visible': { outline: '2px solid var(--color-focus-ring)', outlineOffset: '2px' },
-					})"
-					@change="selectRoot(($event.target as HTMLSelectElement).value)"
-				>
-					<option
-						v-for="root in selectableRoots"
-						:key="root.worldMapId"
-						:value="root.worldMapId"
-					>
-						{{ getWorldMapNodeLabel(displayNodeById.get(root.worldMapId) ?? root) }}
-					</option>
-				</select>
-
 				<template
-					v-for="(node, index) in breadcrumbAfterRoot"
+					v-for="(node, index) in breadcrumb"
 					:key="node.worldMapId"
 				>
 					<span
+						v-if="index > 0"
 						aria-hidden="true"
 						:class="pika({ color: 'var(--color-text-secondary)', opacity: '0.45' })"
 					>›</span>
-					<button
-						v-if="index < breadcrumbAfterRoot.length - 1"
-						type="button"
-						:class="pika({ 'minHeight': '40px', 'padding': '6px 8px', 'borderRadius': 'var(--radius-control)', 'backgroundColor': 'transparent', 'color': 'var(--color-text-secondary)', 'cursor': 'pointer', '$:hover': { backgroundColor: 'color-mix(in srgb, var(--color-text-primary) 6%, transparent)', color: 'var(--color-text-primary)' }, '$:focus-visible': { outline: '2px solid var(--color-focus-ring)', outlineOffset: '1px' } })"
-						@click="navigateToNode(node.worldMapId)"
+					<RouterLink
+						v-if="index < breadcrumb.length - 1"
+						:to="nodeRouteLocation(node.worldMapId)"
+						:class="pika({
+							'padding': '6px 8px',
+							'borderRadius': 'var(--radius-control)',
+							'color': 'var(--color-text-secondary)',
+							'$:hover': { backgroundColor: 'color-mix(in srgb, var(--color-text-primary) 6%, transparent)', color: 'var(--color-text-primary)' },
+							'$:focus-visible': { outline: '2px solid var(--color-focus-ring)', outlineOffset: '1px' },
+						})"
 					>
-						{{ getWorldMapNodeLabel(node) }}
-					</button>
+						{{ getWorldMapGmsNodeLabel(node) }}
+					</RouterLink>
 					<span
 						v-else
 						:class="pika({ padding: '6px 4px', fontWeight: '600', color: 'var(--color-text-primary)' })"
 					>
-						{{ getWorldMapNodeLabel(node) }}
+						{{ getWorldMapGmsNodeLabel(node) }}
 					</span>
 				</template>
 			</nav>
 
-			<div
-				:class="pika({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', width: '100%', maxWidth: '640px', margin: '0 auto', padding: '8px 10px', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-control)', backgroundColor: 'color-mix(in srgb, var(--color-surface-card) 88%, transparent)' })"
-			>
-				<div
-					role="status"
-					aria-live="polite"
-					:class="pika({ display: 'flex', alignItems: 'center', gap: '8px', minHeight: '36px', fontSize: '13px', color: 'var(--color-text-secondary)' })"
-				>
-					<span
-						v-if="worldMapOfflineReady"
-						aria-hidden="true"
-						:class="pika('i-f7:checkmark-circle-fill', { fontSize: '18px', opacity: '0.72' })"
-					/>
-					<span
-						v-else-if="worldMapOfflineStatus === 'downloading'"
-						aria-hidden="true"
-						:class="pika('i-svg-spinners:3-dots-scale', { fontSize: '18px', opacity: '0.72' })"
-					/>
-					<span
-						v-else
-						aria-hidden="true"
-						:class="pika('i-f7:cloud-download', { fontSize: '18px', opacity: '0.72' })"
-					/>
-					<span v-if="worldMapOfflineReady">World map ready for offline use.</span>
-					<span v-else-if="worldMapOfflineStatus === 'downloading'">Downloading world map for offline use… {{ worldMapOfflinePercent }}%</span>
-					<span v-else-if="isOnline === false">Download unavailable while offline.</span>
-					<span v-else>Keep every world map available offline.</span>
-				</div>
-
-				<button
-					v-if="worldMapOfflineReady"
-					type="button"
-					:class="pika({ 'minHeight': '36px', 'padding': '6px 12px', 'border': '1px solid var(--color-border-subtle)', 'borderRadius': 'var(--radius-control)', 'backgroundColor': 'var(--color-surface-card)', 'color': 'var(--color-text-primary)', 'cursor': 'pointer', '$:hover': { backgroundColor: 'color-mix(in srgb, var(--color-text-primary) 7%, var(--color-surface-card))' }, '$:focus-visible': { outline: '2px solid var(--color-focus-ring)', outlineOffset: '2px' } })"
-					@click="removeWorldMapsOffline"
-				>
-					Remove offline maps
-				</button>
-				<button
-					v-else-if="worldMapOfflineStatus === 'downloading'"
-					type="button"
-					:class="pika({ 'minHeight': '36px', 'padding': '6px 12px', 'border': '1px solid var(--color-border-subtle)', 'borderRadius': 'var(--radius-control)', 'backgroundColor': 'var(--color-surface-card)', 'color': 'var(--color-text-primary)', 'cursor': 'pointer', '$:hover': { backgroundColor: 'color-mix(in srgb, var(--color-text-primary) 7%, var(--color-surface-card))' }, '$:focus-visible': { outline: '2px solid var(--color-focus-ring)', outlineOffset: '2px' } })"
-					aria-label="Cancel downloading world maps for offline use"
-					@click="cancelWorldMapDownload"
-				>
-					Cancel download
-				</button>
-				<button
-					v-else
-					type="button"
-					:disabled="worldMapOfflineDownloadDisabled"
-					:class="pika({ 'minHeight': '36px', 'padding': '6px 12px', 'border': '1px solid var(--color-border-subtle)', 'borderRadius': 'var(--radius-control)', 'backgroundColor': 'var(--color-surface-card)', 'color': 'var(--color-text-primary)', 'cursor': 'pointer', '$:hover': { backgroundColor: 'color-mix(in srgb, var(--color-text-primary) 7%, var(--color-surface-card))' }, '$:focus-visible': { outline: '2px solid var(--color-focus-ring)', outlineOffset: '2px' }, '$:disabled': { opacity: '0.55', cursor: 'not-allowed' } })"
-					aria-label="Download all world maps for offline use"
-					@click="downloadWorldMapsForOffline"
-				>
-					Download for Offline
-				</button>
-			</div>
-
 			<section
 				v-if="currentNode != null && referenceImage != null"
-				:aria-label="`${getWorldMapNodeLabel(currentNode)} map`"
+				:aria-label="`${getWorldMapGmsNodeLabel(currentNode)} map`"
 				:class="pika({
 					display: 'flex',
 					alignItems: 'flex-start',
@@ -507,7 +557,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						v-for="(asset, index) in currentNode.baseImages"
 						:key="asset.file"
 						:src="getWorldMapAssetPath(asset.file)"
-						:alt="index === 0 ? `${getWorldMapNodeLabel(currentNode)} world map` : ''"
+						:alt="index === 0 ? `${getWorldMapGmsNodeLabel(currentNode)} world map` : ''"
 						:width="asset.width"
 						:height="asset.height"
 						:style="baseLayerStyle(asset)"
@@ -524,7 +574,17 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						:width="link.linkImage!.width"
 						:height="link.linkImage!.height"
 						:style="linkImageStyle(link)"
-						:class="pika({ position: 'absolute', display: 'block', userSelect: 'none', pointerEvents: 'none', zIndex: '2' })"
+						:data-active="activeTarget?.kind === 'link' && activeTarget.id === link.id"
+						:class="pika({
+							'position': 'absolute',
+							'display': 'block',
+							'opacity': '0',
+							'transition': 'opacity 120ms ease-out',
+							'userSelect': 'none',
+							'pointerEvents': 'none',
+							'zIndex': '2',
+							'$[data-active=true]': { opacity: '1' },
+						})"
 						draggable="false"
 					>
 
@@ -552,7 +612,9 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 							'$[data-active=true]': { boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-text-primary) 30%, transparent)' },
 						})"
 						@mouseenter="activateLink(link)"
+						@mouseleave="scheduleActiveTargetClose"
 						@focus="activateLink(link)"
+						@blur="scheduleActiveTargetClose"
 						@click="onLinkClick(link, $event)"
 					/>
 
@@ -583,7 +645,9 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 							'$[data-active=true]': { outline: '1px solid color-mix(in srgb, var(--color-text-primary) 35%, transparent)', outlineOffset: '-8px' },
 						})"
 						@mouseenter="activateSpot(spot)"
+						@mouseleave="scheduleActiveTargetClose"
 						@focus="activateSpot(spot)"
+						@blur="scheduleActiveTargetClose"
 						@click="onSpotClick(spot, $event)"
 					>
 						<span
@@ -613,7 +677,8 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						:class="pika({
 							position: 'absolute',
 							zIndex: '12',
-							width: 'min(320px, calc(100% - 16px))',
+							width: 'max-content',
+							maxWidth: 'min(420px, calc(100% - 16px))',
 							padding: '12px 14px',
 							border: '1px solid var(--color-border-subtle)',
 							borderRadius: 'var(--radius-control)',
@@ -622,6 +687,10 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 							boxShadow: '0 12px 32px rgba(0, 0, 0, 0.22)',
 							backdropFilter: 'blur(12px)',
 						})"
+						@mouseenter="cancelActiveTargetClose"
+						@mouseleave="scheduleActiveTargetClose"
+						@focusin="cancelActiveTargetClose"
+						@focusout="scheduleActiveTargetClose"
 					>
 						<div :class="pika({ fontSize: '15px', fontWeight: '600', marginBottom: '8px' })">
 							{{ activeTitle }}
@@ -652,12 +721,12 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 							BGM · {{ activeTrack.title }}
 						</div>
 
-						<div :class="pika({ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '9px' })">
+						<div :class="pika({ width: '100%', marginTop: '9px' })">
 							<button
 								v-if="activeLink != null"
 								type="button"
 								:disabled="activeLinkTargetNode == null"
-								:class="pika({ 'minHeight': '36px', 'padding': '6px 12px', 'border': '1px solid var(--color-border-subtle)', 'borderRadius': 'var(--radius-control)', 'backgroundColor': 'var(--color-surface-card)', 'color': 'var(--color-text-primary)', 'cursor': 'pointer', '$:hover': { backgroundColor: 'color-mix(in srgb, var(--color-text-primary) 7%, var(--color-surface-card))' }, '$:focus-visible': { outline: '2px solid var(--color-focus-ring)', outlineOffset: '2px' }, '$:disabled': { opacity: '0.45', cursor: 'not-allowed' } })"
+								:class="pika({ 'width': '100%', 'minHeight': '36px', 'padding': '6px 12px', 'border': '1px solid var(--color-border-subtle)', 'borderRadius': 'var(--radius-control)', 'backgroundColor': 'var(--color-surface-card)', 'color': 'var(--color-text-primary)', 'cursor': 'pointer', '$:hover': { backgroundColor: 'color-mix(in srgb, var(--color-text-primary) 7%, var(--color-surface-card))' }, '$:focus-visible': { outline: '2px solid var(--color-focus-ring)', outlineOffset: '2px' }, '$:disabled': { opacity: '0.45', cursor: 'not-allowed' } })"
 								@click.stop="openLink()"
 							>
 								{{ activeLinkTargetNode == null ? 'Unavailable' : 'Open' }}
@@ -666,7 +735,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 								v-else-if="activeMap?.selection.trackId != null"
 								type="button"
 								:disabled="activeTrackDisabled"
-								:class="pika('primary-btn', { minHeight: '36px', padding: '6px 12px' })"
+								:class="pika('primary-btn', { width: '100%', minHeight: '36px', padding: '6px 12px' })"
 								@click.stop="playMap()"
 							>
 								{{ currentMusic?.id === activeMap.selection.trackId ? 'Replay' : 'Play' }}
@@ -679,7 +748,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 			<div
 				v-else-if="currentNodeLoading"
 				role="status"
-				:aria-label="`Loading ${getWorldMapNodeLabel(currentNodeSummary ?? { worldMapId: currentNodeId, worldMapName: currentNodeId, canonicalLabel: null, localizedNames: {}, parentWorldMapId: null })} map`"
+				:aria-label="`Loading ${getWorldMapGmsNodeLabel(currentNodeSummary ?? { worldMapId: currentNodeId, worldMapName: currentNodeId, canonicalLabel: null, localizedNames: {}, parentWorldMapId: null })} map`"
 				:class="pika({ display: 'grid', placeItems: 'center', flex: '1 1 auto', minHeight: '240px', padding: '32px 16px', textAlign: 'center', color: 'var(--color-text-secondary)' })"
 			>
 				<div>
@@ -687,7 +756,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						aria-hidden="true"
 						:class="pika('i-svg-spinners:3-dots-scale', { fontSize: '24px', marginBottom: '8px', opacity: '0.65' })"
 					/>
-					<div>Loading {{ getWorldMapNodeLabel(currentNodeSummary ?? { worldMapId: currentNodeId, worldMapName: currentNodeId, canonicalLabel: null, localizedNames: {}, parentWorldMapId: null }) }}…</div>
+					<div>Loading {{ getWorldMapGmsNodeLabel(currentNodeSummary ?? { worldMapId: currentNodeId, worldMapName: currentNodeId, canonicalLabel: null, localizedNames: {}, parentWorldMapId: null }) }}…</div>
 				</div>
 			</div>
 

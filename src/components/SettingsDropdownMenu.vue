@@ -155,10 +155,12 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 <template>
 	<UiDropdownMenu
 		:items="menuItems"
+		triggerTooltip="Settings"
 	>
 		<template #trigger>
 			<button
 				:class="pika('icon-btn')"
+				aria-label="Settings"
 				@click.stop
 			>
 				<div

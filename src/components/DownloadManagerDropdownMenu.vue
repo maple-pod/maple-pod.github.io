@@ -62,7 +62,10 @@ const items = computed<DownloadItem[]>(() => {
 </script>
 
 <template>
-	<UiDropdownMenu v-if="items.length > 0">
+	<UiDropdownMenu
+		v-if="items.length > 0"
+		triggerTooltip="Downloads"
+	>
 		<template #trigger>
 			<button
 				:class="pika('icon-btn')"

@@ -32,8 +32,9 @@ interface CustomSubMenu extends BaseMenuItem {
 
 export type UiDropdownMenuItem = NormalMenuItem | SubMenu | CustomSubMenu | 'separator'
 
-defineProps<{
+const props = defineProps<{
 	items?: UiDropdownMenuItem[]
+	triggerTooltip?: string
 }>()
 
 const open = defineModel<boolean>('open')
@@ -169,7 +170,19 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 			</DropdownMenuSub>
 		</DefineUiDropdownMenuCustomSubMenu>
 
+		<UiTooltip v-if="props.triggerTooltip != null">
+			<template #trigger>
+				<DropdownMenuTrigger asChild>
+					<slot name="trigger" />
+				</DropdownMenuTrigger>
+			</template>
+
+			<template #content>
+				{{ props.triggerTooltip }}
+			</template>
+		</UiTooltip>
 		<DropdownMenuTrigger
+			v-else
 			asChild
 		>
 			<slot name="trigger" />

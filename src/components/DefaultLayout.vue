@@ -110,30 +110,24 @@ const isWorldMapRoute = computed(() => route.name === Routes.WorldMap)
 					</UiTooltip>
 				</RouterLink>
 
-				<RouterLink
-					:to="{ name: Routes.WorldMap }"
-					:class="pika('hover-mask', {
-						'display': 'inline-flex',
-						'alignItems': 'center',
-						'gap': '4px',
-						'minHeight': '36px',
-						'padding': '6px 8px',
-						'borderRadius': 'var(--radius-control)',
-						'fontSize': '14px',
-						'whiteSpace': 'nowrap',
-						'color': 'var(--color-text-secondary)',
-						'$:focus-visible': {
-							outline: '2px solid var(--color-focus-ring)',
-							outlineOffset: '2px',
-						},
-					})"
-				>
-					<span
-						:class="pika('i-f7:map')"
-						aria-hidden="true"
-					/>
-					<span :class="pika({ 'display': 'none', '@screen-sm-and-up': { display: 'inline' } })">World Map</span>
-				</RouterLink>
+				<UiTooltip v-if="isWorldMapRoute === false">
+					<template #trigger>
+						<RouterLink
+							:to="{ name: Routes.WorldMap }"
+							aria-label="World Map"
+							:class="pika('icon-btn')"
+						>
+							<span
+								:class="pika('i-f7:map')"
+								aria-hidden="true"
+							/>
+						</RouterLink>
+					</template>
+
+					<template #content>
+						World Map
+					</template>
+				</UiTooltip>
 
 				<DownloadManagerDropdownMenu />
 				<SettingsDropdownMenu />
@@ -147,17 +141,14 @@ const isWorldMapRoute = computed(() => route.name === Routes.WorldMap)
 					'gridTemplateColumns': '1fr',
 					'columnGap': '4px',
 					'height': '100%',
+					'minHeight': '0',
 
 					'@screen-md-and-up': {
 						gridTemplateColumns: 'minmax(400px, 1fr) minmax(300px, 400px)',
 					},
 				}),
 				isWorldMapRoute
-					? pika({
-						'@screen-md-and-up': {
-							gridTemplateColumns: 'minmax(480px, 1fr) minmax(260px, 320px)',
-						},
-					})
+					? pika({ '@screen-md-and-up': { gridTemplateColumns: 'minmax(0, 1fr)' } })
 					: '',
 			]"
 		>
@@ -167,11 +158,12 @@ const isWorldMapRoute = computed(() => route.name === Routes.WorldMap)
 						minWidth: '0',
 						position: 'relative',
 					}),
-					isRightSidePanelContainerVisible === false ? pika({ paddingBottom: '38px' }) : '',
+					isWorldMapRoute === false && isRightSidePanelContainerVisible === false ? pika({ paddingBottom: '38px' }) : '',
+					isWorldMapRoute ? pika({ height: '100%', minHeight: '0', overflow: 'hidden' }) : '',
 				]"
 			>
 				<div
-					v-if="isRightSidePanelContainerVisible === false"
+					v-if="isWorldMapRoute === false && isRightSidePanelContainerVisible === false"
 					:class="pika({
 						position: 'absolute',
 						bottom: '4px',
@@ -195,7 +187,8 @@ const isWorldMapRoute = computed(() => route.name === Routes.WorldMap)
 				</div>
 				<RightSidePanel
 					v-if="
-						(isRightSidePanelContainerVisible === false)
+						isWorldMapRoute === false
+							&& (isRightSidePanelContainerVisible === false)
 							&& (rightSidePanelOpen === true)
 					"
 				/>
@@ -203,6 +196,7 @@ const isWorldMapRoute = computed(() => route.name === Routes.WorldMap)
 			</div>
 
 			<div
+				v-if="isWorldMapRoute === false"
 				ref="staticRightSidePanelContainerRef"
 				:class="pika('card', {
 					'minWidth': '0',
