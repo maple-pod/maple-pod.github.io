@@ -30,7 +30,9 @@ export function useAudioOutput({ audio, getVolume, getMuted }: UseAudioOutputOpt
 	const normalizationEnabled = ref(false)
 	const normalizationGainDb = ref(0)
 	const audioGraphFailed = ref(false)
-	const captureStreamSupported = typeof (audio.value as CapturableAudioElement).captureStream === 'function'
+	const enhancedOutputAllowed = !/Android/i.test(navigator.userAgent)
+	const captureStreamSupported = enhancedOutputAllowed
+		&& typeof (audio.value as CapturableAudioElement).captureStream === 'function'
 	const normalizationSupported = computed(() => (
 		captureStreamSupported
 		&& typeof AudioContext !== 'undefined'
