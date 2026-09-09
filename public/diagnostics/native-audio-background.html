@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maple Pod Native Audio Background Test</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { max-width: 48rem; margin: 0 auto; padding: 2rem 1rem; line-height: 1.5; }
+    audio { width: 100%; margin: 1rem 0; }
+    code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <h1>Native audio background test</h1>
+  <p>
+    This page intentionally uses one native <code>&lt;audio controls&gt;</code> element and one media URL.
+    It does not load the Maple Pod Vue application, does not replace the source, and does not configure Media Session.
+  </p>
+
+  <audio
+    controls
+    preload="metadata"
+    src="https://cdn.jsdelivr.net/gh/maple-pod/resources@1a4a8d4123c1f8f71d34e718f94119a58f7f1358/bgm/__diagnostic_native_audio_5track.webm">
+  </audio>
+
+  <p>The single WebM/Opus file is approximately 11 minutes long and concatenates these five tracks without audio re-encoding:</p>
+  <ol>
+    <li>Dragon Dream</li>
+    <li>Floral Life</li>
+    <li>Go Picnic</li>
+    <li>Rest N Peace</li>
+    <li>Fairy Tale</li>
+  </ol>
+
+  <h2>Test</h2>
+  <ol>
+    <li>Press Play using the browser's native audio controls.</li>
+    <li>Background the browser or lock the screen.</li>
+    <li>Leave it playing past the point where Maple Pod normally stops.</li>
+    <li>Observe whether playback stops and whether the browser media notification disappears.</li>
+  </ol>
+</body>
+</html>
