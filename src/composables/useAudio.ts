@@ -117,7 +117,7 @@ export function useAudio(options: UseAudioOptions = {}) {
 
 		let context: AudioContext | null = null
 		try {
-			const createdContext = new AudioContext()
+			const createdContext = new AudioContext({ latencyHint: 'playback' })
 			context = createdContext
 			const source = createdContext.createMediaElementSource(audio.value)
 			const normalization = createdContext.createGain()
