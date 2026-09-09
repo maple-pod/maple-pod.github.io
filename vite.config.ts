@@ -7,6 +7,7 @@ import Components from 'unplugin-vue-components/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import VueDevTools from 'vite-plugin-vue-devtools'
+import { WORLD_MAP_RUNTIME_CACHE_NAMES } from './src/constants/worldMapRuntime'
 
 async function getGitCommitHash() {
 	try {
@@ -115,6 +116,48 @@ export default defineConfig(async () => ({
 							},
 						},
 					},
+					{
+						urlPattern: /\/resources\/world-map\/manifest\.json$/,
+						handler: 'NetworkFirst',
+						options: {
+							cacheName: WORLD_MAP_RUNTIME_CACHE_NAMES.manifest,
+							expiration: {
+								maxEntries: 2,
+								maxAgeSeconds: 60 * 60 * 24 * 365,
+							},
+							cacheableResponse: {
+								statuses: [0, 200],
+							},
+						},
+					},
+					{
+						urlPattern: /\/resources\/world-map\/nodes\/[^/]+\.json$/,
+						handler: 'NetworkFirst',
+						options: {
+							cacheName: WORLD_MAP_RUNTIME_CACHE_NAMES.nodes,
+							expiration: {
+								maxEntries: 256,
+								maxAgeSeconds: 60 * 60 * 24 * 365,
+							},
+							cacheableResponse: {
+								statuses: [0, 200],
+							},
+						},
+					},
+					{
+						urlPattern: /\/resources\/world-map\/.+\.(?:png|jpe?g|webp|avif)$/i,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: WORLD_MAP_RUNTIME_CACHE_NAMES.images,
+							expiration: {
+								maxEntries: 512,
+								maxAgeSeconds: 60 * 60 * 24 * 365,
+							},
+							cacheableResponse: {
+								statuses: [0, 200],
+							},
+						},
+					},
 				],
 			},
 		}),
@@ -173,6 +216,10 @@ export default defineConfig(async () => ({
 				changeOrigin: true,
 			},
 			'/resources/bg': {
+				target: 'https://maple-pod.deviltea.me',
+				changeOrigin: true,
+			},
+			'/resources/world-map': {
 				target: 'https://maple-pod.deviltea.me',
 				changeOrigin: true,
 			},
