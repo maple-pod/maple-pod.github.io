@@ -9,7 +9,7 @@ type AudioPlayerSource = string | {
 export function useAudioPlayer({
 	getAudioSrc,
 	isMusicDisabled,
-	createPlaybackBackend = useAudioPlaybackBackend,
+	createPlaybackBackend = useHtmlAudioPlaybackBackend,
 }: {
 	getAudioSrc: (id: string | null) => AudioPlayerSource | null | Promise<AudioPlayerSource | null>
 	isMusicDisabled: (id: string | null) => boolean
