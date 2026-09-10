@@ -110,6 +110,24 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 		}
 	}
 
+	function syncCurrentFromPlayback(audioId: string) {
+		if (current.value == null || current.value === audioId)
+			return false
+
+		const index = toPlayQueue.value.findIndex((id, queueIndex) => (
+			id === audioId
+			&& toPlayQueue.value.slice(0, queueIndex)
+				.every(options.isMusicDisabled)
+		))
+		if (index < 0)
+			return false
+
+		playedQueue.value = [...playedQueue.value, current.value, ...toPlayQueue.value.slice(0, index)]
+		current.value = audioId
+		toPlayQueue.value = toPlayQueue.value.slice(index + 1)
+		return true
+	}
+
 	function playToPlayQueueItem(audioId: string) {
 		if (options.isMusicDisabled(audioId))
 			return
@@ -124,6 +142,8 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 	}
 
 	return {
+		originalAudioIdList,
+		playedQueue,
 		random,
 		toggleRandom,
 		current,
@@ -132,6 +152,7 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 		initQueue,
 		goNext,
 		goPrevious,
+		syncCurrentFromPlayback,
 		playToPlayQueueItem,
 	}
 }
