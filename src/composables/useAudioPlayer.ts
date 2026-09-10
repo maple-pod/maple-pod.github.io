@@ -1,15 +1,19 @@
-import type { MseAudioSource } from './useMseAudioPlayback'
+import type { AudioPlaybackBackendFactory } from './useAudioPlaybackBackend'
 
-type AudioPlayerSource = string | MseAudioSource
+type AudioPlayerSource = string | {
+	src: string
+	normalizationGainDb?: number
+	release?: () => void
+}
 
 export function useAudioPlayer({
 	getAudioSrc,
-	getAudioMimeType,
 	isMusicDisabled,
+	createPlaybackBackend = useAudioPlaybackBackend,
 }: {
 	getAudioSrc: (id: string | null) => AudioPlayerSource | null | Promise<AudioPlayerSource | null>
-	getAudioMimeType: (id: string | null) => string | null
 	isMusicDisabled: (id: string | null) => boolean
+	createPlaybackBackend?: AudioPlaybackBackendFactory
 }) {
 	const {
 		volume: savedVolume,
@@ -33,14 +37,15 @@ export function useAudioPlayer({
 	if (!['off', 'repeat', 'repeat-1'].includes(savedRepeated.value))
 		savedRepeated.value = 'off'
 
-	const audioLogic = useAudio({
+	const playbackBackend = createPlaybackBackend({
 		autoplay: false,
 		volume: savedVolume.value,
 		muted: savedMuted.value,
 	})
-	const audio = audioLogic.audio
-	const volume = audioLogic.volume
-	const muted = audioLogic.muted
+	const currentTime = playbackBackend.currentTime
+	const duration = playbackBackend.duration
+	const volume = playbackBackend.volume
+	const muted = playbackBackend.muted
 
 	function toggleMuted(bool?: boolean) {
 		muted.value = bool ?? !muted.value
@@ -58,6 +63,15 @@ export function useAudioPlayer({
 		else
 			repeated.value = mode
 	}
+	watch(
+		() => repeated.value === 'repeat-1',
+		loop => playbackBackend.loop.value = loop,
+		{ immediate: true, flush: 'sync' },
+	)
+
+	const TRACK_SWITCH_FADE_MS = 30
+	let sourceRequestId = 0
+	let releaseCurrentSource: (() => void) | null = null
 
 	const audioQueueLogic = useAudioQueue({
 		isMusicDisabled,
@@ -66,232 +80,99 @@ export function useAudioPlayer({
 	const random = audioQueueLogic.random
 	const toggleRandom = audioQueueLogic.toggleRandom
 	const currentAudioId = audioQueueLogic.current
-	const toPlayQueue = audioQueueLogic.toPlayQueue
-	const playedQueue = audioQueueLogic.playedQueue
-
-	let playbackSyncedAudioId: string | null = null
-	let directSourceRequestId = 0
-	let releaseCurrentDirectSource: (() => void) | null = null
-	let mseReconcileRevision = 0
-	let lastReconciledAudioId: string | null = null
-	let bufferedQueueDirty = false
-
-	function playablePreviousIds() {
-		return playedQueue.value.filter(id => !isMusicDisabled(id))
-	}
-	function playableFutureIds() {
-		if (repeated.value === 'repeat-1')
-			return []
-		return toPlayQueue.value.filter(id => !isMusicDisabled(id))
-	}
-
-	async function resolveAudioSource(id: string | null): Promise<MseAudioSource | null> {
-		const resolved = await getAudioSrc(id)
-		return typeof resolved === 'string' ? { src: resolved } : resolved
-	}
-
-	const msePlayback = useMseAudioPlayback({
-		audio,
-		loadSource: audioLogic.load,
-		getAudioSource: async id => await resolveAudioSource(id),
-		getMimeType: id => getAudioMimeType(id),
-		previousCount: 1,
-		futureCount: 3,
-		onCurrentEntryChange: (id, normalizationGainDb) => {
-			if (repeated.value === 'repeat-1')
-				return
-			playbackSyncedAudioId = id
-			if (audioQueueLogic.syncCurrentFromPlayback(id))
-				audioLogic.setNormalizationGainDb(normalizationGainDb)
-			else if (playbackSyncedAudioId === id)
-				playbackSyncedAudioId = null
-		},
-	})
-
-	const currentTime = computed({
-		get: () => msePlayback.active.value ? msePlayback.currentTime.value : audioLogic.currentTime.value,
-		set: (value) => {
-			if (!msePlayback.seekLocal(value))
-				audioLogic.currentTime.value = value
-		},
-	})
-	const duration = computed(() => msePlayback.active.value ? msePlayback.duration.value : audioLogic.duration.value)
-
-	watch(
-		[repeated, msePlayback.active],
-		() => audioLogic.loop.value = repeated.value === 'repeat-1' && !msePlayback.active.value,
-		{ immediate: true, flush: 'sync' },
-	)
-
-	async function reconcileMse(audioId: string, seekToCurrent: boolean): Promise<'used' | 'unsupported' | 'superseded'> {
-		const revision = ++mseReconcileRevision
-		const used = await msePlayback.reconcile({
-			previousIds: playablePreviousIds(),
-			currentId: audioId,
-			futureIds: playableFutureIds(),
-			seekToCurrent,
-		})
-		if (revision !== mseReconcileRevision)
-			return 'superseded'
-		if (!used)
-			return 'unsupported'
-		audioLogic.setNormalizationGainDb(msePlayback.normalizationGainDb.value)
-		return 'used'
-	}
-
-	async function loadDirect(audioId: string | null, requestId: number) {
-		const source = await resolveAudioSource(audioId)
-		if (requestId !== directSourceRequestId) {
-			source?.release?.()
-			return
-		}
-
-		await audioLogic.fadeOutputTo(0, 30)
-		if (requestId !== directSourceRequestId) {
-			source?.release?.()
-			return
-		}
-
-		msePlayback.deactivate()
-		releaseCurrentDirectSource?.()
-		releaseCurrentDirectSource = null
-		audioLogic.setNormalizationGainDb(source?.normalizationGainDb ?? 0)
-		if (source == null) {
-			audioLogic.unload()
-			return
-		}
-
-		releaseCurrentDirectSource = source.release ?? null
-		audioLogic.load(source.src)
-		const playbackStarted = audioLogic.play()
-		if (audio.value.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
-			await until(computed(() => audioLogic.canPlay.value || audioLogic.hasError.value))
-				.toBe(true)
-		}
-		if (requestId !== directSourceRequestId)
-			return
-		if (audioLogic.hasError.value || await playbackStarted === false) {
-			await audioLogic.fadeOutputTo(1, 0)
-			return
-		}
-		await audioLogic.fadeOutputTo(1, 30)
-	}
 
 	watch(
 		currentAudioId,
 		async (audioId) => {
-			const directRequestId = ++directSourceRequestId
-			const naturalMseTransition = audioId != null && playbackSyncedAudioId === audioId
-			if (naturalMseTransition)
-				playbackSyncedAudioId = null
+			const requestId = ++sourceRequestId
+			const resolvedSource = await getAudioSrc(audioId)
+			const source = typeof resolvedSource === 'string'
+				? { src: resolvedSource }
+				: resolvedSource
 
-			if (audioId != null && msePlayback.canUse(audioId)) {
-				const wasMseActive = msePlayback.active.value
-				const shouldSeek = !naturalMseTransition
-				if (shouldSeek && wasMseActive)
-					await audioLogic.fadeOutputTo(0, 30)
-				try {
-					const result = await reconcileMse(audioId, shouldSeek)
-					if (result === 'superseded')
-						return
-					if (result === 'used') {
-						lastReconciledAudioId = audioId
-						releaseCurrentDirectSource?.()
-						releaseCurrentDirectSource = null
-						if (!naturalMseTransition)
-							await audioLogic.play()
-						if (shouldSeek && wasMseActive)
-							await audioLogic.fadeOutputTo(1, 30)
-						if (bufferedQueueDirty && currentAudioId.value === audioId) {
-							bufferedQueueDirty = false
-							void reconcileMse(audioId, false)
-						}
-						return
-					}
-				}
-				catch (error) {
-					console.warn('[audio] MSE playback setup failed; falling back to direct source.', error)
-				}
-				if (shouldSeek && wasMseActive)
-					await audioLogic.fadeOutputTo(1, 0)
-			}
-
-			mseReconcileRevision++
-			msePlayback.deactivate()
-			await loadDirect(audioId, directRequestId)
-			if (directRequestId === directSourceRequestId)
-				lastReconciledAudioId = audioId
-		},
-	)
-
-	watch(
-		[playedQueue, toPlayQueue, repeated],
-		async () => {
-			const audioId = currentAudioId.value
-			if (audioId == null || !msePlayback.active.value || !msePlayback.canUse(audioId))
-				return
-			if (lastReconciledAudioId !== audioId) {
-				bufferedQueueDirty = true
+			if (requestId !== sourceRequestId) {
+				source?.release?.()
 				return
 			}
-			try {
-				await reconcileMse(audioId, false)
-			}
-			catch (error) {
-				console.warn('[audio] Could not reconcile the buffered MSE queue.', error)
-			}
-		},
-		{ deep: false },
-	)
 
-	tryOnScopeDispose(() => {
-		releaseCurrentDirectSource?.()
-		releaseCurrentDirectSource = null
-	})
+			await playbackBackend.fadeOutputTo(0, TRACK_SWITCH_FADE_MS)
+			if (requestId !== sourceRequestId) {
+				source?.release?.()
+				return
+			}
+
+			releaseCurrentSource?.()
+			releaseCurrentSource = null
+			playbackBackend.setNormalizationGainDb(source?.normalizationGainDb ?? 0)
+
+			if (source == null) {
+				playbackBackend.unload()
+				return
+			}
+
+			releaseCurrentSource = source.release ?? null
+			playbackBackend.load(source.src)
+			const playbackStarted = playbackBackend.play()
+			await playbackBackend.waitUntilReady()
+
+			if (requestId !== sourceRequestId)
+				return
+			if (playbackBackend.hasError.value || await playbackStarted === false) {
+				await playbackBackend.fadeOutputTo(1, 0)
+				return
+			}
+			if (requestId !== sourceRequestId)
+				return
+			await playbackBackend.fadeOutputTo(1, TRACK_SWITCH_FADE_MS)
+		},
+	)
 
 	function play(...args: Parameters<typeof audioQueueLogic.initQueue>) {
-		audioLogic.preparePlayback()
+		playbackBackend.preparePlayback()
 		return audioQueueLogic.initQueue(...args)
 	}
 	function togglePlay() {
-		if (audioLogic.isPaused.value)
-			void audioLogic.play()
+		if (playbackBackend.isPaused.value)
+			void playbackBackend.play()
 		else
-			audioLogic.pause()
+			playbackBackend.pause()
 	}
-	function goNext() {
-		audioQueueLogic.goNext()
-	}
+	const goNext = audioQueueLogic.goNext
 	function goPrevious() {
 		if (currentAudioId.value == null)
 			return
+
 		if (currentTime.value > 3) {
 			currentTime.value = 0
 			return
 		}
+
 		audioQueueLogic.goPrevious()
 	}
 
-	useEventListener(audio, 'ended', () => {
-		if (msePlayback.active.value && repeated.value === 'repeat-1') {
-			currentTime.value = 0
-			void audioLogic.play()
-			return
-		}
+	const stopEndedListener = playbackBackend.onEnded(() => {
 		if (repeated.value === 'off' && !audioQueueLogic.hasReachedEnd.value) {
 			goNext()
 			return
 		}
+
 		if (repeated.value === 'repeat') {
 			const previousAudioId = currentAudioId.value
 			goNext()
 			if (currentAudioId.value === previousAudioId) {
 				currentTime.value = 0
-				void audioLogic.play()
+				void playbackBackend.play()
 			}
 		}
 	})
 
+	tryOnScopeDispose(() => {
+		stopEndedListener()
+		releaseCurrentSource?.()
+		releaseCurrentSource = null
+	})
+
+	const toPlayQueue = audioQueueLogic.toPlayQueue
 	const playToPlayQueueItem = audioQueueLogic.playToPlayQueueItem
 
 	watch(
@@ -305,16 +186,15 @@ export function useAudioPlayer({
 	)
 
 	return {
-		audio,
 		currentTime,
 		duration,
 		volume,
 
-		normalizationSupported: audioLogic.normalizationSupported,
-		normalizationEnabled: audioLogic.normalizationEnabled,
-		normalizationGainDb: audioLogic.normalizationGainDb,
-		setNormalizationEnabled: audioLogic.setNormalizationEnabled,
-		setNormalizationGainDb: audioLogic.setNormalizationGainDb,
+		normalizationSupported: playbackBackend.normalizationSupported,
+		normalizationEnabled: playbackBackend.normalizationEnabled,
+		normalizationGainDb: playbackBackend.normalizationGainDb,
+		setNormalizationEnabled: playbackBackend.setNormalizationEnabled,
+		setNormalizationGainDb: playbackBackend.setNormalizationGainDb,
 
 		muted,
 		toggleMuted,
@@ -325,9 +205,9 @@ export function useAudioPlayer({
 		random,
 		toggleRandom,
 
-		isPaused: audioLogic.isPaused,
-		isWaiting: audioLogic.isWaiting,
-		canPlay: audioLogic.canPlay,
+		isPaused: playbackBackend.isPaused,
+		isWaiting: playbackBackend.isWaiting,
+		canPlay: playbackBackend.canPlay,
 
 		currentAudioId,
 		togglePlay,
@@ -338,5 +218,6 @@ export function useAudioPlayer({
 
 		toPlayQueue,
 		playToPlayQueueItem,
+		onSeeked: playbackBackend.onSeeked,
 	}
 }

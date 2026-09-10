@@ -210,15 +210,6 @@ export const useMusicStore = defineStore('music', () => {
 		await _saveMusicForOffline(musicId, musicData.src)
 	}
 
-	function getMseAudioMimeType(id: string | null) {
-		if (id == null)
-			return null
-		const audio = getMusicData(id)?.data.audio
-		if (audio?.container !== 'webm' || audio.codec !== 'opus')
-			return null
-		return 'audio/webm; codecs="opus"'
-	}
-
 	const audioPlayerLogic = useAudioPlayer({
 		getAudioSrc: async (id) => {
 			if (id == null)
@@ -246,7 +237,6 @@ export const useMusicStore = defineStore('music', () => {
 				normalizationGainDb,
 			}
 		},
-		getAudioMimeType: getMseAudioMimeType,
 		isMusicDisabled: id => isMusicDisabled(id ?? ''),
 	})
 	const currentPlaylist = ref<Playlist | null>(null)
@@ -364,17 +354,14 @@ export const useMusicStore = defineStore('music', () => {
 			bool => navigator.mediaSession.playbackState = bool ? 'paused' : 'playing',
 			{ immediate: true },
 		)
-		useEventListener(
-			audioPlayerLogic.audio,
-			'seeked',
-			() => {
-				navigator.mediaSession.setPositionState({
-					duration: audioPlayerLogic.duration.value,
-					playbackRate: 1,
-					position: audioPlayerLogic.currentTime.value,
-				})
-			},
-		)
+		const stopSeekedListener = audioPlayerLogic.onSeeked(() => {
+			navigator.mediaSession.setPositionState({
+				duration: audioPlayerLogic.duration.value,
+				playbackRate: 1,
+				position: audioPlayerLogic.currentTime.value,
+			})
+		})
+		tryOnScopeDispose(stopSeekedListener)
 		navigator.mediaSession.setActionHandler('play', () => {
 			audioPlayerLogic.togglePlay()
 		})
