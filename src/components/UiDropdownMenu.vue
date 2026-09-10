@@ -37,6 +37,8 @@ const props = defineProps<{
 	triggerTooltip?: string
 }>()
 
+const canShowTriggerTooltip = useMediaQuery('(any-hover: hover)')
+
 const open = defineModel<boolean>('open')
 
 const [DefineUiDropdownMenuNormalMenuItem, UiDropdownMenuNormalMenuItem] = createReusableTemplate<{ item: NormalMenuItem }>()
@@ -170,7 +172,7 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 			</DropdownMenuSub>
 		</DefineUiDropdownMenuCustomSubMenu>
 
-		<UiTooltip v-if="props.triggerTooltip != null">
+		<UiTooltip v-if="props.triggerTooltip != null && canShowTriggerTooltip">
 			<template #trigger>
 				<DropdownMenuTrigger asChild>
 					<slot name="trigger" />
