@@ -117,42 +117,30 @@ export default defineConfig(async () => ({
 						},
 					},
 					{
-						urlPattern: /\/resources\/world-map\/manifest\.json$/,
+						urlPattern: /\/resources\/world-map\/(?:catalog\.json|snapshots\/(?:GMS|TWMS)\/[^/]+\/manifest\.json)$/,
 						handler: 'NetworkFirst',
 						options: {
 							cacheName: WORLD_MAP_RUNTIME_CACHE_NAMES.manifest,
-							expiration: {
-								maxEntries: 2,
-								maxAgeSeconds: 60 * 60 * 24 * 365,
-							},
 							cacheableResponse: {
 								statuses: [0, 200],
 							},
 						},
 					},
 					{
-						urlPattern: /\/resources\/world-map\/nodes\/[^/]+\.json$/,
+						urlPattern: /\/resources\/world-map\/snapshots\/(?:GMS|TWMS)\/[^/]+\/nodes\/[^/]+\.json(?:\?[^#]*)?$/,
 						handler: 'NetworkFirst',
 						options: {
 							cacheName: WORLD_MAP_RUNTIME_CACHE_NAMES.nodes,
-							expiration: {
-								maxEntries: 256,
-								maxAgeSeconds: 60 * 60 * 24 * 365,
-							},
 							cacheableResponse: {
 								statuses: [0, 200],
 							},
 						},
 					},
 					{
-						urlPattern: /\/resources\/world-map\/.+\.(?:png|jpe?g|webp|avif)$/i,
+						urlPattern: /\/resources\/world-map\/.+\.(?:png|jpe?g|webp|avif)(?:\?[^#]*)?$/i,
 						handler: 'CacheFirst',
 						options: {
 							cacheName: WORLD_MAP_RUNTIME_CACHE_NAMES.images,
-							expiration: {
-								maxEntries: 512,
-								maxAgeSeconds: 60 * 60 * 24 * 365,
-							},
 							cacheableResponse: {
 								statuses: [0, 200],
 							},

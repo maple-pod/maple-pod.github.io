@@ -5,12 +5,14 @@ const musicStore = useMusicStore()
 const { getMusicData, removeSavedOfflineMusic, cancelOfflineMusicDownload } = musicStore
 const { offlineReadyMusics, offlineMusicDownloadingProgress } = storeToRefs(musicStore)
 const {
+	selectedSnapshotId: worldMapSelectedSnapshotId,
 	manifest: worldMapManifest,
-	status: worldMapOfflineStatus,
-	progress: worldMapOfflineProgress,
-	downloadAll: downloadWorldMapsForOffline,
+	offlineSnapshots: worldMapOfflineSnapshots,
+	activeDownloadSnapshotId: worldMapActiveDownloadSnapshotId,
+	activeDownloadProgress: worldMapActiveDownloadProgress,
+	downloadSnapshot: downloadWorldMapSnapshot,
 	cancel: cancelWorldMapDownload,
-	remove: removeWorldMapsOffline,
+	remove: removeWorldMapOffline,
 } = useWorldMapOffline()
 const isOnline = useOnline()
 
@@ -22,31 +24,43 @@ interface MusicDownloadItem {
 
 interface WorldMapDownloadItem {
 	kind: 'world-map'
+	snapshotId: `GMS/${string}` | `TWMS/${string}`
 	progress: number | 'idle' | 'pending' | 'done' | 'error'
 }
 
 type DownloadItem = MusicDownloadItem | WorldMapDownloadItem
 
-const worldMapDownloadProgress = computed<WorldMapDownloadItem['progress']>(() => {
-	if (worldMapOfflineStatus.value === 'ready')
-		return 'done'
-	if (worldMapOfflineStatus.value === 'error')
-		return 'error'
-	if (worldMapOfflineStatus.value === 'idle')
-		return 'idle'
-	if (worldMapOfflineProgress.value == null || worldMapOfflineProgress.value.total === 0)
-		return 'pending'
-	return Math.round((worldMapOfflineProgress.value.completed / worldMapOfflineProgress.value.total) * 100)
+function worldMapProgress(snapshotId: WorldMapDownloadItem['snapshotId']): WorldMapDownloadItem['progress'] {
+	if (worldMapActiveDownloadSnapshotId.value === snapshotId) {
+		const current = worldMapActiveDownloadProgress.value
+		if (current == null || current.total === 0)
+			return 'pending'
+		return Math.round((current.completed / current.total) * 100)
+	}
+	const entry = worldMapOfflineSnapshots.value.find(candidate => candidate.snapshotId === snapshotId)
+	return entry?.status === 'ready' ? 'done' : 'idle'
+}
+
+const worldMapItems = computed<WorldMapDownloadItem[]>(() => {
+	const snapshotIds = new Set<WorldMapDownloadItem['snapshotId']>(
+		worldMapOfflineSnapshots.value.map(entry => entry.snapshotId),
+	)
+	if (worldMapSelectedSnapshotId.value != null && worldMapManifest.value != null)
+		snapshotIds.add(worldMapSelectedSnapshotId.value)
+	if (worldMapActiveDownloadSnapshotId.value != null)
+		snapshotIds.add(worldMapActiveDownloadSnapshotId.value)
+	return [...snapshotIds]
+		.sort((a, b) => a.localeCompare(b))
+		.map(snapshotId => ({
+			kind: 'world-map' as const,
+			snapshotId,
+			progress: worldMapProgress(snapshotId),
+		}))
 })
 
 const items = computed<DownloadItem[]>(() => {
 	return [
-		...(worldMapManifest.value == null
-			? []
-			: [{
-					kind: 'world-map' as const,
-					progress: worldMapDownloadProgress.value,
-				}]),
+		...worldMapItems.value,
 		...Array.from(offlineMusicDownloadingProgress.value.entries(), ([id, progress]) => ({
 			kind: 'music' as const,
 			music: getMusicData(id)!,
@@ -73,19 +87,13 @@ const items = computed<DownloadItem[]>(() => {
 				v-bind="$attrs"
 				@click.stop
 			>
-				<div
-					:class="pika('i-f7:arrow-down-to-line')"
-				/>
+				<div :class="pika('i-f7:arrow-down-to-line')" />
 			</button>
 		</template>
 
 		<template #menu>
 			<div
-				:class="pika({
-					maxHeight: '50dvh',
-					borderRadius: '16px',
-					overflow: 'hidden',
-				})"
+				:class="pika({ maxHeight: '50dvh', borderRadius: '16px', overflow: 'hidden' })"
 			>
 				<UiVerticalList
 					:items="items"
@@ -93,14 +101,7 @@ const items = computed<DownloadItem[]>(() => {
 				>
 					<template #item="{ item }">
 						<div
-							:class="pika({
-								display: 'flex',
-								alignItems: 'center',
-								gap: '8px',
-								width: '300px',
-								height: '72px',
-								paddingRight: '12px',
-							})"
+							:class="pika({ display: 'flex', alignItems: 'center', gap: '8px', width: '300px', height: '72px', paddingRight: '12px' })"
 						>
 							<div
 								v-if="item.kind === 'world-map'"
@@ -116,82 +117,55 @@ const items = computed<DownloadItem[]>(() => {
 							/>
 
 							<div
-								:class="pika({
-									display: 'flex',
-									flexDirection: 'column',
-									flex: '1 1 0',
-									minWidth: '0',
-								})"
+								:class="pika({ display: 'flex', flexDirection: 'column', flex: '1 1 0', minWidth: '0' })"
 							>
 								<UiMarquee v-if="item.kind === 'music'">
 									{{ item.music.title }}
 								</UiMarquee>
 								<div v-else>
-									World Map
+									World Map — {{ item.snapshotId }}
 								</div>
-								<div
-									:class="pika({
-										display: 'flex',
-										alignItems: 'center',
-										gap: '4px',
-										width: '100%',
-									})"
-								>
+								<div :class="pika({ display: 'flex', alignItems: 'center', gap: '4px', width: '100%' })">
 									<div
 										v-if="typeof item.progress === 'number'"
-										:class="pika({
-											flex: '1 1 0',
-											minWidth: '0',
-										})"
+										:class="pika({ flex: '1 1 0', minWidth: '0' })"
 									>
-										<UiProgress
-											:value="item.progress"
-										/>
+										<UiProgress :value="item.progress" />
 									</div>
-
-									<span
-										:class="pika({
-											lineHeight: '16px',
-											fontSize: '10px',
-											opacity: '0.5',
-										})"
-									>
+									<span :class="pika({ lineHeight: '16px', fontSize: '10px', opacity: '0.5' })">
 										{{ item.progress === 'done' ? 'Done' : item.progress === 'pending' ? 'Pending' : item.progress === 'error' ? 'Error' : item.progress === 'idle' ? 'Download' : `${item.progress}%` }}
 									</span>
 								</div>
 							</div>
 
-							<div
-								:class="pika({
-									display: 'flex',
-									alignItems: 'center',
-								})"
-							>
-								<button
-									v-if="item.kind === 'world-map' && worldMapOfflineStatus === 'ready'"
-									:class="pika('icon-btn')"
-									aria-label="Remove World Map offline download"
-									@click.stop="removeWorldMapsOffline"
-								>
-									<div :class="pika('i-f7:trash')" />
-								</button>
-								<button
-									v-else-if="item.kind === 'world-map' && worldMapOfflineStatus === 'downloading'"
-									:class="pika('icon-btn')"
-									aria-label="Cancel World Map offline download"
-									@click.stop="cancelWorldMapDownload"
-								>
-									<div :class="pika('i-f7:xmark')" />
-								</button>
-								<button
-									v-else-if="item.kind === 'world-map'"
-									:class="pika('icon-btn')"
-									aria-label="Download World Map for offline"
-									:disabled="isOnline === false"
-									@click.stop="downloadWorldMapsForOffline"
-								>
-									<div :class="pika('i-f7:cloud-download')" />
-								</button>
+							<div :class="pika({ display: 'flex', alignItems: 'center' })">
+								<template v-if="item.kind === 'world-map'">
+									<button
+										v-if="item.progress === 'done'"
+										:class="pika('icon-btn')"
+										:aria-label="`Remove World Map ${item.snapshotId} offline download`"
+										@click.stop="removeWorldMapOffline(item.snapshotId)"
+									>
+										<div :class="pika('i-f7:trash')" />
+									</button>
+									<button
+										v-else-if="worldMapActiveDownloadSnapshotId === item.snapshotId"
+										:class="pika('icon-btn')"
+										:aria-label="`Cancel World Map ${item.snapshotId} offline download`"
+										@click.stop="cancelWorldMapDownload"
+									>
+										<div :class="pika('i-f7:xmark')" />
+									</button>
+									<button
+										v-else
+										:class="pika('icon-btn')"
+										:aria-label="`Download World Map ${item.snapshotId} for offline`"
+										:disabled="isOnline === false"
+										@click.stop="downloadWorldMapSnapshot(item.snapshotId)"
+									>
+										<div :class="pika('i-f7:cloud-download')" />
+									</button>
+								</template>
 								<template v-else>
 									<button
 										v-if="offlineReadyMusics.has(item.music.id)"
@@ -199,9 +173,7 @@ const items = computed<DownloadItem[]>(() => {
 										:aria-label="`Remove ${item.music.title} offline download`"
 										@click.stop="removeSavedOfflineMusic(item.music.id)"
 									>
-										<div
-											:class="pika('i-f7:trash')"
-										/>
+										<div :class="pika('i-f7:trash')" />
 									</button>
 									<button
 										v-else-if="offlineMusicDownloadingProgress.has(item.music.id)"
@@ -209,9 +181,7 @@ const items = computed<DownloadItem[]>(() => {
 										:aria-label="`Cancel ${item.music.title} offline download`"
 										@click.stop="cancelOfflineMusicDownload(item.music.id)"
 									>
-										<div
-											:class="pika('i-f7:trash')"
-										/>
+										<div :class="pika('i-f7:trash')" />
 									</button>
 								</template>
 							</div>

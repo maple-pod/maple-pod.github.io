@@ -5,6 +5,7 @@ import type {
 	WorldMapGraphMap,
 	WorldMapGraphSpot,
 	WorldMapNodeSummary,
+	WorldMapSnapshotId,
 } from '@/schemas'
 import {
 	getWorldMapBreadcrumb,
@@ -30,20 +31,27 @@ type ActiveTarget = ActiveLinkTarget | ActiveSpotTarget
 const musicStore = useMusicStore()
 const { currentMusic } = storeToRefs(musicStore)
 const {
+	catalog,
+	selectableSnapshots,
+	selectedSnapshotId,
 	manifest,
 	loadedNodes,
 	loading,
 	error,
 	reload,
+	resolveSnapshotId,
+	selectSnapshot,
 	loadNode,
 	retryNode,
 	getNodeState,
 } = useWorldMaps()
 const {
 	status: worldMapOfflineStatus,
+	setSnapshot: setWorldMapOfflineSnapshot,
 	setManifest: setWorldMapOfflineManifest,
 	downloadAll: downloadWorldMapsForOffline,
 	isReady: worldMapOfflineReady,
+	isDownloading: worldMapOfflineIsDownloading,
 } = useWorldMapOffline()
 const canHover = useMediaQuery('(hover: hover) and (pointer: fine)')
 const isOnline = useOnline()
@@ -54,6 +62,7 @@ const selectedRootId = ref<string>('')
 const currentNodeId = ref<string>('')
 const activeTarget = shallowRef<ActiveTarget | null>(null)
 let activeTargetCloseTimer: ReturnType<typeof setTimeout> | null = null
+let snapshotSelectionGeneration = 0
 
 const worldMapInteractionSelector = '[data-world-map-hotspot], [data-world-map-popover]'
 
@@ -77,6 +86,14 @@ const selectableRootOptions = computed(() => selectableRoots.value.map(root => (
 	value: root.worldMapId,
 	label: getWorldMapGmsNodeLabel(displayNodeById.value.get(root.worldMapId) ?? root),
 })))
+const selectableSnapshotOptions = computed(() => selectableSnapshots.value.map(snapshot => ({
+	value: snapshot.id,
+	label: snapshot.label,
+})))
+const selectedSnapshotModel = computed({
+	get: () => selectedSnapshotId.value ?? '',
+	set: (snapshotId: string) => selectSnapshotFromUi(snapshotId),
+})
 const selectedRootModel = computed({
 	get: () => selectedRootId.value,
 	set: (worldMapId: string) => selectRoot(worldMapId),
@@ -132,10 +149,12 @@ const activeTitle = computed(() => {
 	return null
 })
 const activeLinkTargetNode = computed(() => activeLink.value == null ? null : nodeById.value.get(activeLink.value.targetWorldMapId) ?? null)
-const worldMapOfflineDownloadDisabled = computed(() => isOnline.value === false || manifest.value == null || worldMapOfflineStatus.value === 'downloading' || worldMapOfflineReady.value)
+const worldMapOfflineDownloadDisabled = computed(() => isOnline.value === false || manifest.value == null || worldMapOfflineIsDownloading.value || worldMapOfflineReady.value)
 
-function routeParam(value: string | string[] | undefined): string | undefined {
-	return Array.isArray(value) ? value[0] : value
+function routeValue(value: string | (string | null)[] | null | undefined): string | undefined {
+	if (Array.isArray(value))
+		return value[0] ?? undefined
+	return value ?? undefined
 }
 
 function getRootForNode(worldMapId: string): string | null {
@@ -150,6 +169,18 @@ function getRootForNode(worldMapId: string): string | null {
 	return null
 }
 
+function snapshotQuery(snapshotId: WorldMapSnapshotId) {
+	return { ...route.query, snapshot: snapshotId }
+}
+
+function currentSnapshotRouteLocation(snapshotId: WorldMapSnapshotId) {
+	return {
+		name: Routes.WorldMap,
+		params: { ...route.params },
+		query: snapshotQuery(snapshotId),
+	}
+}
+
 function worldMapRouteLocation(rootWorldMapId: string, worldMapId = rootWorldMapId) {
 	return {
 		name: Routes.WorldMap,
@@ -157,6 +188,7 @@ function worldMapRouteLocation(rootWorldMapId: string, worldMapId = rootWorldMap
 			rootWorldMapId,
 			worldMapId: worldMapId === rootWorldMapId ? undefined : worldMapId,
 		},
+		query: selectedSnapshotId.value == null ? { ...route.query } : snapshotQuery(selectedSnapshotId.value),
 	}
 }
 
@@ -166,23 +198,58 @@ function nodeRouteLocation(worldMapId: string) {
 }
 
 function routeMatches(rootWorldMapId: string, worldMapId: string) {
-	const routeRoot = routeParam(route.params.rootWorldMapId)
-	const routeNode = routeParam(route.params.worldMapId)
+	const routeRoot = routeValue(route.params.rootWorldMapId)
+	const routeNode = routeValue(route.params.worldMapId)
 	return routeRoot === rootWorldMapId
 		&& routeNode === (worldMapId === rootWorldMapId ? undefined : worldMapId)
 }
 
-watch([manifest, () => route.params.rootWorldMapId, () => route.params.worldMapId], ([currentManifest]) => {
-	if (currentManifest == null)
+function selectSnapshotFromUi(snapshotId: string) {
+	if (snapshotId === selectedSnapshotId.value)
+		return
+	const candidate = selectableSnapshots.value.find(entry => entry.id === snapshotId)
+	if (candidate == null)
+		return
+	void router.push(currentSnapshotRouteLocation(candidate.id))
+}
+
+watch([catalog, () => route.query.snapshot], async ([currentCatalog, routeSnapshot]) => {
+	const currentSelectionGeneration = ++snapshotSelectionGeneration
+	if (currentCatalog == null)
+		return
+	const resolvedSnapshotId = resolveSnapshotId(routeValue(routeSnapshot))
+	if (resolvedSnapshotId == null)
 		return
 
-	setWorldMapOfflineManifest(currentManifest)
+	if (routeValue(routeSnapshot) !== resolvedSnapshotId)
+		void router.replace(currentSnapshotRouteLocation(resolvedSnapshotId))
+
+	if (selectedSnapshotId.value !== resolvedSnapshotId) {
+		activeTarget.value = null
+		await setWorldMapOfflineSnapshot(resolvedSnapshotId)
+		if (currentSelectionGeneration !== snapshotSelectionGeneration || resolveSnapshotId(routeValue(route.query.snapshot)) !== resolvedSnapshotId)
+			return
+		await selectSnapshot(resolvedSnapshotId)
+			.catch(() => null)
+	}
+}, { immediate: true })
+
+watch([manifest, selectedSnapshotId], ([currentManifest, snapshotId]) => {
+	if (currentManifest == null || snapshotId == null)
+		return
+	void setWorldMapOfflineManifest(snapshotId, currentManifest)
+}, { immediate: true })
+
+watch([manifest, selectedSnapshotId, () => route.params.rootWorldMapId, () => route.params.worldMapId], ([currentManifest, snapshotId]) => {
+	if (currentManifest == null || snapshotId == null)
+		return
+
 	const firstRoot = rootIds.value.find(worldMapId => nodeById.value.has(worldMapId))
 	if (firstRoot == null)
 		return
 
-	const routeRoot = routeParam(route.params.rootWorldMapId)
-	const routeNode = routeParam(route.params.worldMapId)
+	const routeRoot = routeValue(route.params.rootWorldMapId)
+	const routeNode = routeValue(route.params.worldMapId)
 	const requestedNode = routeNode != null && nodeById.value.has(routeNode)
 		? routeNode
 		: routeRoot != null && nodeById.value.has(routeRoot)
@@ -198,14 +265,14 @@ watch([manifest, () => route.params.rootWorldMapId, () => route.params.worldMapI
 		void router.replace(worldMapRouteLocation(resolvedRoot, requestedNode))
 }, { immediate: true })
 
-watch([manifest, currentNodeId], ([currentManifest, worldMapId]) => {
-	if (currentManifest == null || worldMapId.length === 0 || nodeById.value.has(worldMapId) === false)
+watch([manifest, selectedSnapshotId, currentNodeId], ([currentManifest, snapshotId, worldMapId]) => {
+	if (currentManifest == null || snapshotId == null || worldMapId.length === 0 || nodeById.value.has(worldMapId) === false)
 		return
 	void loadNode(worldMapId)
 		.catch(() => null)
 }, { immediate: true })
 
-watch(currentNodeId, () => {
+watch([selectedSnapshotId, currentNodeId], () => {
 	activeTarget.value = null
 })
 
@@ -423,7 +490,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 		})"
 	>
 		<div
-			:class="pika({ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', minHeight: '60px' })"
+			:class="pika({ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', minHeight: '60px', flexWrap: 'wrap' })"
 		>
 			<UiTooltip>
 				<template #trigger>
@@ -444,6 +511,14 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 					Back to playlists
 				</template>
 			</UiTooltip>
+
+			<UiSelect
+				v-model="selectedSnapshotModel"
+				:options="selectableSnapshotOptions"
+				label="Snapshot"
+				placeholder="Snapshot"
+				:disabled="selectableSnapshotOptions.length === 0"
+			/>
 
 			<UiSelect
 				v-model="selectedRootModel"
@@ -488,7 +563,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 			role="alert"
 			:class="pika({ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '16px' })"
 		>
-			<span>World map manifest could not be loaded or did not match the progressive resource contract.</span>
+			<span>World map catalog or snapshot runtime could not be loaded or did not match the versioned resource contract.</span>
 			<button
 				:class="pika('primary-btn')"
 				@click="reload"
@@ -570,7 +645,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 					<img
 						v-for="(asset, index) in currentNode.baseImages"
 						:key="asset.file"
-						:src="getWorldMapAssetPath(asset.file)"
+						:src="getWorldMapAssetPath(asset.file, manifest?.cacheKey)"
 						:alt="index === 0 ? `${getWorldMapGmsNodeLabel(currentNode)} world map` : ''"
 						:width="asset.width"
 						:height="asset.height"
@@ -582,7 +657,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 					<img
 						v-for="link in currentNode.links.filter(link => link.linkImage != null)"
 						:key="`image:${link.id}`"
-						:src="getWorldMapAssetPath(link.linkImage!.file)"
+						:src="getWorldMapAssetPath(link.linkImage!.file, manifest?.cacheKey)"
 						alt=""
 						aria-hidden="true"
 						:width="link.linkImage!.width"
@@ -602,6 +677,27 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						draggable="false"
 					>
 
+					<svg
+						v-if="currentNode.links.some(link => link.hitPath != null)"
+						:viewBox="`0 0 ${referenceImage.width} ${referenceImage.height}`"
+						aria-hidden="true"
+						focusable="false"
+						:class="pika({ position: 'absolute', inset: '0', width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: '6' })"
+					>
+						<path
+							v-for="link in currentNode.links.filter(link => link.hitPath != null)"
+							:key="`hit-path:${link.id}`"
+							:d="link.hitPath!.d"
+							:fill-rule="link.hitPath!.fillRule"
+							fill="transparent"
+							pointer-events="fill"
+							data-world-map-hotspot
+							@mouseenter="activateLink(link)"
+							@mouseleave="scheduleActiveTargetClose"
+							@click="onLinkClick(link, $event)"
+						/>
+					</svg>
+
 					<button
 						v-for="link in currentNode.links"
 						:key="`link:${link.id}`"
@@ -609,7 +705,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						:aria-label="linkAccessibleName(link)"
 						data-world-map-hotspot
 						:data-active="activeTarget?.kind === 'link' && activeTarget.id === link.id"
-						:style="linkHitStyle(link)"
+						:style="[linkHitStyle(link), link.hitPath != null ? { pointerEvents: 'none' } : {}]"
 						:class="pika({
 							'position': 'absolute',
 							'left': 'var(--hotspot-left)',
