@@ -41,6 +41,8 @@ const isWorldMapRoute = computed(() => route.name === Routes.WorldMap)
 	>
 		<header
 			:class="pika('card', {
+				position: 'relative',
+				zIndex: '3',
 				display: 'flex',
 				flexDirection: 'column',
 				gap: '16px',
@@ -110,24 +112,21 @@ const isWorldMapRoute = computed(() => route.name === Routes.WorldMap)
 					</UiTooltip>
 				</RouterLink>
 
-				<UiTooltip v-if="isWorldMapRoute === false">
-					<template #trigger>
-						<RouterLink
-							:to="{ name: Routes.WorldMap }"
-							aria-label="World Map"
-							:class="pika('icon-btn')"
-						>
-							<span
-								:class="pika('i-f7:map')"
-								aria-hidden="true"
-							/>
-						</RouterLink>
-					</template>
-
-					<template #content>
-						World Map
-					</template>
-				</UiTooltip>
+				<UiTriggerTooltip
+					v-if="isWorldMapRoute === false"
+					label="World Map"
+				>
+					<RouterLink
+						:to="{ name: Routes.WorldMap }"
+						aria-label="World Map"
+						:class="pika('icon-btn')"
+					>
+						<span
+							:class="pika('i-f7:map')"
+							aria-hidden="true"
+						/>
+					</RouterLink>
+				</UiTriggerTooltip>
 
 				<DownloadManagerDropdownMenu />
 				<SettingsDropdownMenu />

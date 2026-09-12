@@ -37,9 +37,6 @@ const props = defineProps<{
 	triggerTooltip?: string
 }>()
 
-const canShowTriggerTooltip = useMediaQuery('(any-hover: hover)')
-const triggerTooltipOpen = ref(false)
-
 const open = defineModel<boolean>('open')
 
 const [DefineUiDropdownMenuNormalMenuItem, UiDropdownMenuNormalMenuItem] = createReusableTemplate<{ item: NormalMenuItem }>()
@@ -173,38 +170,21 @@ const [DefineUiDropdownMenuSeparator, UiDropdownMenuSeparator] = createReusableT
 			</DropdownMenuSub>
 		</DefineUiDropdownMenuCustomSubMenu>
 
-		<span
-			:class="pika({
-				position: 'relative',
-				display: 'inline-flex',
-			})"
-			@pointerenter="triggerTooltipOpen = true"
-			@pointerleave="triggerTooltipOpen = false"
-			@focusin="triggerTooltipOpen = true"
-			@focusout="triggerTooltipOpen = false"
+		<UiTriggerTooltip
+			v-if="props.triggerTooltip != null"
+			:label="props.triggerTooltip"
+			:disabled="open === true"
 		>
 			<DropdownMenuTrigger asChild>
 				<slot name="trigger" />
 			</DropdownMenuTrigger>
-
-			<span
-				v-if="props.triggerTooltip != null && canShowTriggerTooltip && triggerTooltipOpen && open !== true"
-				aria-hidden="true"
-				:class="pika('card', {
-					position: 'absolute',
-					top: 'calc(100% + 8px)',
-					left: '50%',
-					transform: 'translateX(-50%)',
-					padding: '4px 8px',
-					fontSize: '14px',
-					whiteSpace: 'nowrap',
-					pointerEvents: 'none',
-					zIndex: '2',
-				})"
-			>
-				{{ props.triggerTooltip }}
-			</span>
-		</span>
+		</UiTriggerTooltip>
+		<DropdownMenuTrigger
+			v-else
+			asChild
+		>
+			<slot name="trigger" />
+		</DropdownMenuTrigger>
 
 		<DropdownMenuPortal>
 			<DropdownMenuContent

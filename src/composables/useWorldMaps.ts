@@ -41,6 +41,41 @@ const manifestRequests = new Map<WorldMapSnapshotId, Promise<WorldMapManifest>>(
 const manifestRequestGenerations = new Map<WorldMapSnapshotId, number>()
 const nodeCache = new Map<string, WorldMapNode>()
 const nodeRequests = new Map<string, Promise<WorldMapNode>>()
+const LAST_SELECTED_SNAPSHOT_STORAGE_KEY = 'maple-pod:world-map:last-selected-snapshot'
+
+function readLastSelectedSnapshotId(): string | null {
+	if (typeof window === 'undefined')
+		return null
+	try {
+		return window.localStorage.getItem(LAST_SELECTED_SNAPSHOT_STORAGE_KEY)
+	}
+	catch {
+		return null
+	}
+}
+
+function persistLastSelectedSnapshotId(snapshotId: WorldMapSnapshotId): void {
+	if (typeof window === 'undefined')
+		return
+	try {
+		window.localStorage.setItem(LAST_SELECTED_SNAPSHOT_STORAGE_KEY, snapshotId)
+	}
+	catch {
+		// Snapshot persistence is a convenience; route-backed selection still works without storage.
+	}
+}
+
+function getLatestSelectableGmsSnapshot(entries: WorldMapSnapshotCatalogEntry[]): WorldMapSnapshotCatalogEntry | null {
+	return entries
+		.filter(entry => entry.selectable && entry.region === 'GMS')
+		.reduce<WorldMapSnapshotCatalogEntry | null>((latest, entry) => {
+			if (latest == null)
+				return entry
+			return entry.version.localeCompare(latest.version, undefined, { numeric: true, sensitivity: 'base' }) > 0
+				? entry
+				: latest
+		}, null)
+}
 
 function getManifestNode(manifest: WorldMapManifest, worldMapId: string): WorldMapManifestNode | null {
 	return manifest.nodes.find(node => node.worldMapId === worldMapId) ?? null
@@ -312,10 +347,19 @@ export function useWorldMaps() {
 		const currentCatalog = catalog.value
 		if (currentCatalog == null)
 			return null
-		const requested = typeof value === 'string' ? value : null
-		if (requested != null && selectableSnapshots.value.some(entry => entry.id === requested))
-			return requested as WorldMapSnapshotId
-		return currentCatalog.defaultSnapshot
+		if (typeof value === 'string') {
+			if (selectableSnapshots.value.some(entry => entry.id === value))
+				return value as WorldMapSnapshotId
+			return currentCatalog.defaultSnapshot
+		}
+		if (value !== undefined)
+			return currentCatalog.defaultSnapshot
+
+		const remembered = readLastSelectedSnapshotId()
+		if (remembered != null && selectableSnapshots.value.some(entry => entry.id === remembered))
+			return remembered as WorldMapSnapshotId
+
+		return getLatestSelectableGmsSnapshot(selectableSnapshots.value)?.id ?? currentCatalog.defaultSnapshot
 	}
 
 	function setNodeState(worldMapId: string, state: WorldMapNodeLoadState) {
@@ -356,6 +400,7 @@ export function useWorldMaps() {
 		const previousSnapshotId = selectedSnapshotId.value
 		const currentGeneration = ++generation
 		selectedSnapshotId.value = snapshotId
+		persistLastSelectedSnapshotId(snapshotId)
 		manifest.value = null
 		loadedNodes.value = new Map()
 		nodeStates.value = new Map()

@@ -134,18 +134,17 @@ const activeTrackDisabled = computed(() => {
 	const trackId = activeMap.value?.selection.trackId
 	return trackId == null || activeTrack.value == null || musicStore.isMusicDisabled(trackId)
 })
-const activeRows = computed(() => {
-	if (activeLink.value != null)
-		return getWorldMapNameRows(activeLink.value.canonicalLabel, activeLink.value.localizedNames)
-	if (activeMap.value != null)
-		return getWorldMapNameRows(activeMap.value.name, activeMap.value.localizedNames)
-	return []
-})
 const activeTitle = computed(() => {
-	if (activeLink.value != null)
-		return activeRows.value[0]?.name ?? activeLink.value.canonicalLabel ?? activeLink.value.targetWorldMapId
-	if (activeMap.value != null)
-		return activeRows.value[0]?.name ?? activeMap.value.name ?? activeMap.value.mapId
+	if (activeLink.value != null) {
+		return getWorldMapNameRows(activeLink.value.canonicalLabel, activeLink.value.localizedNames)[0]?.name
+			?? activeLink.value.canonicalLabel
+			?? activeLink.value.targetWorldMapId
+	}
+	if (activeMap.value != null) {
+		return getWorldMapNameRows(activeMap.value.name, activeMap.value.localizedNames)[0]?.name
+			?? activeMap.value.name
+			?? activeMap.value.mapId
+	}
 	return null
 })
 const activeLinkTargetNode = computed(() => activeLink.value == null ? null : nodeById.value.get(activeLink.value.targetWorldMapId) ?? null)
@@ -155,6 +154,12 @@ function routeValue(value: string | (string | null)[] | null | undefined): strin
 	if (Array.isArray(value))
 		return value[0] ?? undefined
 	return value ?? undefined
+}
+
+function snapshotRouteValue(value: string | (string | null)[] | null | undefined): string | null | undefined {
+	if (Array.isArray(value))
+		return value[0]
+	return value
 }
 
 function getRootForNode(worldMapId: string): string | null {
@@ -217,17 +222,17 @@ watch([catalog, () => route.query.snapshot], async ([currentCatalog, routeSnapsh
 	const currentSelectionGeneration = ++snapshotSelectionGeneration
 	if (currentCatalog == null)
 		return
-	const resolvedSnapshotId = resolveSnapshotId(routeValue(routeSnapshot))
+	const resolvedSnapshotId = resolveSnapshotId(snapshotRouteValue(routeSnapshot))
 	if (resolvedSnapshotId == null)
 		return
 
-	if (routeValue(routeSnapshot) !== resolvedSnapshotId)
+	if (snapshotRouteValue(routeSnapshot) !== resolvedSnapshotId)
 		void router.replace(currentSnapshotRouteLocation(resolvedSnapshotId))
 
 	if (selectedSnapshotId.value !== resolvedSnapshotId) {
 		activeTarget.value = null
 		await setWorldMapOfflineSnapshot(resolvedSnapshotId)
-		if (currentSelectionGeneration !== snapshotSelectionGeneration || resolveSnapshotId(routeValue(route.query.snapshot)) !== resolvedSnapshotId)
+		if (currentSelectionGeneration !== snapshotSelectionGeneration || resolveSnapshotId(snapshotRouteValue(route.query.snapshot)) !== resolvedSnapshotId)
 			return
 		await selectSnapshot(resolvedSnapshotId)
 			.catch(() => null)
@@ -247,6 +252,9 @@ watch([manifest, selectedSnapshotId, () => route.params.rootWorldMapId, () => ro
 	const firstRoot = rootIds.value.find(worldMapId => nodeById.value.has(worldMapId))
 	if (firstRoot == null)
 		return
+	const defaultRoot = rootIds.value.includes('WorldMap') && nodeById.value.has('WorldMap')
+		? 'WorldMap'
+		: firstRoot
 
 	const routeRoot = routeValue(route.params.rootWorldMapId)
 	const routeNode = routeValue(route.params.worldMapId)
@@ -254,9 +262,9 @@ watch([manifest, selectedSnapshotId, () => route.params.rootWorldMapId, () => ro
 		? routeNode
 		: routeRoot != null && nodeById.value.has(routeRoot)
 			? routeRoot
-			: firstRoot
+			: defaultRoot
 	const resolvedRoot = getRootForNode(requestedNode)
-		?? (routeRoot != null && rootIds.value.includes(routeRoot) ? routeRoot : firstRoot)
+		?? (routeRoot != null && rootIds.value.includes(routeRoot) ? routeRoot : defaultRoot)
 
 	selectedRootId.value = resolvedRoot
 	currentNodeId.value = requestedNode
@@ -809,19 +817,6 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 							{{ activeTitle }}
 						</div>
 						<div
-							v-if="activeRows.length > 0"
-							:class="pika({ display: 'grid', gridTemplateColumns: '42px minmax(0, 1fr)', gap: '4px 8px', fontSize: '12px' })"
-						>
-							<template
-								v-for="row in activeRows"
-								:key="row.region"
-							>
-								<span :class="pika({ color: 'var(--color-text-secondary)', fontSize: '10px', fontWeight: '600', letterSpacing: '0.04em', opacity: '0.78' })">{{ row.region }}</span>
-								<span>{{ row.name }}</span>
-							</template>
-						</div>
-
-						<div
 							v-if="activeSpot != null && activeSpot.mapNumbers.length > 1"
 							:class="pika({ marginTop: '8px', fontSize: '11px', color: 'var(--color-text-secondary)' })"
 						>
@@ -834,12 +829,22 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 							BGM · {{ activeTrack.title }}
 						</div>
 
-						<div :class="pika({ width: '100%', marginTop: '9px' })">
+						<div
+							v-if="canHover === false"
+							:class="pika({ width: '100%', marginTop: '9px' })"
+						>
 							<button
 								v-if="activeLink != null"
 								type="button"
 								:disabled="activeLinkTargetNode == null"
-								:class="pika({ 'width': '100%', 'minHeight': '36px', 'padding': '6px 12px', 'border': '1px solid var(--color-border-subtle)', 'borderRadius': 'var(--radius-control)', 'backgroundColor': 'var(--color-surface-card)', 'color': 'var(--color-text-primary)', 'cursor': 'pointer', '$:hover': { backgroundColor: 'color-mix(in srgb, var(--color-text-primary) 7%, var(--color-surface-card))' }, '$:focus-visible': { outline: '2px solid var(--color-focus-ring)', outlineOffset: '2px' }, '$:disabled': { opacity: '0.45', cursor: 'not-allowed' } })"
+								:class="pika('primary-plain-btn', {
+									width: '100%',
+									minHeight: '44px',
+									padding: '6px 12px',
+									border: '1px solid var(--color-border-subtle)',
+									backgroundColor: 'color-mix(in srgb, var(--color-surface-card) 72%, transparent)',
+									backdropFilter: 'blur(16px)',
+								})"
 								@click.stop="openLink()"
 							>
 								{{ activeLinkTargetNode == null ? 'Unavailable' : 'Open' }}
@@ -848,7 +853,14 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 								v-else-if="activeMap?.selection.trackId != null"
 								type="button"
 								:disabled="activeTrackDisabled"
-								:class="pika('primary-btn', { width: '100%', minHeight: '36px', padding: '6px 12px' })"
+								:class="pika('primary-plain-btn', {
+									width: '100%',
+									minHeight: '44px',
+									padding: '6px 12px',
+									border: '1px solid var(--color-border-subtle)',
+									backgroundColor: 'color-mix(in srgb, var(--color-surface-card) 72%, transparent)',
+									backdropFilter: 'blur(16px)',
+								})"
 								@click.stop="playMap()"
 							>
 								{{ currentMusic?.id === activeMap.selection.trackId ? 'Replay' : 'Play' }}
