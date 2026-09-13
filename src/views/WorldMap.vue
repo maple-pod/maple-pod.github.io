@@ -729,7 +729,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 			>
 				<div
 					ref="worldMapRef"
-					:style="{ aspectRatio: `${referenceImage.width} / ${referenceImage.height}`, width: `min(${referenceImage.width}px, 100%, calc(100cqh * ${referenceImage.width} / ${referenceImage.height}))`, maxHeight: `${referenceImage.height}px` }"
+					:style="{ aspectRatio: `${referenceImage.width} / ${referenceImage.height}`, width: `min(100%, calc(100cqh * ${referenceImage.width} / ${referenceImage.height}))` }"
 					:class="pika({
 						position: 'relative',
 						width: 'auto',
