@@ -61,6 +61,7 @@ const router = useRouter()
 const selectedRootId = ref<string>('')
 const currentNodeId = ref<string>('')
 const activeTarget = shallowRef<ActiveTarget | null>(null)
+const worldMapRef = useTemplateRef<HTMLDivElement>('worldMapRef')
 let activeTargetCloseTimer: ReturnType<typeof setTimeout> | null = null
 let snapshotSelectionGeneration = 0
 
@@ -366,6 +367,89 @@ function onSpotClick(spot: WorldMapGraphSpot, event: MouseEvent) {
 		playMap(getWorldMapSpotRepresentative(spot))
 }
 
+function worldMapPointerTargetIsExcluded(event: MouseEvent | PointerEvent) {
+	const target = event.target
+	return target instanceof Element && target.closest('[data-world-map-link], [data-world-map-popover]') != null
+}
+
+function spotPointerDistanceSquared(spot: WorldMapGraphSpot, x: number, y: number, width: number, height: number) {
+	const deltaX = (spot.point.normalizedX - x) * width
+	const deltaY = (spot.point.normalizedY - y) * height
+	return deltaX * deltaX + deltaY * deltaY
+}
+
+function spotHitRectArea(spot: WorldMapGraphSpot) {
+	return (spot.hitRect?.width ?? 0) * (spot.hitRect?.height ?? 0)
+}
+
+function compareSpotsByStableGeometry(a: WorldMapGraphSpot, b: WorldMapGraphSpot, x: number, y: number, width: number, height: number) {
+	const distanceDifference = spotPointerDistanceSquared(a, x, y, width, height) - spotPointerDistanceSquared(b, x, y, width, height)
+	if (distanceDifference !== 0)
+		return distanceDifference
+	const areaDifference = spotHitRectArea(a) - spotHitRectArea(b)
+	if (areaDifference !== 0)
+		return areaDifference
+	return a.id.localeCompare(b.id)
+}
+
+function worldMapSpotAtPointer(event: MouseEvent | PointerEvent) {
+	const mapElement = worldMapRef.value
+	const reference = referenceImage.value
+	if (mapElement == null || reference == null || currentNode.value == null || worldMapPointerTargetIsExcluded(event))
+		return null
+	const bounds = mapElement.getBoundingClientRect()
+	if (bounds.width === 0 || bounds.height === 0 || event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)
+		return null
+	const x = (event.clientX - bounds.left) / bounds.width
+	const y = (event.clientY - bounds.top) / bounds.height
+	const publishedCandidates = currentNode.value.spots.filter((spot) => {
+		const hitRect = spot.hitRect
+		return hitRect != null
+			&& x >= hitRect.left
+			&& x <= hitRect.left + hitRect.width
+			&& y >= hitRect.top
+			&& y <= hitRect.top + hitRect.height
+	})
+	if (publishedCandidates.length > 0)
+		return [...publishedCandidates].sort((a, b) => compareSpotsByStableGeometry(a, b, x, y, bounds.width, bounds.height))[0] ?? null
+
+	const nearestCandidates = currentNode.value.spots
+		.filter(spot => spot.hitRect == null)
+		.filter(spot => Math.max(
+			Math.abs((spot.point.normalizedX - x) * bounds.width),
+			Math.abs((spot.point.normalizedY - y) * bounds.height),
+		) <= 22)
+	return [...nearestCandidates].sort((a, b) => compareSpotsByStableGeometry(a, b, x, y, bounds.width, bounds.height))[0] ?? null
+}
+
+function onWorldMapPointerMove(event: PointerEvent) {
+	if (canHover.value === false || event.pointerType === 'touch')
+		return
+	const spot = worldMapSpotAtPointer(event)
+	if (spot != null)
+		activateSpot(spot)
+	else if (activeTarget.value?.kind === 'spot')
+		scheduleActiveTargetClose()
+}
+
+function onWorldMapPointerDown(event: PointerEvent) {
+	if (canHover.value || event.pointerType === 'mouse')
+		return
+	const spot = worldMapSpotAtPointer(event)
+	if (spot != null)
+		activateSpot(spot)
+}
+
+function onWorldMapClick(event: MouseEvent) {
+	if (worldMapPointerTargetIsExcluded(event) || (event.target instanceof Element && event.target.closest('[data-world-map-hotspot]') != null))
+		return
+	const spot = worldMapSpotAtPointer(event)
+	if (spot == null)
+		return
+	event.preventDefault()
+	onSpotClick(spot, event)
+}
+
 function baseLayerStyle(asset: WorldMapAsset) {
 	const reference = referenceImage.value
 	if (reference == null)
@@ -434,6 +518,12 @@ function spotHitStyle(spot: WorldMapGraphSpot) {
 }
 
 function activeNormalizedPoint(): { x: number, y: number } | null {
+	if (activeSpot.value?.hitRect != null) {
+		return {
+			x: activeSpot.value.hitRect.left + activeSpot.value.hitRect.width / 2,
+			y: activeSpot.value.hitRect.top + activeSpot.value.hitRect.height / 2,
+		}
+	}
 	if (activeSpot.value != null)
 		return { x: activeSpot.value.point.normalizedX, y: activeSpot.value.point.normalizedY }
 	const link = activeLink.value
@@ -635,12 +725,15 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 					minHeight: '0',
 					flex: '1 1 auto',
 				})"
+				:style="{ containerType: 'size' }"
 			>
 				<div
-					:style="{ aspectRatio: `${referenceImage.width} / ${referenceImage.height}`, maxWidth: `${referenceImage.width}px` }"
+					ref="worldMapRef"
+					:style="{ aspectRatio: `${referenceImage.width} / ${referenceImage.height}`, width: `min(${referenceImage.width}px, 100%, calc(100cqh * ${referenceImage.width} / ${referenceImage.height}))`, maxHeight: `${referenceImage.height}px` }"
 					:class="pika({
 						position: 'relative',
-						width: '100%',
+						width: 'auto',
+						flex: '0 1 auto',
 						margin: '0 auto',
 						overflow: 'visible',
 						borderRadius: '8px',
@@ -649,6 +742,10 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						touchAction: 'manipulation',
 					})"
 					@keydown.esc="activeTarget = null"
+					@pointermove.capture="onWorldMapPointerMove"
+					@pointerdown.capture="onWorldMapPointerDown"
+					@click.capture="onWorldMapClick"
+					@pointerleave="scheduleActiveTargetClose"
 				>
 					<img
 						v-for="(asset, index) in currentNode.baseImages"
@@ -700,6 +797,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 							fill="transparent"
 							pointer-events="fill"
 							data-world-map-hotspot
+							data-world-map-link
 							@mouseenter="activateLink(link)"
 							@mouseleave="scheduleActiveTargetClose"
 							@click="onLinkClick(link, $event)"
@@ -712,6 +810,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						type="button"
 						:aria-label="linkAccessibleName(link)"
 						data-world-map-hotspot
+						data-world-map-link
 						:data-active="activeTarget?.kind === 'link' && activeTarget.id === link.id"
 						:style="[linkHitStyle(link), link.hitPath != null ? { pointerEvents: 'none' } : {}]"
 						:class="pika({
@@ -745,7 +844,8 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 						data-world-map-hotspot
 						:data-active="activeTarget?.kind === 'spot' && activeTarget.id === spot.id"
 						:data-playable="getWorldMapSpotRepresentative(spot)?.selection.trackId != null"
-						:style="spotHitStyle(spot)"
+						:data-world-map-spot="spot.id"
+						:style="[spotHitStyle(spot), { pointerEvents: 'none' }]"
 						:class="pika({
 							'position': 'absolute',
 							'left': 'var(--hotspot-left)',
@@ -803,17 +903,17 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 							padding: '12px 14px',
 							border: '1px solid var(--color-border-subtle)',
 							borderRadius: 'var(--radius-control)',
-							backgroundColor: 'color-mix(in srgb, var(--color-surface-solid) 96%, transparent)',
+							backgroundColor: 'var(--color-surface-card)',
 							color: 'var(--color-text-primary)',
 							boxShadow: '0 12px 32px rgba(0, 0, 0, 0.22)',
-							backdropFilter: 'blur(12px)',
+							backdropFilter: 'blur(16px)',
 						})"
 						@mouseenter="cancelActiveTargetClose"
 						@mouseleave="scheduleActiveTargetClose"
 						@focusin="cancelActiveTargetClose"
 						@focusout="scheduleActiveTargetClose"
 					>
-						<div :class="pika({ fontSize: '15px', fontWeight: '600', marginBottom: '8px' })">
+						<div :class="pika({ fontSize: '15px', fontWeight: '600' })">
 							{{ activeTitle }}
 						</div>
 						<div
