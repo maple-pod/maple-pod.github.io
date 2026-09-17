@@ -16,7 +16,19 @@ function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playli
 }
 
 function getResourceBgmSrc(bgm: Resources['bgms'][number]): string {
-	return `/resources/bgm/${bgm.audio?.file ?? `${bgm.filename}.mp3`}`
+	const audio = bgm.audio
+	if (
+		audio == null
+		|| typeof audio.file !== 'string'
+		|| audio.file.length === 0
+		|| typeof audio.codec !== 'string'
+		|| audio.codec.length === 0
+		|| typeof audio.container !== 'string'
+		|| audio.container.length === 0
+	) {
+		throw new Error(`Music resource "${bgm.filename}" has no valid declared audio representation.`)
+	}
+	return `/resources/bgm/${audio.file}`
 }
 
 function groupByMark(data: MusicData[]): Map<string, MusicData[]> {
@@ -391,11 +403,7 @@ export const useMusicStore = defineStore('music', () => {
 	}
 
 	function normalizePlaylistMusicIds(list: string[]): string[] {
-		return list
-			// Process old data
-			.map(src => src.split('/')
-				.pop()!.replace('.mp3', ''))
-			.filter(id => getMusicData(id) != null)
+		return list.filter(id => getMusicData(id) != null)
 	}
 
 	function normalizeSavedPlaylists(): void {

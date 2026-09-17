@@ -15,7 +15,7 @@ export interface SavedUserData {
 export interface ResourceBgm {
 	description: string
 	filename: string
-	audio?: {
+	audio: {
 		file: string
 		codec: string
 		container: string
