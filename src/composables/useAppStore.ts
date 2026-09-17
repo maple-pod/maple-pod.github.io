@@ -79,7 +79,7 @@ export const useAppStore = defineStore('app', () => {
 		},
 	)
 
-	const scrollPlaylistToIndex = shallowRef<((index: number) => void) | null>(null)
+	const revealMusicInPlaylist = shallowRef<((musicId: string) => void | Promise<void>) | null>(null)
 	const isHandlingShowMusicInPlaylist = ref(false)
 	const router = useRouter()
 	async function handleShowMusicInPlaylist(musicId?: string, playlistId?: PlaylistId) {
@@ -102,8 +102,7 @@ export const useAppStore = defineStore('app', () => {
 		}
 
 		isHandlingShowMusicInPlaylist.value = true
-		const scrollToIndex = thePlaylist.list.indexOf(theMusicId)
-		if (scrollToIndex === -1) {
+		if (thePlaylist.list.includes(theMusicId) === false) {
 			isHandlingShowMusicInPlaylist.value = false
 			return
 		}
@@ -112,7 +111,7 @@ export const useAppStore = defineStore('app', () => {
 			name: Routes.Playlist,
 			params: { playlistId: thePlaylistId },
 		})
-		scrollPlaylistToIndex.value?.(scrollToIndex)
+		await revealMusicInPlaylist.value?.(theMusicId)
 
 		isHandlingShowMusicInPlaylist.value = false
 	}
@@ -132,7 +131,7 @@ export const useAppStore = defineStore('app', () => {
 		savedBgImage,
 		currentBgImage,
 		currentAutoBgPreview,
-		scrollPlaylistToIndex,
+		revealMusicInPlaylist,
 		handleShowMusicInPlaylist,
 		ready,
 		isReady,

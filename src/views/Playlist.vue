@@ -92,8 +92,25 @@ watch(() => props.playlistId, () => {
 	selectedMarks.value.clear()
 })
 const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
+const appStore = useAppStore()
+async function revealMusicInPlaylist(musicId: string) {
+	const target = allTracks.value.find(track => track.id === musicId)
+	if (target == null)
+		return
 
-useAppStore().scrollPlaylistToIndex = (index: number) => uiVerticalListRef.value?.scrollToIndex(index)
+	if (hasActiveFilters.value && selectedMarks.value.has(target.data.mark) === false)
+		selectedMarks.value = new Set()
+
+	await nextTick()
+	const index = filteredTracks.value.findIndex(track => track.id === musicId)
+	if (index >= 0)
+		uiVerticalListRef.value?.scrollToIndex(index)
+}
+appStore.revealMusicInPlaylist = revealMusicInPlaylist
+tryOnScopeDispose(() => {
+	if (appStore.revealMusicInPlaylist === revealMusicInPlaylist)
+		appStore.revealMusicInPlaylist = null
+})
 
 function handlePlayPlaylist() {
 	if (playlist.value.list.length === 0)
