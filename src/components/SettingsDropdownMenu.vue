@@ -111,7 +111,7 @@ async function clearWorkboxExpirationMetadata(cacheNames: string[]) {
 				const deleteRequest = indexedDB.deleteDatabase('workbox-expiration')
 				deleteRequest.onsuccess = () => resolve()
 				deleteRequest.onerror = () => reject(deleteRequest.error)
-				deleteRequest.onblocked = () => resolve()
+				deleteRequest.onblocked = () => reject(new Error('Workbox expiration metadata deletion is blocked by another connection.'))
 				return
 			}
 
@@ -145,16 +145,38 @@ async function clearWorkboxExpirationMetadata(cacheNames: string[]) {
 	})
 }
 
+function getAppServiceWorkerScope(): string {
+	return new URL(import.meta.env.BASE_URL, window.location.origin).href
+}
+
+async function unregisterAppServiceWorker(scope: string): Promise<void> {
+	if (!('serviceWorker' in navigator))
+		return
+	const registrations = await navigator.serviceWorker.getRegistrations()
+	await Promise.all(registrations
+		.filter(registration => registration.scope === scope)
+		.map(async (registration) => {
+			if (!await registration.unregister())
+				throw new Error(`Failed to unregister Maple Pod service worker for ${scope}.`)
+		}))
+}
+
 async function clearFactoryResetCaches() {
 	if (typeof caches === 'undefined')
 		return
 
+	const appScope = getAppServiceWorkerScope()
+	await unregisterAppServiceWorker(appScope)
+
+	const ownedPrecacheName = `workbox-precache-v2-${appScope}`
 	const cacheNames = await caches.keys()
-	const runtimeCacheNames = cacheNames.filter(cacheName => FACTORY_RESET_RUNTIME_CACHE_NAMES.has(cacheName))
+	const ownedCacheNames = cacheNames.filter(cacheName =>
+		FACTORY_RESET_RUNTIME_CACHE_NAMES.has(cacheName) || cacheName === ownedPrecacheName)
+	const runtimeCacheNames = ownedCacheNames.filter(cacheName => FACTORY_RESET_RUNTIME_CACHE_NAMES.has(cacheName))
 	await clearWorkboxExpirationMetadata(runtimeCacheNames)
-	await Promise.all(cacheNames
-		.filter(cacheName => FACTORY_RESET_RUNTIME_CACHE_NAMES.has(cacheName) || cacheName.startsWith('workbox-precache-'))
-		.map(cacheName => caches.delete(cacheName)))
+	const deletionResults = await Promise.all(ownedCacheNames.map(cacheName => caches.delete(cacheName)))
+	if (deletionResults.some(deleted => !deleted))
+		throw new Error('One or more Maple Pod caches could not be deleted.')
 }
 
 async function performFactoryReset() {

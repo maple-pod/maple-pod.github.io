@@ -240,6 +240,14 @@ export const useMusicStore = defineStore('music', () => {
 		},
 		isMusicDisabled: id => isMusicDisabled(id ?? ''),
 	})
+	function applySavedPlaybackPreferences() {
+		const { volume, muted, random, repeated } = useSavedUserData()
+		audioPlayerLogic.volume.value = volume.value
+		audioPlayerLogic.toggleMuted(muted.value)
+		audioPlayerLogic.toggleRandom(random.value)
+		audioPlayerLogic.toggleRepeated(repeated.value)
+	}
+
 	const currentPlaylist = ref<Playlist | null>(null)
 	const currentMusic = computed(() => getMusicData(audioPlayerLogic.currentAudioId.value || '') ?? null)
 
@@ -421,6 +429,7 @@ export const useMusicStore = defineStore('music', () => {
 		savedPlaylists: computed(() => savedPlaylists.value.filter(playlist => isCustomPlaylist(playlist.id))
 			.map(playlist => playlist)),
 		normalizeSavedPlaylists,
+		applySavedPlaybackPreferences,
 		getPlaylist,
 		findMusicInPlaylistIndex,
 		isCustomPlaylist,
@@ -465,12 +474,30 @@ function useOfflineMusics() {
 
 	const storage = localforage.createInstance({ name: 'maple-pod' })
 	let storageGeneration = 0
+	let clearingStorage = false
+	const storageMutationRequests = new Set<Promise<unknown>>()
+	async function runStorageMutation<T>(mutation: () => Promise<T>): Promise<T> {
+		const request = mutation()
+		storageMutationRequests.add(request)
+		try {
+			return await request
+		}
+		finally {
+			storageMutationRequests.delete(request)
+		}
+	}
+
 	const offlineReadyMusics = ref(new Set<string>())
 	async function loadOfflineMusics(getExpectedSource: (musicId: string) => string | undefined) {
+		if (clearingStorage)
+			return
+		const generation = storageGeneration
 		const keys = await storage.keys()
 		const ready = new Set<string>()
 		await Promise.all(keys.map(async (musicId) => {
 			const value = await storage.getItem<unknown>(musicId)
+			if (clearingStorage || generation !== storageGeneration)
+				return
 			const expectedSource = getExpectedSource(musicId)
 			if (expectedSource != null && isOfflineMusicEntry(value) && value.source === expectedSource) {
 				ready.add(musicId)
@@ -479,17 +506,25 @@ function useOfflineMusics() {
 
 			const legacySource = `/resources/bgm/${musicId}.mp3`
 			if (value instanceof Blob && expectedSource === legacySource) {
-				await storage.setItem<OfflineMusicEntry>(musicId, { source: legacySource, blob: value })
-				ready.add(musicId)
+				await runStorageMutation(async () => {
+					if (clearingStorage || generation !== storageGeneration)
+						return
+					await storage.setItem<OfflineMusicEntry>(musicId, { source: legacySource, blob: value })
+				})
+				if (!clearingStorage && generation === storageGeneration)
+					ready.add(musicId)
 				return
 			}
 
-			// Entries for an old representation must not silently override the
-			// source-selected audio after its resource path changes.
-			if (value != null)
-				await storage.removeItem(musicId)
+			if (value != null) {
+				await runStorageMutation(async () => {
+					if (!clearingStorage && generation === storageGeneration)
+						await storage.removeItem(musicId)
+				})
+			}
 		}))
-		offlineReadyMusics.value = ready
+		if (!clearingStorage && generation === storageGeneration)
+			offlineReadyMusics.value = ready
 	}
 	const cancelFns = new Map<string, () => void>()
 	const offlineMusicDownloadingProgress = ref<Map<string, 'pending' | number>>(new Map())
@@ -522,14 +557,14 @@ function useOfflineMusics() {
 	}
 	const offlineMusicsQueue = new PromiseQueue(5)
 	async function saveMusicForOffline(musicId: string, src: string) {
-		if (offlineMusicDownloadingProgress.value.has(musicId) || offlineReadyMusics.value.has(musicId)) {
+		if (clearingStorage || offlineMusicDownloadingProgress.value.has(musicId) || offlineReadyMusics.value.has(musicId)) {
 			return
 		}
 
 		offlineMusicDownloadingProgress.value.set(musicId, 'pending')
 		const abortController = new AbortController()
 		const generation = storageGeneration
-		const task = offlineMusicsQueue.add(() => _saveMusicForOffline(musicId, src, abortController.signal, generation))
+		const task = offlineMusicsQueue.add(() => runStorageMutation(() => _saveMusicForOffline(musicId, src, abortController.signal, generation)))
 		cancelFns.set(musicId, () => {
 			task.cancel()
 			abortController.abort()
@@ -538,18 +573,31 @@ function useOfflineMusics() {
 		})
 	}
 	async function getSavedOfflineMusicBlob(musicId: string, expectedSource: string): Promise<Blob | null> {
+		if (clearingStorage)
+			return null
+		const generation = storageGeneration
 		const value = await storage.getItem<unknown>(musicId)
+		if (clearingStorage || generation !== storageGeneration)
+			return null
 		if (isOfflineMusicEntry(value) && value.source === expectedSource)
 			return value.blob
 
 		const legacySource = `/resources/bgm/${musicId}.mp3`
 		if (value instanceof Blob && expectedSource === legacySource) {
-			await storage.setItem<OfflineMusicEntry>(musicId, { source: legacySource, blob: value })
-			return value
+			await runStorageMutation(async () => {
+				if (clearingStorage || generation !== storageGeneration)
+					return
+				await storage.setItem<OfflineMusicEntry>(musicId, { source: legacySource, blob: value })
+			})
+			return !clearingStorage && generation === storageGeneration ? value : null
 		}
 
-		if (value != null)
-			await storage.removeItem(musicId)
+		if (value != null) {
+			await runStorageMutation(async () => {
+				if (!clearingStorage && generation === storageGeneration)
+					await storage.removeItem(musicId)
+			})
+		}
 		offlineReadyMusics.value.delete(musicId)
 		return null
 	}
@@ -557,17 +605,24 @@ function useOfflineMusics() {
 		cancelFns.get(musicId)?.()
 	}
 	async function removeSavedOfflineMusic(musicId: string) {
-		await storage.removeItem(musicId)
+		await runStorageMutation(() => storage.removeItem(musicId))
 		offlineReadyMusics.value.delete(musicId)
 	}
 	async function clearSavedOfflineMusics() {
+		clearingStorage = true
 		storageGeneration++
-		for (const cancel of [...cancelFns.values()])
-			cancel()
-		cancelFns.clear()
-		await storage.clear()
-		offlineReadyMusics.value = new Set()
-		offlineMusicDownloadingProgress.value = new Map()
+		try {
+			for (const cancel of [...cancelFns.values()])
+				cancel()
+			cancelFns.clear()
+			await Promise.allSettled([...storageMutationRequests])
+			await storage.clear()
+			offlineReadyMusics.value = new Set()
+			offlineMusicDownloadingProgress.value = new Map()
+		}
+		finally {
+			clearingStorage = false
+		}
 	}
 
 	return {

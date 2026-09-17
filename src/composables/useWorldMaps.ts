@@ -24,6 +24,7 @@ import {
 	parseWorldMapSnapshotCatalog,
 } from '@/schemas'
 import { readLastSelectedSnapshotId, writeLastSelectedSnapshotId } from '@/utils/worldMapSelectionStorage'
+import { runWorldMapStorageOperation } from '@/utils/worldMapStorageReset'
 
 export interface WorldMapNameRow {
 	region: 'GMS' | 'KMS' | 'JMS' | 'CMS' | 'TWMS' | 'SEA'
@@ -95,8 +96,10 @@ async function cacheResponse(cacheName: string, url: string, response: Response)
 	if (typeof caches === 'undefined')
 		return
 	try {
-		const cache = await caches.open(cacheName)
-		await cache.put(url, response.clone())
+		await runWorldMapStorageOperation(async () => {
+			const cache = await caches.open(cacheName)
+			await cache.put(url, response.clone())
+		})
 	}
 	catch {
 		// Cache Storage is an enhancement for normal progressive loading. The
@@ -108,9 +111,11 @@ async function getCachedResponse(cacheName: string, url: string): Promise<Respon
 	if (typeof caches === 'undefined')
 		return null
 	try {
-		const cache = await caches.open(cacheName)
-		const response = await cache.match(url)
-		return response?.ok ? response : null
+		return await runWorldMapStorageOperation(async () => {
+			const cache = await caches.open(cacheName)
+			const response = await cache.match(url)
+			return response?.ok ? response : null
+		}) ?? null
 	}
 	catch {
 		return null
@@ -121,26 +126,28 @@ async function getCachedWorldMapManifest(snapshotId: WorldMapSnapshotId, url: st
 	if (typeof caches === 'undefined')
 		return null
 	try {
-		const cache = await caches.open(WORLD_MAP_RUNTIME_CACHE_NAMES.manifest)
-		const manifestPath = getWorldMapManifestUrl(snapshotId)
-		const versionedRequests = (await cache.keys()).filter((request) => {
-			const cachedUrl = new URL(request.url)
-			return cachedUrl.pathname === manifestPath && cachedUrl.searchParams.has(WORLD_MAP_CACHE_KEY_QUERY)
-		})
-		if (versionedRequests.length === 1) {
-			const request = versionedRequests[0]!
-			const response = await cache.match(request)
-			if (response?.ok !== true)
+		return await runWorldMapStorageOperation(async () => {
+			const cache = await caches.open(WORLD_MAP_RUNTIME_CACHE_NAMES.manifest)
+			const manifestPath = getWorldMapManifestUrl(snapshotId)
+			const versionedRequests = (await cache.keys()).filter((request) => {
+				const cachedUrl = new URL(request.url)
+				return cachedUrl.pathname === manifestPath && cachedUrl.searchParams.has(WORLD_MAP_CACHE_KEY_QUERY)
+			})
+			if (versionedRequests.length === 1) {
+				const request = versionedRequests[0]!
+				const response = await cache.match(request)
+				if (response?.ok !== true)
+					return null
+				const value = parseWorldMapManifest(await response.json())
+				const cachedUrl = new URL(request.url)
+				return cachedUrl.searchParams.get(WORLD_MAP_CACHE_KEY_QUERY) === value.cacheKey ? value : null
+			}
+			if (versionedRequests.length > 1)
 				return null
-			const value = parseWorldMapManifest(await response.json())
-			const cachedUrl = new URL(request.url)
-			return cachedUrl.searchParams.get(WORLD_MAP_CACHE_KEY_QUERY) === value.cacheKey ? value : null
-		}
-		if (versionedRequests.length > 1)
-			return null
 
-		const response = await cache.match(url)
-		return response?.ok === true ? parseWorldMapManifest(await response.json()) : null
+			const response = await cache.match(url)
+			return response?.ok === true ? parseWorldMapManifest(await response.json()) : null
+		}) ?? null
 	}
 	catch {
 		return null
@@ -377,7 +384,6 @@ export function useWorldMaps() {
 		const previousSnapshotId = selectedSnapshotId.value
 		const currentGeneration = ++generation
 		selectedSnapshotId.value = snapshotId
-		writeLastSelectedSnapshotId(snapshotId)
 		manifest.value = null
 		loadedNodes.value = new Map()
 		nodeStates.value = new Map()
@@ -388,8 +394,10 @@ export function useWorldMaps() {
 
 		try {
 			const nextManifest = await fetchWorldMapManifest(snapshotId, force)
-			if (generation === currentGeneration && selectedSnapshotId.value === snapshotId)
+			if (generation === currentGeneration && selectedSnapshotId.value === snapshotId) {
 				manifest.value = nextManifest
+				writeLastSelectedSnapshotId(snapshotId)
+			}
 			return nextManifest
 		}
 		catch (cause) {
