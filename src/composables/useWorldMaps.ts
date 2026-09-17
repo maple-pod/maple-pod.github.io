@@ -330,6 +330,7 @@ async function fetchWorldMapNode(
 export function useWorldMaps() {
 	const catalog = shallowRef<WorldMapSnapshotCatalog | null>(catalogCache)
 	const selectedSnapshotId = ref<WorldMapSnapshotId | null>(null)
+	const pendingSnapshotId = ref<WorldMapSnapshotId | null>(null)
 	const manifest = shallowRef<WorldMapManifest | null>(null)
 	const loadedNodes = shallowRef(new Map<string, WorldMapNode>())
 	const nodeStates = shallowRef(new Map<string, WorldMapNodeLoadState>())
@@ -394,36 +395,42 @@ export function useWorldMaps() {
 		if (entry == null)
 			throw new Error(`World map snapshot "${snapshotId}" is not selectable.`)
 
-		if (!force && selectedSnapshotId.value === snapshotId && manifest.value != null)
+		if (!force && selectedSnapshotId.value === snapshotId && manifest.value != null) {
+			generation++
+			pendingSnapshotId.value = null
+			error.value = null
+			loading.value = false
 			return manifest.value
+		}
 
-		const previousSnapshotId = selectedSnapshotId.value
 		const currentGeneration = ++generation
-		selectedSnapshotId.value = snapshotId
-		persistLastSelectedSnapshotId(snapshotId)
-		manifest.value = null
-		loadedNodes.value = new Map()
-		nodeStates.value = new Map()
+		pendingSnapshotId.value = snapshotId
 		loading.value = true
 		error.value = null
-		if (previousSnapshotId != null && previousSnapshotId !== snapshotId)
-			clearWorldMapSnapshotMemoryCache(previousSnapshotId)
 
 		try {
 			const nextManifest = await fetchWorldMapManifest(snapshotId, force)
-			if (generation === currentGeneration && selectedSnapshotId.value === snapshotId)
-				manifest.value = nextManifest
+			if (generation !== currentGeneration)
+				return nextManifest
+
+			const previousSnapshotId = selectedSnapshotId.value
+			selectedSnapshotId.value = snapshotId
+			persistLastSelectedSnapshotId(snapshotId)
+			manifest.value = nextManifest
+			loadedNodes.value = new Map()
+			nodeStates.value = new Map()
+			pendingSnapshotId.value = null
+			if (previousSnapshotId != null && previousSnapshotId !== snapshotId)
+				clearWorldMapSnapshotMemoryCache(previousSnapshotId)
 			return nextManifest
 		}
 		catch (cause) {
-			if (generation === currentGeneration && selectedSnapshotId.value === snapshotId) {
+			if (generation === currentGeneration)
 				error.value = cause
-				manifest.value = null
-			}
 			throw cause
 		}
 		finally {
-			if (generation === currentGeneration && selectedSnapshotId.value === snapshotId)
+			if (generation === currentGeneration)
 				loading.value = false
 		}
 	}
@@ -466,6 +473,7 @@ export function useWorldMaps() {
 		catalog,
 		selectableSnapshots,
 		selectedSnapshotId,
+		pendingSnapshotId,
 		selectedSnapshot,
 		manifest,
 		loadedNodes,
@@ -477,8 +485,9 @@ export function useWorldMaps() {
 		selectSnapshot,
 		loadNode,
 		reload: async () => {
-			if (selectedSnapshotId.value != null)
-				return selectSnapshot(selectedSnapshotId.value, true)
+			const snapshotId = pendingSnapshotId.value ?? selectedSnapshotId.value
+			if (snapshotId != null)
+				return selectSnapshot(snapshotId, true)
 			return loadCatalog(true)
 		},
 		retryNode: (worldMapId: string) => loadNode(worldMapId, true),
