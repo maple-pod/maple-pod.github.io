@@ -81,6 +81,8 @@ export function useAudioPlayer({
 	let navigationCandidate: AudioQueueCandidate | null = null
 	let navigationDirection: 'next' | 'previous' = 'next'
 	let navigationOnCommit: (() => void) | undefined
+	let navigationWrapNext = true
+	let navigationRestartCurrentOnFailure = false
 	let activeEndedWhilePending = false
 	let disposed = false
 
@@ -131,6 +133,8 @@ export function useAudioPlayer({
 		navigationCandidate = null
 		navigationDirection = 'next'
 		navigationOnCommit = undefined
+		navigationWrapNext = true
+		navigationRestartCurrentOnFailure = false
 		activeEndedWhilePending = false
 		for (const release of [...pendingSourceReleases])
 			release()
@@ -142,6 +146,8 @@ export function useAudioPlayer({
 		const pendingCandidate = navigationCandidate
 		const pendingDirection = navigationDirection
 		const pendingOnCommit = navigationOnCommit
+		const pendingWrapNext = navigationWrapNext
+		const pendingRestartCurrentOnFailure = navigationRestartCurrentOnFailure
 		cancelPendingTransition()
 		audioQueueLogic.toggleRandom(bool)
 		if (pendingCandidate == null)
@@ -150,7 +156,11 @@ export function useAudioPlayer({
 		requestQueueCandidate(
 			audioQueueLogic.initQueue(pendingCandidate.state.originalAudioIdList, pendingCandidate.audioId),
 			pendingOnCommit,
-			pendingDirection,
+			{
+				direction: pendingDirection,
+				wrapNext: pendingWrapNext,
+				restartCurrentOnFailure: pendingRestartCurrentOnFailure,
+			},
 		)
 	}
 
@@ -216,13 +226,14 @@ export function useAudioPlayer({
 		candidate: AudioQueueCandidate,
 		attempted: Set<string>,
 		direction: 'next' | 'previous',
+		wrapNext: boolean,
 	) {
 		let next: AudioQueueCandidate | null = candidate
 		const maxAttempts = candidate.state.originalAudioIdList.length
 		for (let index = 0; index < maxAttempts; index++) {
 			next = direction === 'previous'
 				? audioQueueLogic.goPrevious(next)
-				: audioQueueLogic.goNext(next, repeated.value === 'repeat')
+				: audioQueueLogic.goNext(next, wrapNext)
 			if (next == null)
 				return null
 			if (!attempted.has(next.audioId) && next.audioId !== currentAudioId.value)
@@ -235,6 +246,8 @@ export function useAudioPlayer({
 		requestId: number,
 		initialCandidate: AudioQueueCandidate,
 		direction: 'next' | 'previous',
+		wrapNext: boolean,
+		restartCurrentOnFailure: boolean,
 		onCommit?: () => void,
 	) {
 		const attempted = new Set<string>()
@@ -243,9 +256,21 @@ export function useAudioPlayer({
 		while (candidate != null) {
 			if (requestId !== sourceRequestId || disposed)
 				return
-			if (candidate.audioId === currentAudioId.value) {
+			if (candidate.audioId === currentAudioId.value && !activePlayback.value.backend.hasError.value) {
+				const backend = activePlayback.value.backend
+				const previousTime = backend.currentTime.value
+				backend.currentTime.value = 0
+				const playbackStarted = await backend.play()
+				if (requestId !== sourceRequestId || disposed)
+					return
+				if (!playbackStarted || backend.hasError.value || backend.hasEnded.value) {
+					backend.currentTime.value = previousTime
+					navigationCandidate = null
+					activeEndedWhilePending = false
+					return
+				}
+
 				audioQueueLogic.commit(candidate)
-				activePlayback.value.backend.currentTime.value = 0
 				navigationCandidate = null
 				activeEndedWhilePending = false
 				onCommit?.()
@@ -263,7 +288,7 @@ export function useAudioPlayer({
 			catch {
 				if (requestId !== sourceRequestId || disposed)
 					return
-				candidate = nextUnattemptedCandidate(candidate, attempted, direction)
+				candidate = nextUnattemptedCandidate(candidate, attempted, direction, wrapNext)
 				continue
 			}
 
@@ -275,7 +300,7 @@ export function useAudioPlayer({
 				return
 			}
 			if (source == null) {
-				candidate = nextUnattemptedCandidate(candidate, attempted, direction)
+				candidate = nextUnattemptedCandidate(candidate, attempted, direction, wrapNext)
 				continue
 			}
 
@@ -298,7 +323,7 @@ export function useAudioPlayer({
 			if (candidateBackend.hasError.value || candidateBackend.hasEnded.value) {
 				sourceRelease.release()
 				disposeCandidatePlayback(candidatePlayback)
-				candidate = nextUnattemptedCandidate(candidate, attempted, direction)
+				candidate = nextUnattemptedCandidate(candidate, attempted, direction, wrapNext)
 				continue
 			}
 			if (playbackStarted === false) {
@@ -307,8 +332,13 @@ export function useAudioPlayer({
 				const shouldHandleEnded = activeEndedWhilePending
 				navigationCandidate = null
 				activeEndedWhilePending = false
-				if (shouldHandleEnded)
+				if (restartCurrentOnFailure && currentAudioId.value != null) {
+					activePlayback.value.backend.currentTime.value = 0
+					void activePlayback.value.backend.play()
+				}
+				else if (shouldHandleEnded) {
 					handleEnded()
+				}
 				return
 			}
 
@@ -324,7 +354,7 @@ export function useAudioPlayer({
 				await previousPlayback.backend.fadeOutputTo(1, TRACK_SWITCH_FADE_MS)
 				sourceRelease.release()
 				disposeCandidatePlayback(candidatePlayback)
-				candidate = nextUnattemptedCandidate(candidate, attempted, direction)
+				candidate = nextUnattemptedCandidate(candidate, attempted, direction, wrapNext)
 				continue
 			}
 
@@ -358,23 +388,45 @@ export function useAudioPlayer({
 			const shouldHandleEnded = activeEndedWhilePending
 			navigationCandidate = null
 			activeEndedWhilePending = false
-			if (shouldHandleEnded)
+			if (restartCurrentOnFailure && currentAudioId.value != null) {
+				activePlayback.value.backend.currentTime.value = 0
+				void activePlayback.value.backend.play()
+			}
+			else if (shouldHandleEnded) {
 				handleEnded()
+			}
 		}
 	}
 
 	function requestQueueCandidate(
 		candidate: AudioQueueCandidate | null,
 		onCommit?: () => void,
-		direction: 'next' | 'previous' = 'next',
+		options: {
+			direction?: 'next' | 'previous'
+			wrapNext?: boolean
+			restartCurrentOnFailure?: boolean
+		} = {},
 	) {
 		cancelPendingTransition()
 		const requestId = sourceRequestId
+		const direction = options.direction ?? 'next'
+		const wrapNext = options.wrapNext ?? true
+		const restartCurrentOnFailure = options.restartCurrentOnFailure ?? false
 		navigationCandidate = candidate
 		navigationDirection = direction
 		navigationOnCommit = onCommit
-		if (candidate != null)
-			void transitionToCandidate(requestId, candidate, direction, onCommit)
+		navigationWrapNext = wrapNext
+		navigationRestartCurrentOnFailure = restartCurrentOnFailure
+		if (candidate != null) {
+			void transitionToCandidate(
+				requestId,
+				candidate,
+				direction,
+				wrapNext,
+				restartCurrentOnFailure,
+				onCommit,
+			)
+		}
 		return candidate?.audioId ?? null
 	}
 
@@ -413,7 +465,7 @@ export function useAudioPlayer({
 			return
 		}
 
-		requestQueueCandidate(audioQueueLogic.goPrevious(), undefined, 'previous')
+		requestQueueCandidate(audioQueueLogic.goPrevious(), undefined, { direction: 'previous' })
 	}
 
 	function handleEnded() {
@@ -422,13 +474,17 @@ export function useAudioPlayer({
 			return
 		}
 		if (repeated.value === 'off' && !audioQueueLogic.hasReachedEnd.value) {
-			goNext()
+			requestQueueCandidate(audioQueueLogic.goNext(), undefined, { wrapNext: false })
 			return
 		}
 
 		if (repeated.value === 'repeat') {
 			const previousAudioId = currentAudioId.value
-			const nextAudioId = goNext()
+			const nextAudioId = requestQueueCandidate(
+				audioQueueLogic.goNext(),
+				undefined,
+				{ restartCurrentOnFailure: true },
+			)
 			if (nextAudioId == null || nextAudioId === previousAudioId) {
 				activePlayback.value.backend.currentTime.value = 0
 				void activePlayback.value.backend.play()

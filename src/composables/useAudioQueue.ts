@@ -73,7 +73,9 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 		const list = random.value
 			? shuffle(audioIdList)
 			: [...audioIdList]
-		const index = audioId == null ? findFirstPlayableIndex(list) : list.indexOf(audioId)
+		const index = audioId == null || options.isMusicDisabled(audioId)
+			? findFirstPlayableIndex(list)
+			: list.indexOf(audioId)
 
 		if (index < 0)
 			return null
