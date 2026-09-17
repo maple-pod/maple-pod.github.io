@@ -529,58 +529,109 @@ function useOfflineMusics() {
 			offlineReadyMusics.value = ready
 	}
 	const cancelFns = new Map<string, () => void>()
+	const activeAttempts = new Map<string, number>()
+	const activeAttemptRequests = new Map<string, Promise<void>>()
+	let nextAttemptId = 0
 	const offlineMusicDownloadingProgress = ref<Map<string, 'pending' | number>>(new Map())
 	const offlineMusicDownloadErrors = ref(new Set<string>())
-	async function _saveMusicForOffline(musicId: string, src: string, signal: AbortSignal, generation: number) {
-		let blob: Blob
+
+	function isCurrentAttempt(musicId: string, attemptId: number, generation: number, signal: AbortSignal) {
+		return generation === storageGeneration
+			&& !signal.aborted
+			&& activeAttempts.get(musicId) === attemptId
+	}
+
+	async function removeAttemptStorage(musicId: string): Promise<void> {
 		try {
-			blob = await fetchBlob(
+			await storage.removeItem(musicId)
+		}
+		catch (error) {
+			console.error('Failed to clean up offline music storage:', error)
+		}
+	}
+
+	async function _saveMusicForOffline(
+		musicId: string,
+		src: string,
+		signal: AbortSignal,
+		generation: number,
+		attemptId: number,
+	) {
+		try {
+			const blob = await fetchBlob(
 				src,
 				(loaded, total) => {
+					if (!isCurrentAttempt(musicId, attemptId, generation, signal))
+						return
 					const percent = Math.round((loaded / total) * 100)
 					offlineMusicDownloadingProgress.value.set(musicId, percent)
 				},
 				signal,
 			)
+			if (!isCurrentAttempt(musicId, attemptId, generation, signal))
+				return
+
+			await storage.setItem<OfflineMusicEntry>(musicId, { source: src, blob })
+			if (!isCurrentAttempt(musicId, attemptId, generation, signal)) {
+				await removeAttemptStorage(musicId)
+				return
+			}
+
+			offlineMusicDownloadErrors.value.delete(musicId)
+			offlineReadyMusics.value.add(musicId)
 		}
 		catch {
-			offlineMusicDownloadingProgress.value.delete(musicId)
-			if (generation !== storageGeneration || signal.aborted)
-				return
-			await storage.removeItem(musicId)
-			offlineReadyMusics.value.delete(musicId)
-			offlineMusicDownloadErrors.value.add(musicId)
-			return
+			const cancelled = signal.aborted || generation !== storageGeneration
+			await removeAttemptStorage(musicId)
+			if (!cancelled && activeAttempts.get(musicId) === attemptId) {
+				offlineReadyMusics.value.delete(musicId)
+				offlineMusicDownloadErrors.value.add(musicId)
+			}
 		}
-		offlineMusicDownloadingProgress.value.delete(musicId)
-
-		if (generation !== storageGeneration)
-			return
-
-		await storage.setItem<OfflineMusicEntry>(musicId, { source: src, blob })
-		if (generation !== storageGeneration) {
-			await storage.removeItem(musicId)
-			return
+		finally {
+			if (activeAttempts.get(musicId) === attemptId) {
+				activeAttempts.delete(musicId)
+				cancelFns.delete(musicId)
+				offlineMusicDownloadingProgress.value.delete(musicId)
+			}
 		}
-		offlineMusicDownloadErrors.value.delete(musicId)
-		offlineReadyMusics.value.add(musicId)
 	}
+
 	const offlineMusicsQueue = new PromiseQueue(5)
 	async function saveMusicForOffline(musicId: string, src: string) {
-		if (clearingStorage || offlineMusicDownloadingProgress.value.has(musicId) || offlineReadyMusics.value.has(musicId))
+		if (clearingStorage || activeAttempts.has(musicId) || offlineReadyMusics.value.has(musicId))
 			return
 
 		offlineMusicDownloadErrors.value.delete(musicId)
 		offlineMusicDownloadingProgress.value.set(musicId, 'pending')
 		const abortController = new AbortController()
 		const generation = storageGeneration
-		const task = offlineMusicsQueue.add(() => runStorageMutation(() => _saveMusicForOffline(musicId, src, abortController.signal, generation)))
+		const attemptId = ++nextAttemptId
+		activeAttempts.set(musicId, attemptId)
+		let started = false
+		const task = offlineMusicsQueue.add(async () => {
+			started = true
+			const request = runStorageMutation(() => _saveMusicForOffline(musicId, src, abortController.signal, generation, attemptId))
+			activeAttemptRequests.set(musicId, request)
+			try {
+				await request
+			}
+			finally {
+				if (activeAttemptRequests.get(musicId) === request)
+					activeAttemptRequests.delete(musicId)
+			}
+		})
 		cancelFns.set(musicId, () => {
+			if (activeAttempts.get(musicId) !== attemptId)
+				return
 			task.cancel()
 			abortController.abort()
 			offlineMusicDownloadingProgress.value.delete(musicId)
 			offlineMusicDownloadErrors.value.delete(musicId)
-			cancelFns.delete(musicId)
+			if (!started) {
+				activeAttempts.delete(musicId)
+				cancelFns.delete(musicId)
+			}
 		})
 	}
 	async function getSavedOfflineMusicBlob(musicId: string, expectedSource: string): Promise<Blob | null> {
@@ -616,6 +667,9 @@ function useOfflineMusics() {
 		cancelFns.get(musicId)?.()
 	}
 	async function removeSavedOfflineMusic(musicId: string) {
+		cancelOfflineMusicDownload(musicId)
+		await activeAttemptRequests.get(musicId)
+			?.catch(() => null)
 		await runStorageMutation(() => storage.removeItem(musicId))
 		offlineReadyMusics.value.delete(musicId)
 		offlineMusicDownloadErrors.value.delete(musicId)
@@ -626,8 +680,10 @@ function useOfflineMusics() {
 		try {
 			for (const cancel of [...cancelFns.values()])
 				cancel()
-			cancelFns.clear()
+			await Promise.allSettled([...activeAttemptRequests.values()])
 			await Promise.allSettled([...storageMutationRequests])
+			cancelFns.clear()
+			activeAttempts.clear()
 			await storage.clear()
 			offlineReadyMusics.value = new Set()
 			offlineMusicDownloadingProgress.value = new Map()
