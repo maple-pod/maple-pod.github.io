@@ -148,10 +148,10 @@ export function useHtmlAudioPlaybackBackend(options: AudioPlaybackBackendOptions
 	}
 
 	async function waitUntilReady() {
-		if (canPlay.value || hasError.value || disposed.value)
+		if (canPlay.value || hasError.value || hasEnded.value || disposed.value)
 			return
 
-		await until(computed(() => canPlay.value || hasError.value || disposed.value))
+		await until(computed(() => canPlay.value || hasError.value || hasEnded.value || disposed.value))
 			.toBe(true)
 	}
 

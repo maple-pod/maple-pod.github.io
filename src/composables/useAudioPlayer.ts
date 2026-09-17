@@ -10,6 +10,7 @@ type AudioPlayerSource = string | {
 interface ManagedPlaybackBackend {
 	backend: AudioPlaybackBackend
 	dispose: () => void
+	disposed: Promise<void>
 }
 
 export function useAudioPlayer({
@@ -58,6 +59,9 @@ export function useAudioPlayer({
 
 	function createManagedPlaybackBackend(): ManagedPlaybackBackend {
 		const scope = effectScope()
+		let isDisposed = false
+		let resolveDisposed!: () => void
+		const disposed = new Promise<void>(resolve => resolveDisposed = resolve)
 		const backend = scope.run(() => createPlaybackBackend({
 			autoplay: false,
 			volume: volume.value,
@@ -69,7 +73,14 @@ export function useAudioPlayer({
 		backend.setNormalizationEnabled(normalizationEnabled.value)
 		return {
 			backend,
-			dispose: () => scope.stop(),
+			disposed,
+			dispose: () => {
+				if (isDisposed)
+					return
+				isDisposed = true
+				scope.stop()
+				resolveDisposed()
+			},
 		}
 	}
 
@@ -313,7 +324,6 @@ export function useAudioPlayer({
 			candidateBackend.load(source.src)
 			const playbackStartedPromise = candidateBackend.play()
 			await candidateBackend.waitUntilReady()
-			const playbackStarted = await playbackStartedPromise
 
 			if (requestId !== sourceRequestId || disposed) {
 				sourceRelease.release()
@@ -326,20 +336,21 @@ export function useAudioPlayer({
 				candidate = nextUnattemptedCandidate(candidate, attempted, direction, wrapNext)
 				continue
 			}
+
+			const playbackStarted = await Promise.race([
+				playbackStartedPromise,
+				candidatePlayback.disposed.then(() => null),
+			])
+			if (playbackStarted == null || requestId !== sourceRequestId || disposed) {
+				sourceRelease.release()
+				disposeCandidatePlayback(candidatePlayback)
+				return
+			}
 			if (playbackStarted === false) {
 				sourceRelease.release()
 				disposeCandidatePlayback(candidatePlayback)
-				const shouldHandleEnded = activeEndedWhilePending
-				navigationCandidate = null
-				activeEndedWhilePending = false
-				if (restartCurrentOnFailure && currentAudioId.value != null) {
-					activePlayback.value.backend.currentTime.value = 0
-					void activePlayback.value.backend.play()
-				}
-				else if (shouldHandleEnded) {
-					handleEnded()
-				}
-				return
+				candidate = nextUnattemptedCandidate(candidate, attempted, direction, wrapNext)
+				continue
 			}
 
 			const previousPlayback = activePlayback.value
@@ -450,7 +461,14 @@ export function useAudioPlayer({
 
 	function goNext() {
 		const base = navigationCandidate
-		return requestQueueCandidate(audioQueueLogic.goNext(base))
+		const onCommit = navigationOnCommit
+		const wrapNext = navigationWrapNext
+		const restartCurrentOnFailure = navigationRestartCurrentOnFailure
+		return requestQueueCandidate(
+			audioQueueLogic.goNext(base),
+			onCommit,
+			{ wrapNext, restartCurrentOnFailure },
+		)
 	}
 
 	function goPrevious() {
@@ -465,7 +483,15 @@ export function useAudioPlayer({
 			return
 		}
 
-		requestQueueCandidate(audioQueueLogic.goPrevious(), undefined, { direction: 'previous' })
+		const base = navigationCandidate
+		const onCommit = navigationOnCommit
+		const wrapNext = navigationWrapNext
+		const restartCurrentOnFailure = navigationRestartCurrentOnFailure
+		requestQueueCandidate(
+			audioQueueLogic.goPrevious(base),
+			onCommit,
+			{ direction: 'previous', wrapNext, restartCurrentOnFailure },
+		)
 	}
 
 	function handleEnded() {

@@ -94,9 +94,20 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 			const state = committedState()
 			if (state == null)
 				return
-			const next = initQueue(state.originalAudioIdList, state.cursor)
-			if (next != null)
-				commit(next)
+
+			const list = random.value
+				? shuffle(state.originalAudioIdList)
+				: [...state.originalAudioIdList]
+			const index = list.indexOf(state.cursor)
+			if (index < 0)
+				return
+
+			commit(candidate({
+				originalAudioIdList: [...state.originalAudioIdList],
+				playedQueue: list.slice(0, index),
+				cursor: state.cursor,
+				toPlayQueue: list.slice(index + 1),
+			}))
 		},
 		{ flush: 'sync' },
 	)
