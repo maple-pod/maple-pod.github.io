@@ -1,9 +1,15 @@
-import type { AudioPlaybackBackendFactory } from './useAudioPlaybackBackend'
+import type { AudioPlaybackBackend, AudioPlaybackBackendFactory } from './useAudioPlaybackBackend'
+import type { AudioQueueCandidate } from './useAudioQueue'
 
 type AudioPlayerSource = string | {
 	src: string
 	normalizationGainDb?: number
 	release?: () => void
+}
+
+interface ManagedPlaybackBackend {
+	backend: AudioPlaybackBackend
+	dispose: () => void
 }
 
 export function useAudioPlayer({
@@ -37,19 +43,11 @@ export function useAudioPlayer({
 	if (!['off', 'repeat', 'repeat-1'].includes(savedRepeated.value))
 		savedRepeated.value = 'off'
 
-	const playbackBackend = createPlaybackBackend({
-		autoplay: false,
-		volume: savedVolume.value,
-		muted: savedMuted.value,
-	})
-	const currentTime = playbackBackend.currentTime
-	const duration = playbackBackend.duration
-	const volume = playbackBackend.volume
-	const muted = playbackBackend.muted
-
-	function toggleMuted(bool?: boolean) {
-		muted.value = bool ?? !muted.value
-	}
+	const volume = ref(savedVolume.value)
+	const muted = ref(savedMuted.value)
+	const normalizationEnabled = ref(false)
+	const normalizationGainDb = ref(0)
+	const currentAudioId = ref<string | null>(null)
 
 	const {
 		state: repeated,
@@ -57,137 +55,302 @@ export function useAudioPlayer({
 	} = useCycleList(['off', 'repeat', 'repeat-1'] as const, {
 		initialValue: savedRepeated.value,
 	})
+
+	function createManagedPlaybackBackend(): ManagedPlaybackBackend {
+		const scope = effectScope()
+		const backend = scope.run(() => createPlaybackBackend({
+			autoplay: false,
+			volume: volume.value,
+			muted: muted.value,
+			loop: repeated.value === 'repeat-1',
+		}))
+		if (backend == null)
+			throw new Error('Audio playback backend could not be created.')
+		backend.setNormalizationEnabled(normalizationEnabled.value)
+		return {
+			backend,
+			dispose: () => scope.stop(),
+		}
+	}
+
+	const activePlayback = shallowRef(createManagedPlaybackBackend())
+	const pendingPlaybacks = new Set<ManagedPlaybackBackend>()
+	const pendingSourceReleases = new Set<() => void>()
+	let releaseCurrentSource: (() => void) | null = null
+	let sourceRequestId = 0
+	let navigationCandidate: AudioQueueCandidate | null = null
+	let disposed = false
+
+	const currentTime = computed({
+		get: () => activePlayback.value.backend.currentTime.value,
+		set: (value) => {
+			cancelPendingTransition()
+			activePlayback.value.backend.currentTime.value = value
+		},
+	})
+	const duration = computed(() => activePlayback.value.backend.duration.value)
+	const isPaused = computed(() => activePlayback.value.backend.isPaused.value)
+	const isWaiting = computed(() => activePlayback.value.backend.isWaiting.value)
+	const canPlay = computed(() => activePlayback.value.backend.canPlay.value)
+	const normalizationSupported = computed(() => activePlayback.value.backend.normalizationSupported.value)
+
+	function setNormalizationEnabled(enabled: boolean) {
+		normalizationEnabled.value = enabled
+		activePlayback.value.backend.setNormalizationEnabled(enabled)
+		for (const playback of pendingPlaybacks)
+			playback.backend.setNormalizationEnabled(enabled)
+	}
+
+	function setNormalizationGainDb(gainDb: number) {
+		normalizationGainDb.value = gainDb
+		activePlayback.value.backend.setNormalizationGainDb(gainDb)
+	}
+
+	function toggleMuted(bool?: boolean) {
+		muted.value = bool ?? !muted.value
+	}
+
 	function toggleRepeated(mode?: 'off' | 'repeat' | 'repeat-1') {
 		if (mode == null)
 			nextRepeated()
 		else
 			repeated.value = mode
 	}
-	watch(
-		() => repeated.value === 'repeat-1',
-		loop => playbackBackend.loop.value = loop,
-		{ immediate: true, flush: 'sync' },
-	)
-
-	const TRACK_SWITCH_FADE_MS = 30
-	let sourceRequestId = 0
-	let candidateBackendRequestId: number | null = null
-	let releaseCurrentSource: (() => void) | null = null
 
 	const audioQueueLogic = useAudioQueue({
 		isMusicDisabled,
 		random: savedRandom.value,
 	})
 	const random = audioQueueLogic.random
-	const toggleRandom = audioQueueLogic.toggleRandom
-	const currentAudioId = ref<string | null>(null)
-	const playbackRequest = ref<{ id: number, audioId: string } | null>(null)
+
+	function cancelPendingTransition() {
+		sourceRequestId++
+		navigationCandidate = null
+	}
+
+	function toggleRandom(bool?: boolean) {
+		cancelPendingTransition()
+		audioQueueLogic.toggleRandom(bool)
+	}
 
 	watch(
-		playbackRequest,
-		async (request) => {
-			if (request == null)
-				return
+		[volume, muted],
+		([nextVolume, nextMuted]) => {
+			activePlayback.value.backend.volume.value = nextVolume
+			activePlayback.value.backend.muted.value = nextMuted
+			for (const playback of pendingPlaybacks) {
+				playback.backend.volume.value = nextVolume
+				playback.backend.muted.value = nextMuted
+			}
+		},
+		{ flush: 'sync' },
+	)
+	watch(
+		() => repeated.value === 'repeat-1',
+		(loop) => {
+			activePlayback.value.backend.loop.value = loop
+			for (const playback of pendingPlaybacks)
+				playback.backend.loop.value = loop
+		},
+		{ immediate: true, flush: 'sync' },
+	)
 
-			const { id: requestId, audioId } = request
-			const resolvedSource = await getAudioSrc(audioId)
+	const TRACK_SWITCH_FADE_MS = 30
+	const seekedListeners = new Set<() => void>()
+	let stopActiveEndedListener = () => {}
+	let stopActiveSeekedListener = () => {}
+
+	function bindActivePlaybackListeners() {
+		stopActiveEndedListener()
+		stopActiveSeekedListener()
+		stopActiveEndedListener = activePlayback.value.backend.onEnded(handleEnded)
+		stopActiveSeekedListener = activePlayback.value.backend.onSeeked(() => {
+			for (const listener of seekedListeners)
+				listener()
+		})
+	}
+
+	function trackSourceRelease(source: Exclude<AudioPlayerSource, string>) {
+		let released = false
+		const release = () => {
+			if (released)
+				return
+			released = true
+			pendingSourceReleases.delete(release)
+			source.release?.()
+		}
+		pendingSourceReleases.add(release)
+		return {
+			release,
+			promote: () => pendingSourceReleases.delete(release),
+		}
+	}
+
+	function disposeCandidatePlayback(playback: ManagedPlaybackBackend) {
+		pendingPlaybacks.delete(playback)
+		playback.dispose()
+	}
+
+	function nextUnattemptedCandidate(candidate: AudioQueueCandidate, attempted: Set<string>) {
+		let next = audioQueueLogic.goNext(candidate)
+		while (next != null && (attempted.has(next.audioId) || next.audioId === currentAudioId.value))
+			next = audioQueueLogic.goNext(next)
+		return next
+	}
+
+	async function transitionToCandidate(
+		requestId: number,
+		initialCandidate: AudioQueueCandidate,
+		onCommit?: () => void,
+	) {
+		const attempted = new Set<string>()
+		let candidate: AudioQueueCandidate | null = initialCandidate
+
+		while (candidate != null) {
+			if (requestId !== sourceRequestId || disposed)
+				return
+			if (attempted.has(candidate.audioId) || candidate.audioId === currentAudioId.value)
+				break
+			attempted.add(candidate.audioId)
+			navigationCandidate = candidate
+
+			let resolvedSource: AudioPlayerSource | null
+			try {
+				resolvedSource = await getAudioSrc(candidate.audioId)
+			}
+			catch {
+				if (requestId !== sourceRequestId || disposed)
+					return
+				candidate = nextUnattemptedCandidate(candidate, attempted)
+				continue
+			}
+
 			const source = typeof resolvedSource === 'string'
 				? { src: resolvedSource }
 				: resolvedSource
-
-			if (requestId !== sourceRequestId) {
+			if (requestId !== sourceRequestId || disposed) {
 				source?.release?.()
 				return
 			}
-
-			await playbackBackend.fadeOutputTo(0, TRACK_SWITCH_FADE_MS)
-			if (requestId !== sourceRequestId) {
-				source?.release?.()
-				return
-			}
-
 			if (source == null) {
-				await playbackBackend.fadeOutputTo(1, 0)
+				candidate = nextUnattemptedCandidate(candidate, attempted)
+				continue
+			}
+
+			const sourceRelease = trackSourceRelease(source)
+			const candidatePlayback = createManagedPlaybackBackend()
+			pendingPlaybacks.add(candidatePlayback)
+			const candidateBackend = candidatePlayback.backend
+			candidateBackend.setNormalizationGainDb(source.normalizationGainDb ?? 0)
+			await candidateBackend.fadeOutputTo(0, 0)
+			candidateBackend.load(source.src)
+			const playbackStartedPromise = candidateBackend.play()
+			await candidateBackend.waitUntilReady()
+			const playbackStarted = await playbackStartedPromise
+
+			if (requestId !== sourceRequestId || disposed) {
+				sourceRelease.release()
+				disposeCandidatePlayback(candidatePlayback)
+				return
+			}
+			if (candidateBackend.hasError.value) {
+				sourceRelease.release()
+				disposeCandidatePlayback(candidatePlayback)
+				candidate = nextUnattemptedCandidate(candidate, attempted)
+				continue
+			}
+			if (playbackStarted === false) {
+				sourceRelease.release()
+				disposeCandidatePlayback(candidatePlayback)
+				navigationCandidate = null
 				return
 			}
 
-			const candidateSource = source
-			const releasePreviousSource = releaseCurrentSource
-			async function discardLoadedCandidate() {
-				candidateSource.release?.()
-				if (candidateBackendRequestId !== requestId)
-					return
-
-				candidateBackendRequestId = null
-				releasePreviousSource?.()
-				releaseCurrentSource = null
-				currentAudioId.value = null
-				playbackBackend.unload()
-				await playbackBackend.fadeOutputTo(1, 0)
-			}
-
-			playbackBackend.setNormalizationGainDb(candidateSource.normalizationGainDb ?? 0)
-			candidateBackendRequestId = requestId
-			playbackBackend.load(candidateSource.src)
-			const playbackStarted = playbackBackend.play()
-			await playbackBackend.waitUntilReady()
-
-			if (requestId !== sourceRequestId) {
-				await discardLoadedCandidate()
-				return
-			}
-			if (playbackBackend.hasError.value || await playbackStarted === false) {
-				await discardLoadedCandidate()
-				return
-			}
-			if (requestId !== sourceRequestId) {
-				await discardLoadedCandidate()
+			const previousPlayback = activePlayback.value
+			await previousPlayback.backend.fadeOutputTo(0, TRACK_SWITCH_FADE_MS)
+			if (requestId !== sourceRequestId || disposed) {
+				await previousPlayback.backend.fadeOutputTo(1, TRACK_SWITCH_FADE_MS)
+				sourceRelease.release()
+				disposeCandidatePlayback(candidatePlayback)
 				return
 			}
 
-			releasePreviousSource?.()
-			candidateBackendRequestId = null
-			releaseCurrentSource = candidateSource.release ?? null
-			currentTime.value = 0
-			currentAudioId.value = audioId
-			await playbackBackend.fadeOutputTo(1, TRACK_SWITCH_FADE_MS)
-		},
-	)
+			candidateBackend.volume.value = volume.value
+			candidateBackend.muted.value = muted.value
+			candidateBackend.loop.value = repeated.value === 'repeat-1'
+			candidateBackend.setNormalizationEnabled(normalizationEnabled.value)
+			candidateBackend.setNormalizationGainDb(source.normalizationGainDb ?? 0)
+			candidateBackend.currentTime.value = 0
 
-	function requestQueueCandidate(audioId: string | null) {
-		if (audioId != null) {
-			const id = ++sourceRequestId
-			playbackRequest.value = { id, audioId }
+			pendingPlaybacks.delete(candidatePlayback)
+			stopActiveEndedListener()
+			stopActiveSeekedListener()
+			activePlayback.value = candidatePlayback
+			bindActivePlaybackListeners()
+			audioQueueLogic.commit(candidate)
+			currentAudioId.value = candidate.audioId
+			normalizationGainDb.value = source.normalizationGainDb ?? 0
+			navigationCandidate = null
+			sourceRelease.promote()
+			releaseCurrentSource?.()
+			releaseCurrentSource = sourceRelease.release
+			onCommit?.()
+			previousPlayback.dispose()
+			await candidateBackend.fadeOutputTo(1, TRACK_SWITCH_FADE_MS)
+			return
 		}
-		return audioId
+
+		if (requestId === sourceRequestId)
+			navigationCandidate = null
 	}
 
-	function play(...args: Parameters<typeof audioQueueLogic.initQueue>) {
-		playbackBackend.preparePlayback()
-		return requestQueueCandidate(audioQueueLogic.initQueue(...args))
+	function requestQueueCandidate(candidate: AudioQueueCandidate | null, onCommit?: () => void) {
+		const requestId = ++sourceRequestId
+		navigationCandidate = candidate
+		if (candidate != null)
+			void transitionToCandidate(requestId, candidate, onCommit)
+		return candidate?.audioId ?? null
 	}
+
+	function play(
+		audioIdList: string[],
+		audioId?: string | null,
+		onCommit?: () => void,
+	) {
+		activePlayback.value.backend.preparePlayback()
+		return requestQueueCandidate(audioQueueLogic.initQueue(audioIdList, audioId), onCommit)
+	}
+
 	function togglePlay() {
-		if (playbackBackend.isPaused.value)
-			void playbackBackend.play()
+		cancelPendingTransition()
+		const backend = activePlayback.value.backend
+		if (backend.isPaused.value)
+			void backend.play()
 		else
-			playbackBackend.pause()
+			backend.pause()
 	}
+
 	function goNext() {
-		return requestQueueCandidate(audioQueueLogic.goNext())
+		const base = navigationCandidate
+		return requestQueueCandidate(audioQueueLogic.goNext(base))
 	}
+
 	function goPrevious() {
+		cancelPendingTransition()
 		if (currentAudioId.value == null)
 			return
 
 		if (currentTime.value > 3) {
-			currentTime.value = 0
+			activePlayback.value.backend.currentTime.value = 0
 			return
 		}
 
 		requestQueueCandidate(audioQueueLogic.goPrevious())
 	}
 
-	const stopEndedListener = playbackBackend.onEnded(() => {
+	function handleEnded() {
+		if (navigationCandidate != null)
+			return
 		if (repeated.value === 'off' && !audioQueueLogic.hasReachedEnd.value) {
 			goNext()
 			return
@@ -197,21 +360,22 @@ export function useAudioPlayer({
 			const previousAudioId = currentAudioId.value
 			const nextAudioId = goNext()
 			if (nextAudioId == null || nextAudioId === previousAudioId) {
-				currentTime.value = 0
-				void playbackBackend.play()
+				activePlayback.value.backend.currentTime.value = 0
+				void activePlayback.value.backend.play()
 			}
 		}
-	})
+	}
 
-	tryOnScopeDispose(() => {
-		stopEndedListener()
-		releaseCurrentSource?.()
-		releaseCurrentSource = null
-	})
+	bindActivePlaybackListeners()
 
 	const toPlayQueue = audioQueueLogic.toPlayQueue
 	function playToPlayQueueItem(audioId: string) {
 		return requestQueueCandidate(audioQueueLogic.playToPlayQueueItem(audioId))
+	}
+
+	function onSeeked(listener: () => void) {
+		seekedListeners.add(listener)
+		return () => seekedListeners.delete(listener)
 	}
 
 	watch(
@@ -224,16 +388,31 @@ export function useAudioPlayer({
 		},
 	)
 
+	tryOnScopeDispose(() => {
+		disposed = true
+		sourceRequestId++
+		stopActiveEndedListener()
+		stopActiveSeekedListener()
+		seekedListeners.clear()
+		for (const release of [...pendingSourceReleases])
+			release()
+		for (const playback of [...pendingPlaybacks])
+			disposeCandidatePlayback(playback)
+		releaseCurrentSource?.()
+		releaseCurrentSource = null
+		activePlayback.value.dispose()
+	})
+
 	return {
 		currentTime,
 		duration,
 		volume,
 
-		normalizationSupported: playbackBackend.normalizationSupported,
-		normalizationEnabled: playbackBackend.normalizationEnabled,
-		normalizationGainDb: playbackBackend.normalizationGainDb,
-		setNormalizationEnabled: playbackBackend.setNormalizationEnabled,
-		setNormalizationGainDb: playbackBackend.setNormalizationGainDb,
+		normalizationSupported,
+		normalizationEnabled,
+		normalizationGainDb,
+		setNormalizationEnabled,
+		setNormalizationGainDb,
 
 		muted,
 		toggleMuted,
@@ -244,9 +423,9 @@ export function useAudioPlayer({
 		random,
 		toggleRandom,
 
-		isPaused: playbackBackend.isPaused,
-		isWaiting: playbackBackend.isWaiting,
-		canPlay: playbackBackend.canPlay,
+		isPaused,
+		isWaiting,
+		canPlay,
 
 		currentAudioId,
 		togglePlay,
@@ -257,6 +436,6 @@ export function useAudioPlayer({
 
 		toPlayQueue,
 		playToPlayQueueItem,
-		onSeeked: playbackBackend.onSeeked,
+		onSeeked,
 	}
 }

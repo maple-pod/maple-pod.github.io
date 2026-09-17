@@ -3,6 +3,18 @@ export interface UseAudioQueueOptions {
 	random?: boolean
 }
 
+interface AudioQueueState {
+	originalAudioIdList: string[]
+	playedQueue: string[]
+	cursor: string
+	toPlayQueue: string[]
+}
+
+export interface AudioQueueCandidate {
+	audioId: string
+	state: AudioQueueState
+}
+
 function shuffle<T>(array: T[]): T[] {
 	return [...array].sort(() => Math.random() - 0.5)
 }
@@ -27,10 +39,32 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 		return -1
 	}
 
-	function initQueue(audioIdList: string[], audioId?: string | null | undefined) {
+	function committedState(): AudioQueueState | null {
+		if (cursor.value == null)
+			return null
+		return {
+			originalAudioIdList: [...originalAudioIdList.value],
+			playedQueue: [...playedQueue.value],
+			cursor: cursor.value,
+			toPlayQueue: [...toPlayQueue.value],
+		}
+	}
+
+	function candidate(state: AudioQueueState): AudioQueueCandidate {
+		return { audioId: state.cursor, state }
+	}
+
+	function commit(next: AudioQueueCandidate) {
+		originalAudioIdList.value = [...next.state.originalAudioIdList]
+		playedQueue.value = [...next.state.playedQueue]
+		cursor.value = next.state.cursor
+		toPlayQueue.value = [...next.state.toPlayQueue]
+	}
+
+	function initQueue(audioIdList: string[], audioId?: string | null | undefined): AudioQueueCandidate | null {
 		if (
 			(audioIdList.length === 0)
-			|| (audioId != null && (audioIdList.includes(audioId!) === false))
+			|| (audioId != null && audioIdList.includes(audioId) === false)
 			|| (audioId == null && audioIdList.every(options.isMusicDisabled))
 		) {
 			return null
@@ -44,95 +78,106 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 		if (index < 0)
 			return null
 
-		originalAudioIdList.value = audioIdList
-		playedQueue.value = list.slice(0, index)
-		toPlayQueue.value = list.slice(index + 1)
-		cursor.value = list[index]!
-		return cursor.value
+		return candidate({
+			originalAudioIdList: [...audioIdList],
+			playedQueue: list.slice(0, index),
+			cursor: list[index]!,
+			toPlayQueue: list.slice(index + 1),
+		})
 	}
 
 	watch(
 		random,
-		() => initQueue(originalAudioIdList.value, cursor.value),
+		() => {
+			const state = committedState()
+			if (state == null)
+				return
+			const next = initQueue(state.originalAudioIdList, state.cursor)
+			if (next != null)
+				commit(next)
+		},
 		{ flush: 'sync' },
 	)
 
 	const hasReachedEnd = computed(() => toPlayQueue.value.length === 0)
 
-	function goNext() {
-		if (cursor.value == null)
+	function stateFor(base?: AudioQueueCandidate | null): AudioQueueState | null {
+		return base?.state ?? committedState()
+	}
+
+	function goNext(base?: AudioQueueCandidate | null): AudioQueueCandidate | null {
+		const state = stateFor(base)
+		if (state == null)
 			return null
 
-		const nextIndex = findFirstPlayableIndex(toPlayQueue.value)
+		const nextIndex = findFirstPlayableIndex(state.toPlayQueue)
 		if (nextIndex >= 0) {
-			const nextAudioId = toPlayQueue.value[nextIndex]!
-			const newPlayedQueue = [...playedQueue.value, cursor.value, ...toPlayQueue.value.slice(0, nextIndex)]
-			const newToPlayQueue = toPlayQueue.value.slice(nextIndex + 1)
-			playedQueue.value = newPlayedQueue
-			toPlayQueue.value = newToPlayQueue
-			cursor.value = nextAudioId
-			return nextAudioId
-		}
-		else {
-			const nextIndex = findFirstPlayableIndex(playedQueue.value)
-			if (nextIndex >= 0) {
-				const nextAudioId = playedQueue.value[nextIndex]!
-				const newPlayedQueue = playedQueue.value.slice(0, nextIndex)
-				const newToPlayQueue = [...playedQueue.value.slice(nextIndex + 1), cursor.value, ...toPlayQueue.value]
-				playedQueue.value = newPlayedQueue
-				toPlayQueue.value = newToPlayQueue
-				cursor.value = nextAudioId
-				return nextAudioId
-			}
+			const nextAudioId = state.toPlayQueue[nextIndex]!
+			return candidate({
+				originalAudioIdList: [...state.originalAudioIdList],
+				playedQueue: [...state.playedQueue, state.cursor, ...state.toPlayQueue.slice(0, nextIndex)],
+				cursor: nextAudioId,
+				toPlayQueue: state.toPlayQueue.slice(nextIndex + 1),
+			})
 		}
 
-		return null
-	}
-
-	function goPrevious() {
-		if (cursor.value == null)
+		const wrappedIndex = findFirstPlayableIndex(state.playedQueue)
+		if (wrappedIndex < 0)
 			return null
 
-		const previousIndex = findLastPlayableIndex(playedQueue.value)
+		const nextAudioId = state.playedQueue[wrappedIndex]!
+		return candidate({
+			originalAudioIdList: [...state.originalAudioIdList],
+			playedQueue: state.playedQueue.slice(0, wrappedIndex),
+			cursor: nextAudioId,
+			toPlayQueue: [...state.playedQueue.slice(wrappedIndex + 1), state.cursor, ...state.toPlayQueue],
+		})
+	}
+
+	function goPrevious(base?: AudioQueueCandidate | null): AudioQueueCandidate | null {
+		const state = stateFor(base)
+		if (state == null)
+			return null
+
+		const previousIndex = findLastPlayableIndex(state.playedQueue)
 		if (previousIndex >= 0) {
-			const previousAudioId = playedQueue.value[previousIndex]!
-			const newPlayedQueue = playedQueue.value.slice(0, previousIndex)
-			const newToPlayQueue = [...playedQueue.value.slice(previousIndex + 1), cursor.value, ...toPlayQueue.value]
-			playedQueue.value = newPlayedQueue
-			toPlayQueue.value = newToPlayQueue
-			cursor.value = previousAudioId
-			return previousAudioId
-		}
-		else {
-			const previousIndex = findLastPlayableIndex(toPlayQueue.value)
-			if (previousIndex >= 0) {
-				const previousAudioId = toPlayQueue.value[previousIndex]!
-				const newPlayedQueue = [...playedQueue.value, cursor.value, ...toPlayQueue.value.slice(0, previousIndex)]
-				const newToPlayQueue = toPlayQueue.value.slice(previousIndex + 1)
-				toPlayQueue.value = newToPlayQueue
-				playedQueue.value = newPlayedQueue
-				cursor.value = previousAudioId
-				return previousAudioId
-			}
+			const previousAudioId = state.playedQueue[previousIndex]!
+			return candidate({
+				originalAudioIdList: [...state.originalAudioIdList],
+				playedQueue: state.playedQueue.slice(0, previousIndex),
+				cursor: previousAudioId,
+				toPlayQueue: [...state.playedQueue.slice(previousIndex + 1), state.cursor, ...state.toPlayQueue],
+			})
 		}
 
-		return null
-	}
-
-	function playToPlayQueueItem(audioId: string) {
-		if (options.isMusicDisabled(audioId) || cursor.value == null)
+		const wrappedIndex = findLastPlayableIndex(state.toPlayQueue)
+		if (wrappedIndex < 0)
 			return null
 
-		const index = toPlayQueue.value.indexOf(audioId)
-		if (index >= 0 && index < toPlayQueue.value.length) {
-			playedQueue.value.push(cursor.value, ...toPlayQueue.value.slice(0, index))
-			const list = toPlayQueue.value.slice(index)
-			cursor.value = list.shift()!
-			toPlayQueue.value = list
-			return cursor.value
-		}
+		const previousAudioId = state.toPlayQueue[wrappedIndex]!
+		return candidate({
+			originalAudioIdList: [...state.originalAudioIdList],
+			playedQueue: [...state.playedQueue, state.cursor, ...state.toPlayQueue.slice(0, wrappedIndex)],
+			cursor: previousAudioId,
+			toPlayQueue: state.toPlayQueue.slice(wrappedIndex + 1),
+		})
+	}
 
-		return null
+	function playToPlayQueueItem(audioId: string): AudioQueueCandidate | null {
+		const state = committedState()
+		if (state == null || options.isMusicDisabled(audioId))
+			return null
+
+		const index = state.toPlayQueue.indexOf(audioId)
+		if (index < 0)
+			return null
+
+		return candidate({
+			originalAudioIdList: [...state.originalAudioIdList],
+			playedQueue: [...state.playedQueue, state.cursor, ...state.toPlayQueue.slice(0, index)],
+			cursor: audioId,
+			toPlayQueue: state.toPlayQueue.slice(index + 1),
+		})
 	}
 
 	return {
@@ -141,6 +186,7 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 		toPlayQueue,
 		hasReachedEnd,
 		initQueue,
+		commit,
 		goNext,
 		goPrevious,
 		playToPlayQueueItem,

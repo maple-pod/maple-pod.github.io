@@ -277,8 +277,9 @@ export const useMusicStore = defineStore('music', () => {
 		if (musicId != null && (playlist.list.includes(musicId) === false))
 			return
 
-		currentPlaylist.value = playlist
-		audioPlayerLogic.play(playlist.list, musicId)
+		audioPlayerLogic.play(playlist.list, musicId, () => {
+			currentPlaylist.value = playlist
+		})
 	}
 
 	const MAX_HISTORY_LENGTH = 50
