@@ -91,7 +91,7 @@ const selectableSnapshotOptions = computed(() => selectableSnapshots.value.map(s
 	label: snapshot.label,
 })))
 const selectedSnapshotModel = computed({
-	get: () => selectedSnapshotId.value ?? pendingSnapshotId.value ?? '',
+	get: () => pendingSnapshotId.value ?? selectedSnapshotId.value ?? '',
 	set: (snapshotId: string) => selectSnapshotFromUi(snapshotId),
 })
 const selectedRootModel = computed({
@@ -210,8 +210,13 @@ function routeMatches(rootWorldMapId: string, worldMapId: string) {
 }
 
 function selectSnapshotFromUi(snapshotId: string) {
-	if (snapshotId === selectedSnapshotId.value)
+	if (
+		snapshotId === selectedSnapshotId.value
+		&& pendingSnapshotId.value == null
+		&& snapshotRouteValue(route.query.snapshot) === snapshotId
+	) {
 		return
+	}
 	const candidate = selectableSnapshots.value.find(entry => entry.id === snapshotId)
 	if (candidate == null)
 		return

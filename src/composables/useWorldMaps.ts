@@ -337,6 +337,7 @@ export function useWorldMaps() {
 	const loading = ref(false)
 	const error = shallowRef<unknown>(null)
 	let generation = 0
+	let selectionRequestGeneration = 0
 
 	const selectableSnapshots = computed(() => (catalog.value?.entries ?? []).filter(entry => entry.selectable))
 	const selectedSnapshot = computed<WorldMapSnapshotCatalogEntry | null>(() => {
@@ -396,24 +397,25 @@ export function useWorldMaps() {
 			throw new Error(`World map snapshot "${snapshotId}" is not selectable.`)
 
 		if (!force && selectedSnapshotId.value === snapshotId && manifest.value != null) {
-			generation++
+			selectionRequestGeneration++
 			pendingSnapshotId.value = null
 			error.value = null
 			loading.value = false
 			return manifest.value
 		}
 
-		const currentGeneration = ++generation
+		const currentSelectionRequestGeneration = ++selectionRequestGeneration
 		pendingSnapshotId.value = snapshotId
 		loading.value = true
 		error.value = null
 
 		try {
 			const nextManifest = await fetchWorldMapManifest(snapshotId, force)
-			if (generation !== currentGeneration)
+			if (selectionRequestGeneration !== currentSelectionRequestGeneration)
 				return nextManifest
 
 			const previousSnapshotId = selectedSnapshotId.value
+			generation++
 			selectedSnapshotId.value = snapshotId
 			persistLastSelectedSnapshotId(snapshotId)
 			manifest.value = nextManifest
@@ -425,12 +427,12 @@ export function useWorldMaps() {
 			return nextManifest
 		}
 		catch (cause) {
-			if (generation === currentGeneration)
+			if (selectionRequestGeneration === currentSelectionRequestGeneration)
 				error.value = cause
 			throw cause
 		}
 		finally {
-			if (generation === currentGeneration)
+			if (selectionRequestGeneration === currentSelectionRequestGeneration)
 				loading.value = false
 		}
 	}
