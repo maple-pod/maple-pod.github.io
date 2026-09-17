@@ -10,6 +10,8 @@
 	"scripts": {
 		"dev": "vite",
 		"preview": "vite preview",
+		"postinstall": "node scripts/ensure-spec-workspace.mjs",
+		"spec:prepare": "node scripts/ensure-spec-workspace.mjs",
 		"build": "vite build && pnpm verify:theme",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",
