@@ -54,8 +54,10 @@ const activeDownloadProgress = shallowRef<WorldMapOfflineProgress | null>(null)
 const downloadError = shallowRef<DownloadErrorState | null>(null)
 const verifiedCacheKeys = shallowRef<Record<string, string>>({})
 const manifestSyncGenerations = new Map<WorldMapSnapshotId, number>()
+const manifestSyncRequests = new Set<Promise<void>>()
 const fallbackSnapshotLocks = new Map<string, Promise<void>>()
 let initializeRequest: Promise<void> | null = null
+let clearingAll = false
 let downloadRequest: Promise<void> | null = null
 let downloadController: AbortController | null = null
 let generation = 0
@@ -458,7 +460,7 @@ function syncSnapshot(snapshotId: WorldMapSnapshotId): void {
 	downloadError.value = null
 }
 
-async function syncManifest(snapshotId: WorldMapSnapshotId, nextManifest: WorldMapManifest): Promise<void> {
+async function runManifestSync(snapshotId: WorldMapSnapshotId, nextManifest: WorldMapManifest): Promise<void> {
 	if (selectedSnapshotId.value !== snapshotId)
 		syncSnapshot(snapshotId)
 
@@ -507,6 +509,19 @@ async function syncManifest(snapshotId: WorldMapSnapshotId, nextManifest: WorldM
 		if (downloadError.value?.snapshotId === snapshotId && downloadError.value.cacheKey !== nextManifest.cacheKey)
 			downloadError.value = null
 	})
+}
+
+async function syncManifest(snapshotId: WorldMapSnapshotId, nextManifest: WorldMapManifest): Promise<void> {
+	if (clearingAll)
+		return
+	const request = runManifestSync(snapshotId, nextManifest)
+	manifestSyncRequests.add(request)
+	try {
+		await request
+	}
+	finally {
+		manifestSyncRequests.delete(request)
+	}
 }
 
 let initialized = false
@@ -711,38 +726,44 @@ async function remove(snapshotId = selectedSnapshotId.value): Promise<void> {
 }
 
 async function clearAll(): Promise<void> {
-	await initializeRequest?.catch(() => null)
-	generation++
-	downloadController?.abort()
-	await downloadRequest?.catch(() => null)
-	manifestSyncGenerations.clear()
-
-	if (typeof caches !== 'undefined') {
-		const cacheNames = await caches.keys()
-		await Promise.all(cacheNames
-			.filter(cacheName => cacheName.startsWith('maple-pod-world-map-'))
-			.map(cacheName => caches.delete(cacheName)))
-	}
-
+	clearingAll = true
 	try {
+		await initializeRequest?.catch(() => null)
+		generation++
+		downloadController?.abort()
+		await downloadRequest?.catch(() => null)
+
+		// Invalidate existing syncs first, then wait for every already-started
+		// writer to settle before deleting caches. New sync requests are ignored
+		// while clearingAll is true, so nothing can repopulate after deletion.
+		manifestSyncGenerations.clear()
+		await Promise.allSettled([...manifestSyncRequests])
+
+		if (typeof caches !== 'undefined') {
+			const cacheNames = await caches.keys()
+			await Promise.all(cacheNames
+				.filter(cacheName => cacheName.startsWith('maple-pod-world-map-'))
+				.map(cacheName => caches.delete(cacheName)))
+		}
+
 		const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
 		for (const key of keys) {
 			if (key?.startsWith(WORLD_MAP_OFFLINE_METADATA_PREFIX))
 				localStorage.removeItem(key)
 		}
-	}
-	catch {
-		// Local storage cleanup is best-effort when storage is unavailable.
-	}
 
-	entriesBySnapshot.value = {}
-	verifiedCacheKeys.value = {}
-	selectedSnapshotId.value = null
-	manifest.value = null
-	activeDownloadSnapshotId.value = null
-	activeDownloadCacheKey.value = null
-	activeDownloadProgress.value = null
-	downloadError.value = null
+		entriesBySnapshot.value = {}
+		verifiedCacheKeys.value = {}
+		selectedSnapshotId.value = null
+		manifest.value = null
+		activeDownloadSnapshotId.value = null
+		activeDownloadCacheKey.value = null
+		activeDownloadProgress.value = null
+		downloadError.value = null
+	}
+	finally {
+		clearingAll = false
+	}
 }
 
 const status = computed<WorldMapOfflineStatus>(() => {

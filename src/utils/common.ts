@@ -152,6 +152,10 @@ export class PromiseQueue {
 
 	public add(fn: TaskFn): Task {
 		const { promise, resolve, reject } = createPromise()
+		// A queued task can be cancelled before runNext() attaches its handler.
+		// Observe the promise immediately so intentional cancellation never becomes
+		// an unhandled rejection. runNext() still observes the same promise below.
+		void promise.catch(() => {})
 
 		const task: Task = {
 			run: () => {
@@ -180,18 +184,13 @@ export class PromiseQueue {
 		const task = this.queue.shift()!
 		this.running++
 		task.run()
-			.then(() => {
+			.catch((error) => {
+				if (!(error instanceof CancelledError))
+					console.error('Task failed:', error)
+			})
+			.finally(() => {
 				this.running--
 				this.runNext()
-			})
-			.catch((error) => {
-				if (error instanceof CancelledError) {
-					this.running--
-					this.runNext()
-				}
-				else {
-					console.error('Task failed:', error)
-				}
 			})
 	}
 }

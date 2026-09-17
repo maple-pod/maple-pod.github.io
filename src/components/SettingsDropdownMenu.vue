@@ -157,6 +157,23 @@ async function clearFactoryResetCaches() {
 		.map(cacheName => caches.delete(cacheName)))
 }
 
+async function performFactoryReset() {
+	const cleanupResults = await Promise.allSettled([
+		clearSavedOfflineMusics(),
+		clearAllWorldMapOffline(),
+		clearFactoryResetCaches(),
+	])
+	const failures = cleanupResults
+		.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+		.map(result => result.reason)
+	if (failures.length > 0)
+		throw new AggregateError(failures, 'Factory Reset storage cleanup was incomplete.')
+
+	resetSavedData()
+	localStorage.removeItem('maple-pod')
+	localStorage.removeItem('firstVisit')
+}
+
 async function handleFactoryReset() {
 	const agreed = await confirm({
 		title: 'Factory Reset',
@@ -165,24 +182,24 @@ async function handleFactoryReset() {
 	if (!agreed)
 		return
 
-	resetSavedData()
-	const cleanupResults = await Promise.allSettled([
-		clearSavedOfflineMusics(),
-		clearAllWorldMapOffline(),
-		clearFactoryResetCaches(),
-	])
-	for (const result of cleanupResults) {
-		if (result.status === 'rejected')
-			console.error('Factory Reset storage cleanup failed:', result.reason)
+	while (true) {
+		try {
+			await performFactoryReset()
+			window.location.reload()
+			return
+		}
+		catch (error) {
+			console.error('Factory Reset storage cleanup failed:', error)
+			const retry = await confirm({
+				title: 'Factory Reset incomplete',
+				description: 'Some Maple Pod local data could not be cleared. Retry the cleanup before reloading?',
+				confirmText: 'Retry',
+				cancelText: 'Close',
+			})
+			if (!retry)
+				return
+		}
 	}
-	try {
-		localStorage.removeItem('maple-pod')
-		localStorage.removeItem('firstVisit')
-	}
-	catch {
-		// Reload still returns the in-memory stores to defaults when storage is unavailable.
-	}
-	window.location.reload()
 }
 
 const { copyLink } = useCopyLink()
