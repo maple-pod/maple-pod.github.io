@@ -93,7 +93,7 @@ export function useAudioPlayer({
 	let navigationDirection: 'next' | 'previous' = 'next'
 	let navigationOnCommit: (() => void) | undefined
 	let navigationWrapNext = true
-	let navigationRestartCurrentOnFailure = false
+	let navigationEndedTransition = false
 	let activeEndedWhilePending = false
 	let disposed = false
 
@@ -139,14 +139,18 @@ export function useAudioPlayer({
 	})
 	const random = audioQueueLogic.random
 
-	function cancelPendingTransition() {
-		sourceRequestId++
+	function clearNavigationContext() {
 		navigationCandidate = null
 		navigationDirection = 'next'
 		navigationOnCommit = undefined
 		navigationWrapNext = true
-		navigationRestartCurrentOnFailure = false
+		navigationEndedTransition = false
 		activeEndedWhilePending = false
+	}
+
+	function cancelPendingTransition() {
+		sourceRequestId++
+		clearNavigationContext()
 		for (const release of [...pendingSourceReleases])
 			release()
 		for (const playback of [...pendingPlaybacks])
@@ -158,7 +162,7 @@ export function useAudioPlayer({
 		const pendingDirection = navigationDirection
 		const pendingOnCommit = navigationOnCommit
 		const pendingWrapNext = navigationWrapNext
-		const pendingRestartCurrentOnFailure = navigationRestartCurrentOnFailure
+		const pendingEndedTransition = navigationEndedTransition
 		cancelPendingTransition()
 		audioQueueLogic.toggleRandom(bool)
 		if (pendingCandidate == null)
@@ -170,7 +174,7 @@ export function useAudioPlayer({
 			{
 				direction: pendingDirection,
 				wrapNext: pendingWrapNext,
-				restartCurrentOnFailure: pendingRestartCurrentOnFailure,
+				endedTransition: pendingEndedTransition,
 			},
 		)
 	}
@@ -258,7 +262,7 @@ export function useAudioPlayer({
 		initialCandidate: AudioQueueCandidate,
 		direction: 'next' | 'previous',
 		wrapNext: boolean,
-		restartCurrentOnFailure: boolean,
+		endedTransition: boolean,
 		onCommit?: () => void,
 	) {
 		const attempted = new Set<string>()
@@ -269,21 +273,28 @@ export function useAudioPlayer({
 				return
 			if (candidate.audioId === currentAudioId.value && !activePlayback.value.backend.hasError.value) {
 				const backend = activePlayback.value.backend
-				const previousTime = backend.currentTime.value
-				backend.currentTime.value = 0
+				const wasPaused = backend.isPaused.value
 				const playbackStarted = await backend.play()
-				if (requestId !== sourceRequestId || disposed)
+				if (requestId !== sourceRequestId || disposed) {
+					if (wasPaused)
+						backend.pause()
 					return
+				}
 				if (!playbackStarted || backend.hasError.value || backend.hasEnded.value) {
-					backend.currentTime.value = previousTime
-					navigationCandidate = null
-					activeEndedWhilePending = false
+					if (wasPaused)
+						backend.pause()
+					const recoverEnded = endedTransition || activeEndedWhilePending
+					clearNavigationContext()
+					if (recoverEnded && repeated.value !== 'off' && currentAudioId.value != null) {
+						backend.currentTime.value = 0
+						void backend.play()
+					}
 					return
 				}
 
+				backend.currentTime.value = 0
 				audioQueueLogic.commit(candidate)
-				navigationCandidate = null
-				activeEndedWhilePending = false
+				clearNavigationContext()
 				onCommit?.()
 				return
 			}
@@ -384,8 +395,7 @@ export function useAudioPlayer({
 			audioQueueLogic.commit(candidate)
 			currentAudioId.value = candidate.audioId
 			normalizationGainDb.value = source.normalizationGainDb ?? 0
-			navigationCandidate = null
-			activeEndedWhilePending = false
+			clearNavigationContext()
 			sourceRelease.promote()
 			releaseCurrentSource?.()
 			releaseCurrentSource = sourceRelease.release
@@ -396,15 +406,11 @@ export function useAudioPlayer({
 		}
 
 		if (requestId === sourceRequestId) {
-			const shouldHandleEnded = activeEndedWhilePending
-			navigationCandidate = null
-			activeEndedWhilePending = false
-			if (restartCurrentOnFailure && currentAudioId.value != null) {
+			const recoverEnded = endedTransition || activeEndedWhilePending
+			clearNavigationContext()
+			if (recoverEnded && repeated.value !== 'off' && currentAudioId.value != null) {
 				activePlayback.value.backend.currentTime.value = 0
 				void activePlayback.value.backend.play()
-			}
-			else if (shouldHandleEnded) {
-				handleEnded()
 			}
 		}
 	}
@@ -415,26 +421,26 @@ export function useAudioPlayer({
 		options: {
 			direction?: 'next' | 'previous'
 			wrapNext?: boolean
-			restartCurrentOnFailure?: boolean
+			endedTransition?: boolean
 		} = {},
 	) {
 		cancelPendingTransition()
 		const requestId = sourceRequestId
 		const direction = options.direction ?? 'next'
 		const wrapNext = options.wrapNext ?? true
-		const restartCurrentOnFailure = options.restartCurrentOnFailure ?? false
+		const endedTransition = options.endedTransition ?? false
 		navigationCandidate = candidate
 		navigationDirection = direction
 		navigationOnCommit = onCommit
 		navigationWrapNext = wrapNext
-		navigationRestartCurrentOnFailure = restartCurrentOnFailure
+		navigationEndedTransition = endedTransition
 		if (candidate != null) {
 			void transitionToCandidate(
 				requestId,
 				candidate,
 				direction,
 				wrapNext,
-				restartCurrentOnFailure,
+				endedTransition,
 				onCommit,
 			)
 		}
@@ -463,11 +469,11 @@ export function useAudioPlayer({
 		const base = navigationCandidate
 		const onCommit = navigationOnCommit
 		const wrapNext = navigationWrapNext
-		const restartCurrentOnFailure = navigationRestartCurrentOnFailure
+		const endedTransition = navigationEndedTransition
 		return requestQueueCandidate(
 			audioQueueLogic.goNext(base),
 			onCommit,
-			{ wrapNext, restartCurrentOnFailure },
+			{ wrapNext, endedTransition },
 		)
 	}
 
@@ -486,11 +492,11 @@ export function useAudioPlayer({
 		const base = navigationCandidate
 		const onCommit = navigationOnCommit
 		const wrapNext = navigationWrapNext
-		const restartCurrentOnFailure = navigationRestartCurrentOnFailure
+		const endedTransition = navigationEndedTransition
 		requestQueueCandidate(
 			audioQueueLogic.goPrevious(base),
 			onCommit,
-			{ direction: 'previous', wrapNext, restartCurrentOnFailure },
+			{ direction: 'previous', wrapNext, endedTransition },
 		)
 	}
 
@@ -500,18 +506,17 @@ export function useAudioPlayer({
 			return
 		}
 		if (repeated.value === 'off' && !audioQueueLogic.hasReachedEnd.value) {
-			requestQueueCandidate(audioQueueLogic.goNext(), undefined, { wrapNext: false })
+			requestQueueCandidate(audioQueueLogic.goNext(), undefined, { wrapNext: false, endedTransition: true })
 			return
 		}
 
 		if (repeated.value === 'repeat') {
-			const previousAudioId = currentAudioId.value
 			const nextAudioId = requestQueueCandidate(
 				audioQueueLogic.goNext(),
 				undefined,
-				{ restartCurrentOnFailure: true },
+				{ endedTransition: true },
 			)
-			if (nextAudioId == null || nextAudioId === previousAudioId) {
+			if (nextAudioId == null) {
 				activePlayback.value.backend.currentTime.value = 0
 				void activePlayback.value.backend.play()
 			}
