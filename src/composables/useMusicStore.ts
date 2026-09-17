@@ -199,6 +199,7 @@ export const useMusicStore = defineStore('music', () => {
 		saveMusicForOffline: _saveMusicForOffline,
 		cancelOfflineMusicDownload,
 		removeSavedOfflineMusic,
+		clearSavedOfflineMusics,
 		getSavedOfflineMusicBlob,
 	} = useOfflineMusics()
 	async function saveMusicForOffline(musicId: string) {
@@ -380,35 +381,37 @@ export const useMusicStore = defineStore('music', () => {
 		})
 	}
 
+	function normalizePlaylistMusicIds(list: string[]): string[] {
+		return list
+			// Process old data
+			.map(src => src.split('/')
+				.pop()!.replace('.mp3', ''))
+			.filter(id => getMusicData(id) != null)
+	}
+
+	function normalizeSavedPlaylists(): void {
+		savedPlaylists.value = savedPlaylists.value
+			.filter((playlist) => {
+				if (playlist.id.startsWith('custom:') === false) {
+					console.warn(`Invalid playlist ID: ${playlist.id}`)
+					return false
+				}
+				if (playlist.list == null || !Array.isArray(playlist.list)) {
+					console.warn(`Invalid playlist: ${playlist.id}`)
+					return false
+				}
+
+				playlist.list = normalizePlaylistMusicIds(playlist.list)
+				return true
+			})
+		likedPlaylist.value.list = normalizePlaylistMusicIds(likedPlaylist.value.list)
+	}
+
 	const ready = until(isDataReady)
 		.toBe(true)
 		.then(async () => {
 			await loadOfflineMusics(id => getMusicData(id)?.src)
-			// ensure the saved playlists are valid
-			savedPlaylists.value = savedPlaylists.value
-				.filter((playlist) => {
-					if (playlist.id.startsWith('custom:') === false) {
-						console.warn(`Invalid playlist ID: ${playlist.id}`)
-						return false
-					}
-					if (playlist.list == null || !Array.isArray(playlist.list)) {
-						console.warn(`Invalid playlist: ${playlist.id}`)
-						return false
-					}
-
-					playlist.list = playlist.list
-						// Process old data
-						.map(src => src.split('/')
-							.pop()!.replace('.mp3', ''))
-						.filter(getMusicData)
-
-					return true
-				})
-			likedPlaylist.value.list = likedPlaylist.value.list
-				// Process old data
-				.map(src => src.split('/')
-					.pop()!.replace('.mp3', ''))
-				.filter(getMusicData)
+			normalizeSavedPlaylists()
 		})
 
 	return {
@@ -417,6 +420,7 @@ export const useMusicStore = defineStore('music', () => {
 		likedPlaylist,
 		savedPlaylists: computed(() => savedPlaylists.value.filter(playlist => isCustomPlaylist(playlist.id))
 			.map(playlist => playlist)),
+		normalizeSavedPlaylists,
 		getPlaylist,
 		findMusicInPlaylistIndex,
 		isCustomPlaylist,
@@ -438,6 +442,7 @@ export const useMusicStore = defineStore('music', () => {
 		saveMusicForOffline,
 		cancelOfflineMusicDownload,
 		removeSavedOfflineMusic,
+		clearSavedOfflineMusics,
 		isMusicDisabled,
 		ready,
 	}
@@ -459,6 +464,7 @@ function useOfflineMusics() {
 	}
 
 	const storage = localforage.createInstance({ name: 'maple-pod' })
+	let storageGeneration = 0
 	const offlineReadyMusics = ref(new Set<string>())
 	async function loadOfflineMusics(getExpectedSource: (musicId: string) => string | undefined) {
 		const keys = await storage.keys()
@@ -487,7 +493,7 @@ function useOfflineMusics() {
 	}
 	const cancelFns = new Map<string, () => void>()
 	const offlineMusicDownloadingProgress = ref<Map<string, 'pending' | number>>(new Map())
-	async function _saveMusicForOffline(musicId: string, src: string, signal: AbortSignal) {
+	async function _saveMusicForOffline(musicId: string, src: string, signal: AbortSignal, generation: number) {
 		const blob = await fetchBlob(
 			src,
 			(loaded, total) => {
@@ -499,12 +505,19 @@ function useOfflineMusics() {
 			.catch(() => null)
 		offlineMusicDownloadingProgress.value.delete(musicId)
 
+		if (generation !== storageGeneration)
+			return
+
 		if (blob == null) {
 			await storage.removeItem(musicId)
 			return
 		}
 
 		await storage.setItem<OfflineMusicEntry>(musicId, { source: src, blob })
+		if (generation !== storageGeneration) {
+			await storage.removeItem(musicId)
+			return
+		}
 		offlineReadyMusics.value.add(musicId)
 	}
 	const offlineMusicsQueue = new PromiseQueue(5)
@@ -515,7 +528,8 @@ function useOfflineMusics() {
 
 		offlineMusicDownloadingProgress.value.set(musicId, 'pending')
 		const abortController = new AbortController()
-		const task = offlineMusicsQueue.add(() => _saveMusicForOffline(musicId, src, abortController.signal))
+		const generation = storageGeneration
+		const task = offlineMusicsQueue.add(() => _saveMusicForOffline(musicId, src, abortController.signal, generation))
 		cancelFns.set(musicId, () => {
 			task.cancel()
 			abortController.abort()
@@ -546,6 +560,15 @@ function useOfflineMusics() {
 		await storage.removeItem(musicId)
 		offlineReadyMusics.value.delete(musicId)
 	}
+	async function clearSavedOfflineMusics() {
+		storageGeneration++
+		for (const cancel of [...cancelFns.values()])
+			cancel()
+		cancelFns.clear()
+		await storage.clear()
+		offlineReadyMusics.value = new Set()
+		offlineMusicDownloadingProgress.value = new Map()
+	}
 
 	return {
 		offlineReadyMusics,
@@ -555,6 +578,7 @@ function useOfflineMusics() {
 		getSavedOfflineMusicBlob,
 		cancelOfflineMusicDownload,
 		removeSavedOfflineMusic,
+		clearSavedOfflineMusics,
 	}
 }
 

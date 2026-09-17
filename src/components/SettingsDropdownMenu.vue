@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
-import type { HashActionImportSavedUserData, SavedUserData } from '@/types'
+import type { HashActionImportSavedUserData, PortableSavedUserData } from '@/types'
 import { safeParse } from 'valibot'
 import AboutDialog from '@/components/AboutDialog.vue'
-import { SavedUserDataSchema } from '@/schemas'
+import { PortableSavedUserDataSchema } from '@/schemas'
 import { chunkArray } from '@/utils/common'
 
 const appStore = useAppStore()
 const { toggleDark } = appStore
 const { bgData, savedBgImage, currentAutoBgPreview } = storeToRefs(appStore)
 
-const { savedUserData } = useSavedUserData()
-
-function resetSavedUserData() {
-	savedUserData.value = undefined
-	window.location.reload()
-}
+const musicStore = useMusicStore()
+const { normalizeSavedPlaylists, clearSavedOfflineMusics } = musicStore
+const { clearAll: clearAllWorldMapOffline } = useWorldMapOffline()
+const {
+	exportPortableSavedUserData,
+	mergePortableSavedUserData,
+	resetSavedData,
+} = useSavedDataPortability()
 
 function handleDownloadSavedDataFile() {
 	const timeStr = new Date()
 		.toISOString()
-	exportToJSONFile(savedUserData.value, `maple-pod.${timeStr}.json`)
+	exportToJSONFile(exportPortableSavedUserData(), `maple-pod.${timeStr}.json`)
 }
 
 const { confirm } = useUiConfirmDialog()
@@ -36,25 +38,30 @@ importSavedDataFileDialog.onChange(async (files) => {
 		return
 
 	const file = files[0]!
-
-	const agreed = await confirm({
-		title: 'Import Saved Data',
-		description: 'Are you sure you want to import saved data from this file? This will overwrite your current saved data.',
-	})
-
-	if (!agreed)
+	let data: unknown
+	try {
+		data = JSON.parse(await file.text())
+	}
+	catch (cause) {
+		console.error('Failed to decode saved user data:', cause)
 		return
+	}
 
-	const text = await file.text()
-	const data = JSON.parse(text)
-	const result = safeParse(SavedUserDataSchema, data)
-
+	const result = safeParse(PortableSavedUserDataSchema, data)
 	if (result.success === false) {
 		console.error('Failed to parse saved user data:', result.issues)
 		return
 	}
 
-	savedUserData.value = result.output as SavedUserData
+	const agreed = await confirm({
+		title: 'Import Saved Data',
+		description: 'Import the validated saved data and merge it with your current Maple Pod data?',
+	})
+	if (!agreed)
+		return
+
+	mergePortableSavedUserData(result.output as PortableSavedUserData)
+	normalizeSavedPlaylists()
 	window.location.reload()
 })
 
@@ -65,20 +72,124 @@ function handleUploadSavedDataFile() {
 async function handleResetSavedData() {
 	const agreed = await confirm({
 		title: 'Reset Saved Data',
-		description: 'Are you sure you want to reset saved data?',
+		description: 'Reset preferences, playlists, World Map selection, and recent history? Offline data and first-visit state will be preserved.',
 	})
 
 	if (!agreed)
 		return
 
-	resetSavedUserData()
+	resetSavedData()
+	window.location.reload()
+}
+
+const FACTORY_RESET_RUNTIME_CACHE_NAMES = new Set([
+	'google-fonts-cache',
+	'gstatic-fonts-cache',
+	'maple-pod-data-cache',
+	'maple-pod-loudness-cache',
+])
+
+async function clearWorkboxExpirationMetadata(cacheNames: string[]) {
+	if (typeof indexedDB === 'undefined' || cacheNames.length === 0)
+		return
+
+	await new Promise<void>((resolve, reject) => {
+		const request = indexedDB.open('workbox-expiration')
+		let createdDatabase = false
+		request.onupgradeneeded = () => {
+			createdDatabase = true
+		}
+		request.onerror = () => reject(request.error)
+		request.onsuccess = () => {
+			const database = request.result
+			if (createdDatabase || !database.objectStoreNames.contains('cache-entries')) {
+				database.close()
+				if (!createdDatabase) {
+					resolve()
+					return
+				}
+				const deleteRequest = indexedDB.deleteDatabase('workbox-expiration')
+				deleteRequest.onsuccess = () => resolve()
+				deleteRequest.onerror = () => reject(deleteRequest.error)
+				deleteRequest.onblocked = () => resolve()
+				return
+			}
+
+			const transaction = database.transaction('cache-entries', 'readwrite')
+			const cacheNameIndex = transaction.objectStore('cache-entries')
+				.index('cacheName')
+			for (const cacheName of cacheNames) {
+				const cursorRequest = cacheNameIndex.openCursor(IDBKeyRange.only(cacheName))
+				cursorRequest.onsuccess = () => {
+					const cursor = cursorRequest.result
+					if (cursor == null)
+						return
+					cursor.delete()
+					cursor.continue()
+				}
+				cursorRequest.onerror = () => transaction.abort()
+			}
+			transaction.oncomplete = () => {
+				database.close()
+				resolve()
+			}
+			transaction.onerror = () => {
+				database.close()
+				reject(transaction.error)
+			}
+			transaction.onabort = () => {
+				database.close()
+				reject(transaction.error)
+			}
+		}
+	})
+}
+
+async function clearFactoryResetCaches() {
+	if (typeof caches === 'undefined')
+		return
+
+	const cacheNames = await caches.keys()
+	const runtimeCacheNames = cacheNames.filter(cacheName => FACTORY_RESET_RUNTIME_CACHE_NAMES.has(cacheName))
+	await clearWorkboxExpirationMetadata(runtimeCacheNames)
+	await Promise.all(cacheNames
+		.filter(cacheName => FACTORY_RESET_RUNTIME_CACHE_NAMES.has(cacheName) || cacheName.startsWith('workbox-precache-'))
+		.map(cacheName => caches.delete(cacheName)))
+}
+
+async function handleFactoryReset() {
+	const agreed = await confirm({
+		title: 'Factory Reset',
+		description: 'Clear all Maple Pod local state, including saved data, offline music, World Map offline data, and first-visit state?',
+	})
+	if (!agreed)
+		return
+
+	resetSavedData()
+	const cleanupResults = await Promise.allSettled([
+		clearSavedOfflineMusics(),
+		clearAllWorldMapOffline(),
+		clearFactoryResetCaches(),
+	])
+	for (const result of cleanupResults) {
+		if (result.status === 'rejected')
+			console.error('Factory Reset storage cleanup failed:', result.reason)
+	}
+	try {
+		localStorage.removeItem('maple-pod')
+		localStorage.removeItem('firstVisit')
+	}
+	catch {
+		// Reload still returns the in-memory stores to defaults when storage is unavailable.
+	}
+	window.location.reload()
 }
 
 const { copyLink } = useCopyLink()
 async function handleCopySavedDataLink() {
 	const data: HashActionImportSavedUserData = {
 		type: 'import-saved-user-data',
-		data: savedUserData.value,
+		data: exportPortableSavedUserData(),
 	}
 
 	const hash = dataToUrlHash(data)
@@ -139,8 +250,14 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 			},
 			{
 				icon: pika('i-f7:arrow-counterclockwise'),
-				label: 'Reset',
+				label: 'Reset Saved Data',
 				onSelect: handleResetSavedData,
+			},
+
+			{
+				icon: pika('i-f7:trash'),
+				label: 'Factory Reset',
+				onSelect: handleFactoryReset,
 			},
 		],
 	},

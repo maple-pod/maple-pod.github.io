@@ -23,6 +23,7 @@ import {
 	parseWorldMapNodeChunk,
 	parseWorldMapSnapshotCatalog,
 } from '@/schemas'
+import { readLastSelectedSnapshotId, writeLastSelectedSnapshotId } from '@/utils/worldMapSelectionStorage'
 
 export interface WorldMapNameRow {
 	region: 'GMS' | 'KMS' | 'JMS' | 'CMS' | 'TWMS' | 'SEA'
@@ -41,30 +42,6 @@ const manifestRequests = new Map<WorldMapSnapshotId, Promise<WorldMapManifest>>(
 const manifestRequestGenerations = new Map<WorldMapSnapshotId, number>()
 const nodeCache = new Map<string, WorldMapNode>()
 const nodeRequests = new Map<string, Promise<WorldMapNode>>()
-const LAST_SELECTED_SNAPSHOT_STORAGE_KEY = 'maple-pod:world-map:last-selected-snapshot'
-
-function readLastSelectedSnapshotId(): string | null {
-	if (typeof window === 'undefined')
-		return null
-	try {
-		return window.localStorage.getItem(LAST_SELECTED_SNAPSHOT_STORAGE_KEY)
-	}
-	catch {
-		return null
-	}
-}
-
-function persistLastSelectedSnapshotId(snapshotId: WorldMapSnapshotId): void {
-	if (typeof window === 'undefined')
-		return
-	try {
-		window.localStorage.setItem(LAST_SELECTED_SNAPSHOT_STORAGE_KEY, snapshotId)
-	}
-	catch {
-		// Snapshot persistence is a convenience; route-backed selection still works without storage.
-	}
-}
-
 function getLatestSelectableGmsSnapshot(entries: WorldMapSnapshotCatalogEntry[]): WorldMapSnapshotCatalogEntry | null {
 	return entries
 		.filter(entry => entry.selectable && entry.region === 'GMS')
@@ -400,7 +377,7 @@ export function useWorldMaps() {
 		const previousSnapshotId = selectedSnapshotId.value
 		const currentGeneration = ++generation
 		selectedSnapshotId.value = snapshotId
-		persistLastSelectedSnapshotId(snapshotId)
+		writeLastSelectedSnapshotId(snapshotId)
 		manifest.value = null
 		loadedNodes.value = new Map()
 		nodeStates.value = new Map()

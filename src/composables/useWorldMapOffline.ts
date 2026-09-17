@@ -710,6 +710,41 @@ async function remove(snapshotId = selectedSnapshotId.value): Promise<void> {
 		downloadError.value = null
 }
 
+async function clearAll(): Promise<void> {
+	await initializeRequest?.catch(() => null)
+	generation++
+	downloadController?.abort()
+	await downloadRequest?.catch(() => null)
+	manifestSyncGenerations.clear()
+
+	if (typeof caches !== 'undefined') {
+		const cacheNames = await caches.keys()
+		await Promise.all(cacheNames
+			.filter(cacheName => cacheName.startsWith('maple-pod-world-map-'))
+			.map(cacheName => caches.delete(cacheName)))
+	}
+
+	try {
+		const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+		for (const key of keys) {
+			if (key?.startsWith(WORLD_MAP_OFFLINE_METADATA_PREFIX))
+				localStorage.removeItem(key)
+		}
+	}
+	catch {
+		// Local storage cleanup is best-effort when storage is unavailable.
+	}
+
+	entriesBySnapshot.value = {}
+	verifiedCacheKeys.value = {}
+	selectedSnapshotId.value = null
+	manifest.value = null
+	activeDownloadSnapshotId.value = null
+	activeDownloadCacheKey.value = null
+	activeDownloadProgress.value = null
+	downloadError.value = null
+}
+
 const status = computed<WorldMapOfflineStatus>(() => {
 	const snapshotId = selectedSnapshotId.value
 	const currentManifest = manifest.value
@@ -773,5 +808,6 @@ export function useWorldMapOffline() {
 		downloadSnapshot,
 		cancel,
 		remove,
+		clearAll,
 	}
 }

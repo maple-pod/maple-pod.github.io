@@ -10,7 +10,7 @@ const NullableStringSchema = nullable(string())
 const FiniteNumberSchema = pipe(number(), finite())
 const IntegerNumberSchema = pipe(number(), finite(), integer())
 const SnapshotRegionSchema = union([literal('GMS'), literal('TWMS')])
-const SnapshotIdSchema = pipe(
+export const WorldMapSnapshotIdSchema = pipe(
 	string(),
 	check(value => /^(?:GMS|TWMS)\/[^/]+$/.test(value), 'snapshot ID must be <region>/<version>'),
 )
@@ -218,7 +218,7 @@ const WorldMapSnapshotMapleArchiveSchema = strictObject({
 })
 
 const WorldMapSnapshotCatalogEntrySchema = strictObject({
-	id: SnapshotIdSchema,
+	id: WorldMapSnapshotIdSchema,
 	label: string(),
 	region: SnapshotRegionSchema,
 	version: string(),
@@ -237,7 +237,7 @@ const WorldMapSnapshotCatalogEntrySchema = strictObject({
 export const WorldMapSnapshotCatalogSchema = strictObject({
 	schemaVersion: literal(1),
 	generatedAt: string(),
-	defaultSnapshot: SnapshotIdSchema,
+	defaultSnapshot: WorldMapSnapshotIdSchema,
 	entries: array(WorldMapSnapshotCatalogEntrySchema),
 })
 
