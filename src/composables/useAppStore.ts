@@ -86,34 +86,24 @@ export const useAppStore = defineStore('app', () => {
 		const theMusicId = musicId || musicStore.currentMusic?.id
 		const thePlaylistId = playlistId || musicStore.currentPlaylist?.id
 
-		if (
-			isHandlingShowMusicInPlaylist.value
-			|| thePlaylistId == null
-			|| theMusicId == null
-		) {
-			isHandlingShowMusicInPlaylist.value = false
+		if (isHandlingShowMusicInPlaylist.value || thePlaylistId == null || theMusicId == null)
 			return
-		}
 
 		const thePlaylist = musicStore.getPlaylist(thePlaylistId)
-		if (thePlaylist == null) {
-			isHandlingShowMusicInPlaylist.value = false
+		if (thePlaylist == null || thePlaylist.list.includes(theMusicId) === false)
 			return
-		}
 
 		isHandlingShowMusicInPlaylist.value = true
-		if (thePlaylist.list.includes(theMusicId) === false) {
-			isHandlingShowMusicInPlaylist.value = false
-			return
+		try {
+			await router.push({
+				name: Routes.Playlist,
+				params: { playlistId: thePlaylistId },
+			})
+			await revealMusicInPlaylist.value?.(theMusicId)
 		}
-
-		await router.push({
-			name: Routes.Playlist,
-			params: { playlistId: thePlaylistId },
-		})
-		await revealMusicInPlaylist.value?.(theMusicId)
-
-		isHandlingShowMusicInPlaylist.value = false
+		finally {
+			isHandlingShowMusicInPlaylist.value = false
+		}
 	}
 
 	const isReady = ref(false)
