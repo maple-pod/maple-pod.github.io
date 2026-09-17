@@ -472,6 +472,7 @@ function useOfflineMusics() {
 			&& typeof value.source === 'string'
 			&& 'blob' in value
 			&& value.blob instanceof Blob
+			&& value.blob.size > 0
 	}
 
 	const storage = localforage.createInstance({ name: 'maple-pod' })
@@ -507,7 +508,7 @@ function useOfflineMusics() {
 			}
 
 			const legacySource = `/resources/bgm/${musicId}.mp3`
-			if (value instanceof Blob && expectedSource === legacySource) {
+			if (value instanceof Blob && value.size > 0 && expectedSource === legacySource) {
 				await runStorageMutation(async () => {
 					if (clearingStorage || generation !== storageGeneration)
 						return
@@ -650,7 +651,7 @@ function useOfflineMusics() {
 			return value.blob
 
 		const legacySource = `/resources/bgm/${musicId}.mp3`
-		if (value instanceof Blob && expectedSource === legacySource) {
+		if (value instanceof Blob && value.size > 0 && expectedSource === legacySource) {
 			await runStorageMutation(async () => {
 				if (clearingStorage || generation !== storageGeneration)
 					return
