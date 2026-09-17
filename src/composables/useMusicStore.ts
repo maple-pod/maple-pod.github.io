@@ -568,6 +568,8 @@ function useOfflineMusics() {
 				},
 				signal,
 			)
+			if (blob.size === 0)
+				throw new Error('Offline music download returned an empty response.')
 			if (!isCurrentAttempt(musicId, attemptId, generation, signal))
 				return
 
@@ -626,12 +628,15 @@ function useOfflineMusics() {
 				return
 			task.cancel()
 			abortController.abort()
-			offlineMusicDownloadingProgress.value.delete(musicId)
 			offlineMusicDownloadErrors.value.delete(musicId)
 			if (!started) {
+				offlineMusicDownloadingProgress.value.delete(musicId)
 				activeAttempts.delete(musicId)
 				cancelFns.delete(musicId)
 			}
+			// A running attempt retains its progress entry until its abort/cleanup
+			// settles, so the UI cannot expose Retry while this attempt still owns
+			// the per-track lock.
 		})
 	}
 	async function getSavedOfflineMusicBlob(musicId: string, expectedSource: string): Promise<Blob | null> {
