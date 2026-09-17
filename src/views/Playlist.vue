@@ -107,9 +107,9 @@ async function revealMusicInPlaylist(musicId: string) {
 		uiVerticalListRef.value?.scrollToIndex(index)
 }
 watch(
-	() => appStore.playlistRevealRequest,
-	async (request) => {
-		if (request == null || request.playlistId !== props.playlistId)
+	[() => appStore.playlistRevealRequest, () => props.playlistId],
+	async ([request, playlistId]) => {
+		if (request == null || request.playlistId !== playlistId)
 			return
 		try {
 			await revealMusicInPlaylist(request.musicId)
