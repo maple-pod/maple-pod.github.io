@@ -162,7 +162,7 @@ export function useAudioPlayer({
 		const pendingDirection = navigationDirection
 		const pendingOnCommit = navigationOnCommit
 		const pendingWrapNext = navigationWrapNext
-		const pendingEndedTransition = navigationEndedTransition
+		const pendingEndedTransition = navigationEndedTransition || activeEndedWhilePending
 		cancelPendingTransition()
 		audioQueueLogic.toggleRandom(bool)
 		if (pendingCandidate == null)
@@ -332,9 +332,19 @@ export function useAudioPlayer({
 			const candidateBackend = candidatePlayback.backend
 			candidateBackend.setNormalizationGainDb(source.normalizationGainDb ?? 0)
 			await candidateBackend.fadeOutputTo(0, 0)
+			if (requestId !== sourceRequestId || disposed) {
+				sourceRelease.release()
+				disposeCandidatePlayback(candidatePlayback)
+				return
+			}
 			candidateBackend.load(source.src)
 			const playbackStartedPromise = candidateBackend.play()
-			await candidateBackend.waitUntilReady()
+				.catch(() => false)
+			await Promise.race([
+				candidateBackend.waitUntilReady(),
+				playbackStartedPromise.then(() => undefined),
+				candidatePlayback.disposed,
+			])
 
 			if (requestId !== sourceRequestId || disposed) {
 				sourceRelease.release()
@@ -429,22 +439,24 @@ export function useAudioPlayer({
 		const direction = options.direction ?? 'next'
 		const wrapNext = options.wrapNext ?? true
 		const endedTransition = options.endedTransition ?? false
+		if (candidate == null) {
+			clearNavigationContext()
+			return null
+		}
 		navigationCandidate = candidate
 		navigationDirection = direction
 		navigationOnCommit = onCommit
 		navigationWrapNext = wrapNext
 		navigationEndedTransition = endedTransition
-		if (candidate != null) {
-			void transitionToCandidate(
-				requestId,
-				candidate,
-				direction,
-				wrapNext,
-				endedTransition,
-				onCommit,
-			)
-		}
-		return candidate?.audioId ?? null
+		void transitionToCandidate(
+			requestId,
+			candidate,
+			direction,
+			wrapNext,
+			endedTransition,
+			onCommit,
+		)
+		return candidate.audioId
 	}
 
 	function play(
@@ -469,7 +481,7 @@ export function useAudioPlayer({
 		const base = navigationCandidate
 		const onCommit = navigationOnCommit
 		const wrapNext = navigationWrapNext
-		const endedTransition = navigationEndedTransition
+		const endedTransition = navigationEndedTransition || activeEndedWhilePending
 		return requestQueueCandidate(
 			audioQueueLogic.goNext(base),
 			onCommit,
@@ -492,7 +504,7 @@ export function useAudioPlayer({
 		const base = navigationCandidate
 		const onCommit = navigationOnCommit
 		const wrapNext = navigationWrapNext
-		const endedTransition = navigationEndedTransition
+		const endedTransition = navigationEndedTransition || activeEndedWhilePending
 		requestQueueCandidate(
 			audioQueueLogic.goPrevious(base),
 			onCommit,
