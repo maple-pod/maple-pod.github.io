@@ -7,8 +7,8 @@ import { PortableSavedUserDataSchema } from '@/schemas'
 import { chunkArray } from '@/utils/common'
 
 const appStore = useAppStore()
-const { toggleDark } = appStore
-const { bgData, savedBgImage, currentAutoBgPreview } = storeToRefs(appStore)
+const { setTheme } = appStore
+const { theme, bgData, savedBgImage, currentAutoBgPreview } = storeToRefs(appStore)
 
 const musicStore = useMusicStore()
 const { normalizeSavedPlaylists, clearSavedOfflineMusics } = musicStore
@@ -256,11 +256,21 @@ const bgChunks = computed(() => {
 const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
 		icon: pika('i-f7:sun-max', { '@dark': ['i-f7:moon'] }),
-		label: 'Theme',
-		onSelect: (event) => {
-			event.preventDefault()
-			toggleDark()
-		},
+		label: `Theme: ${theme.value === 'auto' ? 'Auto' : theme.value === 'dark' ? 'Dark' : 'Light'}`,
+		items: [
+			{
+				label: `Light${theme.value === 'light' ? ' ✓' : ''}`,
+				onSelect: () => setTheme('light'),
+			},
+			{
+				label: `Dark${theme.value === 'dark' ? ' ✓' : ''}`,
+				onSelect: () => setTheme('dark'),
+			},
+			{
+				label: `Auto (System)${theme.value === 'auto' ? ' ✓' : ''}`,
+				onSelect: () => setTheme('auto'),
+			},
+		],
 	},
 	{
 		icon: pika('i-f7:photo-on-rectangle'),
