@@ -398,7 +398,7 @@ export const useMusicStore = defineStore('music', () => {
 	}
 
 	function normalizeRecentHistory(): void {
-		history.value = history.value.filter(id => getMusicData(id) != null)
+		history.value = normalizePlaylistMusicIds(history.value)
 	}
 
 	function normalizeSavedPlaylists(): void {

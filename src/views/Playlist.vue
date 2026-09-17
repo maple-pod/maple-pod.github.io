@@ -106,11 +106,20 @@ async function revealMusicInPlaylist(musicId: string) {
 	if (index >= 0)
 		uiVerticalListRef.value?.scrollToIndex(index)
 }
-appStore.revealMusicInPlaylist = revealMusicInPlaylist
-tryOnScopeDispose(() => {
-	if (appStore.revealMusicInPlaylist === revealMusicInPlaylist)
-		appStore.revealMusicInPlaylist = null
-})
+watch(
+	() => appStore.playlistRevealRequest,
+	async (request) => {
+		if (request == null || request.playlistId !== props.playlistId)
+			return
+		try {
+			await revealMusicInPlaylist(request.musicId)
+		}
+		finally {
+			appStore.completePlaylistReveal(request)
+		}
+	},
+	{ immediate: true, flush: 'post' },
+)
 
 function handlePlayPlaylist() {
 	if (playlist.value.list.length === 0)
