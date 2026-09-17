@@ -403,7 +403,18 @@ export const useMusicStore = defineStore('music', () => {
 	}
 
 	function normalizePlaylistMusicIds(list: string[]): string[] {
-		return list.filter(id => getMusicData(id) != null)
+		return list
+			.map((value) => {
+				if (getMusicData(value) != null)
+					return value
+
+				// Persisted data before stable music IDs used the exact resource path.
+				// This is an input migration only; source resolution below never
+				// synthesizes an mp3 filename when resource metadata is missing.
+				const legacy = value.match(/^\/resources\/bgm\/([^/]+)\.mp3$/)
+				return legacy != null && getMusicData(legacy[1]!) != null ? legacy[1]! : null
+			})
+			.filter((id): id is string => id != null)
 	}
 
 	function normalizeSavedPlaylists(): void {
@@ -517,6 +528,9 @@ function useOfflineMusics() {
 
 			const legacySource = `/resources/bgm/${musicId}.mp3`
 			if (value instanceof Blob && value.size > 0 && expectedSource === legacySource) {
+				// Raw Blob is a self-identifying legacy storage representation. Only
+				// migrate it when today's explicit resource metadata selects the same
+				// source; this does not participate in source fallback.
 				await runStorageMutation(async () => {
 					if (clearingStorage || generation !== storageGeneration)
 						return
