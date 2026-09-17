@@ -196,6 +196,7 @@ export const useMusicStore = defineStore('music', () => {
 		offlineReadyMusics,
 		loadOfflineMusics,
 		offlineMusicDownloadingProgress,
+		offlineMusicDownloadErrors,
 		saveMusicForOffline: _saveMusicForOffline,
 		cancelOfflineMusicDownload,
 		removeSavedOfflineMusic,
@@ -447,6 +448,7 @@ export const useMusicStore = defineStore('music', () => {
 		history,
 		getPlayMusicLink,
 		offlineMusicDownloadingProgress,
+		offlineMusicDownloadErrors,
 		offlineReadyMusics,
 		saveMusicForOffline,
 		cancelOfflineMusicDownload,
@@ -528,39 +530,47 @@ function useOfflineMusics() {
 	}
 	const cancelFns = new Map<string, () => void>()
 	const offlineMusicDownloadingProgress = ref<Map<string, 'pending' | number>>(new Map())
+	const offlineMusicDownloadErrors = ref(new Set<string>())
 	async function _saveMusicForOffline(musicId: string, src: string, signal: AbortSignal, generation: number) {
-		const blob = await fetchBlob(
-			src,
-			(loaded, total) => {
-				const percent = Math.round((loaded / total) * 100)
-				offlineMusicDownloadingProgress.value.set(musicId, percent)
-			},
-			signal,
-		)
-			.catch(() => null)
+		let blob: Blob
+		try {
+			blob = await fetchBlob(
+				src,
+				(loaded, total) => {
+					const percent = Math.round((loaded / total) * 100)
+					offlineMusicDownloadingProgress.value.set(musicId, percent)
+				},
+				signal,
+			)
+		}
+		catch {
+			offlineMusicDownloadingProgress.value.delete(musicId)
+			if (generation !== storageGeneration || signal.aborted)
+				return
+			await storage.removeItem(musicId)
+			offlineReadyMusics.value.delete(musicId)
+			offlineMusicDownloadErrors.value.add(musicId)
+			return
+		}
 		offlineMusicDownloadingProgress.value.delete(musicId)
 
 		if (generation !== storageGeneration)
 			return
-
-		if (blob == null) {
-			await storage.removeItem(musicId)
-			return
-		}
 
 		await storage.setItem<OfflineMusicEntry>(musicId, { source: src, blob })
 		if (generation !== storageGeneration) {
 			await storage.removeItem(musicId)
 			return
 		}
+		offlineMusicDownloadErrors.value.delete(musicId)
 		offlineReadyMusics.value.add(musicId)
 	}
 	const offlineMusicsQueue = new PromiseQueue(5)
 	async function saveMusicForOffline(musicId: string, src: string) {
-		if (clearingStorage || offlineMusicDownloadingProgress.value.has(musicId) || offlineReadyMusics.value.has(musicId)) {
+		if (clearingStorage || offlineMusicDownloadingProgress.value.has(musicId) || offlineReadyMusics.value.has(musicId))
 			return
-		}
 
+		offlineMusicDownloadErrors.value.delete(musicId)
 		offlineMusicDownloadingProgress.value.set(musicId, 'pending')
 		const abortController = new AbortController()
 		const generation = storageGeneration
@@ -569,6 +579,7 @@ function useOfflineMusics() {
 			task.cancel()
 			abortController.abort()
 			offlineMusicDownloadingProgress.value.delete(musicId)
+			offlineMusicDownloadErrors.value.delete(musicId)
 			cancelFns.delete(musicId)
 		})
 	}
@@ -607,6 +618,7 @@ function useOfflineMusics() {
 	async function removeSavedOfflineMusic(musicId: string) {
 		await runStorageMutation(() => storage.removeItem(musicId))
 		offlineReadyMusics.value.delete(musicId)
+		offlineMusicDownloadErrors.value.delete(musicId)
 	}
 	async function clearSavedOfflineMusics() {
 		clearingStorage = true
@@ -619,6 +631,7 @@ function useOfflineMusics() {
 			await storage.clear()
 			offlineReadyMusics.value = new Set()
 			offlineMusicDownloadingProgress.value = new Map()
+			offlineMusicDownloadErrors.value = new Set()
 		}
 		finally {
 			clearingStorage = false
@@ -629,6 +642,7 @@ function useOfflineMusics() {
 		offlineReadyMusics,
 		loadOfflineMusics,
 		offlineMusicDownloadingProgress,
+		offlineMusicDownloadErrors,
 		saveMusicForOffline,
 		getSavedOfflineMusicBlob,
 		cancelOfflineMusicDownload,
