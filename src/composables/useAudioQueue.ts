@@ -99,13 +99,13 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 		{ flush: 'sync' },
 	)
 
-	const hasReachedEnd = computed(() => toPlayQueue.value.length === 0)
+	const hasReachedEnd = computed(() => findFirstPlayableIndex(toPlayQueue.value) < 0)
 
 	function stateFor(base?: AudioQueueCandidate | null): AudioQueueState | null {
 		return base?.state ?? committedState()
 	}
 
-	function goNext(base?: AudioQueueCandidate | null): AudioQueueCandidate | null {
+	function goNext(base?: AudioQueueCandidate | null, wrap = true): AudioQueueCandidate | null {
 		const state = stateFor(base)
 		if (state == null)
 			return null
@@ -120,6 +120,9 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 				toPlayQueue: state.toPlayQueue.slice(nextIndex + 1),
 			})
 		}
+
+		if (!wrap)
+			return null
 
 		const wrappedIndex = findFirstPlayableIndex(state.playedQueue)
 		if (wrappedIndex < 0)

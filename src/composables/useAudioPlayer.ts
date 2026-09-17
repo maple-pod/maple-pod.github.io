@@ -79,6 +79,9 @@ export function useAudioPlayer({
 	let releaseCurrentSource: (() => void) | null = null
 	let sourceRequestId = 0
 	let navigationCandidate: AudioQueueCandidate | null = null
+	let navigationDirection: 'next' | 'previous' = 'next'
+	let navigationOnCommit: (() => void) | undefined
+	let activeEndedWhilePending = false
 	let disposed = false
 
 	const currentTime = computed({
@@ -126,11 +129,29 @@ export function useAudioPlayer({
 	function cancelPendingTransition() {
 		sourceRequestId++
 		navigationCandidate = null
+		navigationDirection = 'next'
+		navigationOnCommit = undefined
+		activeEndedWhilePending = false
+		for (const release of [...pendingSourceReleases])
+			release()
+		for (const playback of [...pendingPlaybacks])
+			disposeCandidatePlayback(playback)
 	}
 
 	function toggleRandom(bool?: boolean) {
+		const pendingCandidate = navigationCandidate
+		const pendingDirection = navigationDirection
+		const pendingOnCommit = navigationOnCommit
 		cancelPendingTransition()
 		audioQueueLogic.toggleRandom(bool)
+		if (pendingCandidate == null)
+			return
+
+		requestQueueCandidate(
+			audioQueueLogic.initQueue(pendingCandidate.state.originalAudioIdList, pendingCandidate.audioId),
+			pendingOnCommit,
+			pendingDirection,
+		)
 	}
 
 	watch(
@@ -191,16 +212,29 @@ export function useAudioPlayer({
 		playback.dispose()
 	}
 
-	function nextUnattemptedCandidate(candidate: AudioQueueCandidate, attempted: Set<string>) {
-		let next = audioQueueLogic.goNext(candidate)
-		while (next != null && (attempted.has(next.audioId) || next.audioId === currentAudioId.value))
-			next = audioQueueLogic.goNext(next)
-		return next
+	function nextUnattemptedCandidate(
+		candidate: AudioQueueCandidate,
+		attempted: Set<string>,
+		direction: 'next' | 'previous',
+	) {
+		let next: AudioQueueCandidate | null = candidate
+		const maxAttempts = candidate.state.originalAudioIdList.length
+		for (let index = 0; index < maxAttempts; index++) {
+			next = direction === 'previous'
+				? audioQueueLogic.goPrevious(next)
+				: audioQueueLogic.goNext(next, repeated.value === 'repeat')
+			if (next == null)
+				return null
+			if (!attempted.has(next.audioId) && next.audioId !== currentAudioId.value)
+				return next
+		}
+		return null
 	}
 
 	async function transitionToCandidate(
 		requestId: number,
 		initialCandidate: AudioQueueCandidate,
+		direction: 'next' | 'previous',
 		onCommit?: () => void,
 	) {
 		const attempted = new Set<string>()
@@ -209,7 +243,15 @@ export function useAudioPlayer({
 		while (candidate != null) {
 			if (requestId !== sourceRequestId || disposed)
 				return
-			if (attempted.has(candidate.audioId) || candidate.audioId === currentAudioId.value)
+			if (candidate.audioId === currentAudioId.value) {
+				audioQueueLogic.commit(candidate)
+				activePlayback.value.backend.currentTime.value = 0
+				navigationCandidate = null
+				activeEndedWhilePending = false
+				onCommit?.()
+				return
+			}
+			if (attempted.has(candidate.audioId))
 				break
 			attempted.add(candidate.audioId)
 			navigationCandidate = candidate
@@ -221,7 +263,7 @@ export function useAudioPlayer({
 			catch {
 				if (requestId !== sourceRequestId || disposed)
 					return
-				candidate = nextUnattemptedCandidate(candidate, attempted)
+				candidate = nextUnattemptedCandidate(candidate, attempted, direction)
 				continue
 			}
 
@@ -233,7 +275,7 @@ export function useAudioPlayer({
 				return
 			}
 			if (source == null) {
-				candidate = nextUnattemptedCandidate(candidate, attempted)
+				candidate = nextUnattemptedCandidate(candidate, attempted, direction)
 				continue
 			}
 
@@ -253,16 +295,20 @@ export function useAudioPlayer({
 				disposeCandidatePlayback(candidatePlayback)
 				return
 			}
-			if (candidateBackend.hasError.value) {
+			if (candidateBackend.hasError.value || candidateBackend.hasEnded.value) {
 				sourceRelease.release()
 				disposeCandidatePlayback(candidatePlayback)
-				candidate = nextUnattemptedCandidate(candidate, attempted)
+				candidate = nextUnattemptedCandidate(candidate, attempted, direction)
 				continue
 			}
 			if (playbackStarted === false) {
 				sourceRelease.release()
 				disposeCandidatePlayback(candidatePlayback)
+				const shouldHandleEnded = activeEndedWhilePending
 				navigationCandidate = null
+				activeEndedWhilePending = false
+				if (shouldHandleEnded)
+					handleEnded()
 				return
 			}
 
@@ -273,6 +319,13 @@ export function useAudioPlayer({
 				sourceRelease.release()
 				disposeCandidatePlayback(candidatePlayback)
 				return
+			}
+			if (candidateBackend.hasError.value || candidateBackend.hasEnded.value) {
+				await previousPlayback.backend.fadeOutputTo(1, TRACK_SWITCH_FADE_MS)
+				sourceRelease.release()
+				disposeCandidatePlayback(candidatePlayback)
+				candidate = nextUnattemptedCandidate(candidate, attempted, direction)
+				continue
 			}
 
 			candidateBackend.volume.value = volume.value
@@ -291,6 +344,7 @@ export function useAudioPlayer({
 			currentAudioId.value = candidate.audioId
 			normalizationGainDb.value = source.normalizationGainDb ?? 0
 			navigationCandidate = null
+			activeEndedWhilePending = false
 			sourceRelease.promote()
 			releaseCurrentSource?.()
 			releaseCurrentSource = sourceRelease.release
@@ -300,15 +354,27 @@ export function useAudioPlayer({
 			return
 		}
 
-		if (requestId === sourceRequestId)
+		if (requestId === sourceRequestId) {
+			const shouldHandleEnded = activeEndedWhilePending
 			navigationCandidate = null
+			activeEndedWhilePending = false
+			if (shouldHandleEnded)
+				handleEnded()
+		}
 	}
 
-	function requestQueueCandidate(candidate: AudioQueueCandidate | null, onCommit?: () => void) {
-		const requestId = ++sourceRequestId
+	function requestQueueCandidate(
+		candidate: AudioQueueCandidate | null,
+		onCommit?: () => void,
+		direction: 'next' | 'previous' = 'next',
+	) {
+		cancelPendingTransition()
+		const requestId = sourceRequestId
 		navigationCandidate = candidate
+		navigationDirection = direction
+		navigationOnCommit = onCommit
 		if (candidate != null)
-			void transitionToCandidate(requestId, candidate, onCommit)
+			void transitionToCandidate(requestId, candidate, direction, onCommit)
 		return candidate?.audioId ?? null
 	}
 
@@ -336,21 +402,25 @@ export function useAudioPlayer({
 	}
 
 	function goPrevious() {
-		cancelPendingTransition()
-		if (currentAudioId.value == null)
+		if (currentAudioId.value == null) {
+			cancelPendingTransition()
 			return
+		}
 
 		if (currentTime.value > 3) {
+			cancelPendingTransition()
 			activePlayback.value.backend.currentTime.value = 0
 			return
 		}
 
-		requestQueueCandidate(audioQueueLogic.goPrevious())
+		requestQueueCandidate(audioQueueLogic.goPrevious(), undefined, 'previous')
 	}
 
 	function handleEnded() {
-		if (navigationCandidate != null)
+		if (navigationCandidate != null) {
+			activeEndedWhilePending = true
 			return
+		}
 		if (repeated.value === 'off' && !audioQueueLogic.hasReachedEnd.value) {
 			goNext()
 			return
