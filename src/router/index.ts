@@ -82,20 +82,38 @@ const middlewares = {
 		const result = safeParse(HashActionImportSaveablePlaylistSchema, data)
 		if (result.success) {
 			const playlist = (result.output as HashActionImportSaveablePlaylist).data
+			const musicStore = useMusicStore()
+			const resolvableMusicIds = playlist.list.filter(musicId => musicStore.getMusicData(musicId) != null)
+			const unresolvedMusicIds = playlist.list.filter(musicId => musicStore.getMusicData(musicId) == null)
 
 			const { confirm } = useUiConfirmDialog()
+			if (unresolvedMusicIds.length > 0) {
+				const unresolvedList = unresolvedMusicIds
+					.map((musicId, index) => `${index + 1}. ${musicId}`)
+					.join('\n')
+				const acceptReducedImport = await confirm({
+					title: 'Some Music Is Unavailable',
+					description: `The following shared music IDs cannot be resolved and will be omitted if you continue:\n\n${unresolvedList}\n\nImport only the ${resolvableMusicIds.length} resolvable item(s)?`,
+				})
+
+				if (acceptReducedImport === false)
+					return true
+			}
+
+			const acceptedPlaylist = unresolvedMusicIds.length === 0
+				? playlist
+				: { ...playlist, list: resolvableMusicIds }
 			const agreed = await confirm({
 				title: 'Import Playlist',
-				description: `Are you sure you want to import this playlist, "${playlist.title}"?`,
+				description: `Import playlist "${playlist.title}" with ${acceptedPlaylist.list.length} music item(s)?`,
 			})
 
-			if (agreed === false) {
+			if (agreed === false)
 				return true
-			}
 
 			const { dialog } = useAppDialog()
 			await dialog(CreatePlaylistDialog, {
-				importFrom: playlist,
+				importFrom: acceptedPlaylist,
 			})
 		}
 
