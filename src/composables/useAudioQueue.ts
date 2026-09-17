@@ -10,7 +10,7 @@ function shuffle<T>(array: T[]): T[] {
 export function useAudioQueue(options: UseAudioQueueOptions) {
 	const originalAudioIdList = ref<string[]>([])
 	const playedQueue = ref<string[]>([])
-	const current = ref<string | null>(null)
+	const cursor = ref<string | null>(null)
 	const toPlayQueue = ref<string[]>([])
 	const [random, toggleRandom] = useToggle(options.random ?? false)
 
@@ -33,7 +33,7 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 			|| (audioId != null && (audioIdList.includes(audioId!) === false))
 			|| (audioId == null && audioIdList.every(options.isMusicDisabled))
 		) {
-			return
+			return null
 		}
 
 		const list = random.value
@@ -42,91 +42,102 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 		const index = audioId == null ? findFirstPlayableIndex(list) : list.indexOf(audioId)
 
 		if (index < 0)
-			return
+			return null
 
 		originalAudioIdList.value = audioIdList
 		playedQueue.value = list.slice(0, index)
 		toPlayQueue.value = list.slice(index + 1)
-		current.value = list[index]!
+		cursor.value = list[index]!
+		return cursor.value
 	}
 
 	watch(
 		random,
-		() => initQueue(originalAudioIdList.value, current.value),
+		() => initQueue(originalAudioIdList.value, cursor.value),
 		{ flush: 'sync' },
 	)
 
 	const hasReachedEnd = computed(() => toPlayQueue.value.length === 0)
 
 	function goNext() {
-		if (current.value == null)
-			return
+		if (cursor.value == null)
+			return null
 
 		const nextIndex = findFirstPlayableIndex(toPlayQueue.value)
 		if (nextIndex >= 0) {
 			const nextAudioId = toPlayQueue.value[nextIndex]!
-			const newPlayedQueue = [...playedQueue.value, current.value, ...toPlayQueue.value.slice(0, nextIndex)]
+			const newPlayedQueue = [...playedQueue.value, cursor.value, ...toPlayQueue.value.slice(0, nextIndex)]
 			const newToPlayQueue = toPlayQueue.value.slice(nextIndex + 1)
 			playedQueue.value = newPlayedQueue
 			toPlayQueue.value = newToPlayQueue
-			current.value = nextAudioId
+			cursor.value = nextAudioId
+			return nextAudioId
 		}
 		else {
 			const nextIndex = findFirstPlayableIndex(playedQueue.value)
 			if (nextIndex >= 0) {
 				const nextAudioId = playedQueue.value[nextIndex]!
 				const newPlayedQueue = playedQueue.value.slice(0, nextIndex)
-				const newToPlayQueue = [...playedQueue.value.slice(nextIndex + 1), current.value, ...toPlayQueue.value]
+				const newToPlayQueue = [...playedQueue.value.slice(nextIndex + 1), cursor.value, ...toPlayQueue.value]
 				playedQueue.value = newPlayedQueue
 				toPlayQueue.value = newToPlayQueue
-				current.value = nextAudioId
+				cursor.value = nextAudioId
+				return nextAudioId
 			}
 		}
+
+		return null
 	}
 
 	function goPrevious() {
-		if (current.value == null)
-			return
+		if (cursor.value == null)
+			return null
 
 		const previousIndex = findLastPlayableIndex(playedQueue.value)
 		if (previousIndex >= 0) {
 			const previousAudioId = playedQueue.value[previousIndex]!
 			const newPlayedQueue = playedQueue.value.slice(0, previousIndex)
-			const newToPlayQueue = [...playedQueue.value.slice(previousIndex + 1), current.value, ...toPlayQueue.value]
+			const newToPlayQueue = [...playedQueue.value.slice(previousIndex + 1), cursor.value, ...toPlayQueue.value]
 			playedQueue.value = newPlayedQueue
 			toPlayQueue.value = newToPlayQueue
-			current.value = previousAudioId
+			cursor.value = previousAudioId
+			return previousAudioId
 		}
 		else {
 			const previousIndex = findLastPlayableIndex(toPlayQueue.value)
 			if (previousIndex >= 0) {
 				const previousAudioId = toPlayQueue.value[previousIndex]!
-				const newPlayedQueue = [...playedQueue.value, current.value, ...toPlayQueue.value.slice(0, previousIndex)]
+				const newPlayedQueue = [...playedQueue.value, cursor.value, ...toPlayQueue.value.slice(0, previousIndex)]
 				const newToPlayQueue = toPlayQueue.value.slice(previousIndex + 1)
 				toPlayQueue.value = newToPlayQueue
 				playedQueue.value = newPlayedQueue
-				current.value = previousAudioId
+				cursor.value = previousAudioId
+				return previousAudioId
 			}
 		}
+
+		return null
 	}
 
 	function playToPlayQueueItem(audioId: string) {
-		if (options.isMusicDisabled(audioId))
-			return
+		if (options.isMusicDisabled(audioId) || cursor.value == null)
+			return null
 
 		const index = toPlayQueue.value.indexOf(audioId)
 		if (index >= 0 && index < toPlayQueue.value.length) {
-			playedQueue.value.push(current.value!, ...toPlayQueue.value.slice(0, index))
+			playedQueue.value.push(cursor.value, ...toPlayQueue.value.slice(0, index))
 			const list = toPlayQueue.value.slice(index)
-			current.value = list.shift()!
+			cursor.value = list.shift()!
 			toPlayQueue.value = list
+			return cursor.value
 		}
+
+		return null
 	}
 
 	return {
 		random,
 		toggleRandom,
-		current,
 		toPlayQueue,
 		hasReachedEnd,
 		initQueue,

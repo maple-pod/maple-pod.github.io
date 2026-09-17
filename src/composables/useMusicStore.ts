@@ -279,9 +279,6 @@ export const useMusicStore = defineStore('music', () => {
 
 		currentPlaylist.value = playlist
 		audioPlayerLogic.play(playlist.list, musicId)
-
-		// ensure the audio is reset
-		audioPlayerLogic.currentTime.value = 0
 	}
 
 	const MAX_HISTORY_LENGTH = 50

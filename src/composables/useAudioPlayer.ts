@@ -71,6 +71,7 @@ export function useAudioPlayer({
 
 	const TRACK_SWITCH_FADE_MS = 30
 	let sourceRequestId = 0
+	let candidateBackendRequestId: number | null = null
 	let releaseCurrentSource: (() => void) | null = null
 
 	const audioQueueLogic = useAudioQueue({
@@ -79,12 +80,16 @@ export function useAudioPlayer({
 	})
 	const random = audioQueueLogic.random
 	const toggleRandom = audioQueueLogic.toggleRandom
-	const currentAudioId = audioQueueLogic.current
+	const currentAudioId = ref<string | null>(null)
+	const playbackRequest = ref<{ id: number, audioId: string } | null>(null)
 
 	watch(
-		currentAudioId,
-		async (audioId) => {
-			const requestId = ++sourceRequestId
+		playbackRequest,
+		async (request) => {
+			if (request == null)
+				return
+
+			const { id: requestId, audioId } = request
 			const resolvedSource = await getAudioSrc(audioId)
 			const source = typeof resolvedSource === 'string'
 				? { src: resolvedSource }
@@ -101,35 +106,65 @@ export function useAudioPlayer({
 				return
 			}
 
-			releaseCurrentSource?.()
-			releaseCurrentSource = null
-			playbackBackend.setNormalizationGainDb(source?.normalizationGainDb ?? 0)
-
 			if (source == null) {
-				playbackBackend.unload()
-				return
-			}
-
-			releaseCurrentSource = source.release ?? null
-			playbackBackend.load(source.src)
-			const playbackStarted = playbackBackend.play()
-			await playbackBackend.waitUntilReady()
-
-			if (requestId !== sourceRequestId)
-				return
-			if (playbackBackend.hasError.value || await playbackStarted === false) {
 				await playbackBackend.fadeOutputTo(1, 0)
 				return
 			}
-			if (requestId !== sourceRequestId)
+
+			const candidateSource = source
+			const releasePreviousSource = releaseCurrentSource
+			async function discardLoadedCandidate() {
+				candidateSource.release?.()
+				if (candidateBackendRequestId !== requestId)
+					return
+
+				candidateBackendRequestId = null
+				releasePreviousSource?.()
+				releaseCurrentSource = null
+				currentAudioId.value = null
+				playbackBackend.unload()
+				await playbackBackend.fadeOutputTo(1, 0)
+			}
+
+			playbackBackend.setNormalizationGainDb(candidateSource.normalizationGainDb ?? 0)
+			candidateBackendRequestId = requestId
+			playbackBackend.load(candidateSource.src)
+			const playbackStarted = playbackBackend.play()
+			await playbackBackend.waitUntilReady()
+
+			if (requestId !== sourceRequestId) {
+				await discardLoadedCandidate()
 				return
+			}
+			if (playbackBackend.hasError.value || await playbackStarted === false) {
+				await discardLoadedCandidate()
+				return
+			}
+			if (requestId !== sourceRequestId) {
+				await discardLoadedCandidate()
+				return
+			}
+
+			releasePreviousSource?.()
+			candidateBackendRequestId = null
+			releaseCurrentSource = candidateSource.release ?? null
+			currentTime.value = 0
+			currentAudioId.value = audioId
 			await playbackBackend.fadeOutputTo(1, TRACK_SWITCH_FADE_MS)
 		},
 	)
 
+	function requestQueueCandidate(audioId: string | null) {
+		if (audioId != null) {
+			const id = ++sourceRequestId
+			playbackRequest.value = { id, audioId }
+		}
+		return audioId
+	}
+
 	function play(...args: Parameters<typeof audioQueueLogic.initQueue>) {
 		playbackBackend.preparePlayback()
-		return audioQueueLogic.initQueue(...args)
+		return requestQueueCandidate(audioQueueLogic.initQueue(...args))
 	}
 	function togglePlay() {
 		if (playbackBackend.isPaused.value)
@@ -137,7 +172,9 @@ export function useAudioPlayer({
 		else
 			playbackBackend.pause()
 	}
-	const goNext = audioQueueLogic.goNext
+	function goNext() {
+		return requestQueueCandidate(audioQueueLogic.goNext())
+	}
 	function goPrevious() {
 		if (currentAudioId.value == null)
 			return
@@ -147,7 +184,7 @@ export function useAudioPlayer({
 			return
 		}
 
-		audioQueueLogic.goPrevious()
+		requestQueueCandidate(audioQueueLogic.goPrevious())
 	}
 
 	const stopEndedListener = playbackBackend.onEnded(() => {
@@ -158,8 +195,8 @@ export function useAudioPlayer({
 
 		if (repeated.value === 'repeat') {
 			const previousAudioId = currentAudioId.value
-			goNext()
-			if (currentAudioId.value === previousAudioId) {
+			const nextAudioId = goNext()
+			if (nextAudioId == null || nextAudioId === previousAudioId) {
 				currentTime.value = 0
 				void playbackBackend.play()
 			}
@@ -173,7 +210,9 @@ export function useAudioPlayer({
 	})
 
 	const toPlayQueue = audioQueueLogic.toPlayQueue
-	const playToPlayQueueItem = audioQueueLogic.playToPlayQueueItem
+	function playToPlayQueueItem(audioId: string) {
+		return requestQueueCandidate(audioQueueLogic.playToPlayQueueItem(audioId))
+	}
 
 	watch(
 		[muted, volume, random, repeated],
