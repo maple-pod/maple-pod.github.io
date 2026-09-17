@@ -113,14 +113,36 @@ function goBackToPlaylists() {
 }
 
 const canDragAndSort = computed(() => playlist.value.id !== 'all')
+
+function reorderVisiblePlaylistMembers(newItems: MusicData[]) {
+	const visibleIds = filteredTracks.value.map(item => item.id)
+	const reorderedIds = newItems.map(item => item.id)
+	if (reorderedIds.length !== visibleIds.length)
+		return
+
+	const visibleIdSet = new Set(visibleIds)
+	const reorderedIdSet = new Set(reorderedIds)
+	if (
+		reorderedIdSet.size !== visibleIdSet.size
+		|| visibleIds.some(id => reorderedIdSet.has(id) === false)
+	) {
+		return
+	}
+
+	let reorderedIndex = 0
+	playlist.value.list = playlist.value.list.map((id) => {
+		if (visibleIdSet.has(id) === false)
+			return id
+
+		return reorderedIds[reorderedIndex++]!
+	})
+}
 const { pointerPosition, placeholderIndex, isDragging, items } = useDragAndSort({
 	draggableElementHandlerSelector: '[data-draggable-handler]',
 	draggableElementSelector: '[data-draggable=true]',
 	items: computed({
 		get: () => filteredTracks.value,
-		set: (newItems) => {
-			playlist.value.list = newItems.map(item => item.id)
-		},
+		set: reorderVisiblePlaylistMembers,
 	}),
 	modifyGhostElement(ghostElement) {
 		ghostElement.classList.add(...pika('card', { padding: '0' })
