@@ -1,11 +1,11 @@
 {
   "version": 1,
   "skills": {
-    "author-engineering-files": {
+    "maintain-spec-workspace": {
       "source": "DevilTea/deviltea-labs",
       "sourceType": "github",
-      "skillPath": "packages/ef/skills/author-engineering-files/SKILL.md",
-      "computedHash": "117252dcab4c565fbdee0b815de75776e150a0511e6ca38b0a82a7d5b1dbe55b"
+      "skillPath": "packages/spec-tool/skills/maintain-spec-workspace/SKILL.md",
+      "computedHash": "e58edec9d3bd604020d69d72fbe212cef6f3353c34e40129c868537b5d359395"
     },
     "pikacss-use": {
       "source": "pikacss/pikacss",
@@ -13,11 +13,11 @@
       "skillPath": "skills/pikacss-use/SKILL.md",
       "computedHash": "42666adc1a4fbbb63000dfc894c11c20680b2f35e0e0b3d3e003922fc8bd5d2e"
     },
-    "review-engineering-change": {
+    "review-spec-workspace": {
       "source": "DevilTea/deviltea-labs",
       "sourceType": "github",
-      "skillPath": "packages/ef/skills/review-engineering-change/SKILL.md",
-      "computedHash": "c5124f4fe5db2ff689d6cf9d3a085bc2cd885292eab639661a18a6a7e8e89b69"
+      "skillPath": "packages/spec-tool/skills/review-spec-workspace/SKILL.md",
+      "computedHash": "6c056c4f91d8e77a2f2ed8b24e5a9f8d5a93a187b7ee2e0371c174b27d2d140f"
     }
   }
 }
