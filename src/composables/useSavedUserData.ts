@@ -37,6 +37,11 @@ export const useSavedUserData = createSharedComposable(() => {
 		createInitialSavedUserData,
 		{
 			mergeDefaults: true,
+			writeDefaults: false,
+			eventFilter: (invoke) => {
+				if (!isFactoryResetting())
+					invoke()
+			},
 		},
 	)
 

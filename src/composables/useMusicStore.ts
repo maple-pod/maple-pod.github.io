@@ -1,7 +1,8 @@
-import type { CustomPlaylistId, LoudnessAnalysisReport, MusicData, Playlist, PlaylistId, Resources } from '@/types'
+import type { CustomPlaylistId, LoudnessAnalysisReport, MusicData, Playlist, PlaylistId, ResourceBgm, Resources } from '@/types'
 import localforage from 'localforage'
 import { ofetch } from 'ofetch'
 import { convertImageDataUrlToDataUrl512, decodeImageFromBinary } from '@/utils/common'
+import { isFactoryResetting, registerFactoryResetQuiesceHandler } from '@/utils/factoryReset'
 
 function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playlist {
 	return {
@@ -15,8 +16,52 @@ function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playli
 	}
 }
 
-function getResourceBgmSrc(bgm: Resources['bgms'][number]): string {
-	return `/resources/bgm/${bgm.audio?.file ?? `${bgm.filename}.mp3`}`
+type ResourceBgmInput = Omit<ResourceBgm, 'audio'> & { audio?: ResourceBgm['audio'] | null }
+type ResourcesInput = Omit<Resources, 'bgms'> & { bgms: ResourceBgmInput[] }
+
+function hasValidAudioRepresentation(audio: ResourceBgmInput['audio']): audio is ResourceBgm['audio'] {
+	return audio != null
+		&& typeof audio.file === 'string'
+		&& audio.file.length > 0
+		&& typeof audio.codec === 'string'
+		&& audio.codec.length > 0
+		&& typeof audio.container === 'string'
+		&& audio.container.length > 0
+}
+
+function normalizeResourceCatalog(input: ResourcesInput): Resources {
+	const missingAudioCount = input.bgms.filter(bgm => bgm.audio == null).length
+	const legacyCatalog = input.bgms.length > 0 && missingAudioCount === input.bgms.length
+
+	return {
+		...input,
+		bgms: input.bgms.map((bgm) => {
+			if (legacyCatalog) {
+				// Catalogs cached by older installed PWAs predate explicit audio metadata.
+				// Normalize that whole legacy shape once at ingestion; current source
+				// resolution remains strict and never synthesizes a fallback path.
+				return {
+					...bgm,
+					audio: {
+						file: `${bgm.filename}.mp3`,
+						codec: 'mp3',
+						container: 'mp3',
+					},
+				}
+			}
+
+			if (!hasValidAudioRepresentation(bgm.audio))
+				throw new Error(`Music resource "${bgm.filename}" has no valid declared audio representation.`)
+
+			return { ...bgm, audio: bgm.audio }
+		}),
+	}
+}
+
+function getResourceBgmSrc(bgm: ResourceBgm): string {
+	if (!hasValidAudioRepresentation(bgm.audio))
+		throw new Error(`Music resource "${bgm.filename}" has no valid declared audio representation.`)
+	return `/resources/bgm/${bgm.audio.file}`
 }
 
 function groupByMark(data: MusicData[]): Map<string, MusicData[]> {
@@ -44,7 +89,7 @@ export const useMusicStore = defineStore('music', () => {
 		isReady: isDataReady,
 	} = useAsyncState(
 		async () => {
-			const res = await ofetch<Resources>('/resources/data.json')
+			const res = normalizeResourceCatalog(await ofetch<ResourcesInput>('/resources/data.json'))
 			resourceBuiltAt.value = res.builtAt
 			const marks = res.marks
 			return Promise.all<MusicData>(res.bgms.map(async bgm => ({
@@ -196,6 +241,7 @@ export const useMusicStore = defineStore('music', () => {
 		offlineReadyMusics,
 		loadOfflineMusics,
 		offlineMusicDownloadingProgress,
+		offlineMusicDownloadErrors,
 		saveMusicForOffline: _saveMusicForOffline,
 		cancelOfflineMusicDownload,
 		removeSavedOfflineMusic,
@@ -286,11 +332,9 @@ export const useMusicStore = defineStore('music', () => {
 		if (musicId != null && (playlist.list.includes(musicId) === false))
 			return
 
-		currentPlaylist.value = playlist
-		audioPlayerLogic.play(playlist.list, musicId)
-
-		// ensure the audio is reset
-		audioPlayerLogic.currentTime.value = 0
+		audioPlayerLogic.play(playlist.list, musicId, () => {
+			currentPlaylist.value = playlist
+		})
 	}
 
 	const MAX_HISTORY_LENGTH = 50
@@ -391,14 +435,25 @@ export const useMusicStore = defineStore('music', () => {
 
 	function normalizePlaylistMusicIds(list: string[]): string[] {
 		return list
-			// Process old data
-			.map(src => src.split('/')
-				.pop()!.replace('.mp3', ''))
-			.filter(id => getMusicData(id) != null)
+			.map((value) => {
+				if (getMusicData(value) != null)
+					return value
+
+				// Persisted data before stable music IDs used the exact resource path.
+				// This is an input migration only; source resolution below never
+				// synthesizes an mp3 filename when resource metadata is missing.
+				const legacy = value.match(/^\/resources\/bgm\/([^/]+)\.mp3$/)
+				return legacy != null && getMusicData(legacy[1]!) != null ? legacy[1]! : null
+			})
+			.filter((id): id is string => id != null)
+	}
+
+	function normalizeRecentHistory(): void {
+		history.value = normalizePlaylistMusicIds(history.value)
 	}
 
 	function normalizeSavedPlaylists(): void {
-		savedPlaylists.value = savedPlaylists.value
+		const normalizedPlaylists = savedPlaylists.value
 			.filter((playlist) => {
 				if (playlist.id.startsWith('custom:') === false) {
 					console.warn(`Invalid playlist ID: ${playlist.id}`)
@@ -409,10 +464,18 @@ export const useMusicStore = defineStore('music', () => {
 					return false
 				}
 
-				playlist.list = normalizePlaylistMusicIds(playlist.list)
 				return true
 			})
-		likedPlaylist.value.list = normalizePlaylistMusicIds(likedPlaylist.value.list)
+			.map(playlist => ({
+				...playlist,
+				list: normalizePlaylistMusicIds(playlist.list),
+			}))
+		const normalizedLiked = normalizePlaylistMusicIds(likedPlaylist.value.list)
+
+		if (JSON.stringify(normalizedPlaylists) !== JSON.stringify(savedPlaylists.value))
+			savedPlaylists.value = normalizedPlaylists
+		if (JSON.stringify(normalizedLiked) !== JSON.stringify(likedPlaylist.value.list))
+			likedPlaylist.value.list = normalizedLiked
 	}
 
 	const ready = until(isDataReady)
@@ -420,6 +483,7 @@ export const useMusicStore = defineStore('music', () => {
 		.then(async () => {
 			await loadOfflineMusics(id => getMusicData(id)?.src)
 			normalizeSavedPlaylists()
+			normalizeRecentHistory()
 		})
 
 	return {
@@ -430,6 +494,7 @@ export const useMusicStore = defineStore('music', () => {
 			.map(playlist => playlist)),
 		normalizeSavedPlaylists,
 		applySavedPlaybackPreferences,
+		normalizeRecentHistory,
 		getPlaylist,
 		findMusicInPlaylistIndex,
 		isCustomPlaylist,
@@ -447,6 +512,7 @@ export const useMusicStore = defineStore('music', () => {
 		history,
 		getPlayMusicLink,
 		offlineMusicDownloadingProgress,
+		offlineMusicDownloadErrors,
 		offlineReadyMusics,
 		saveMusicForOffline,
 		cancelOfflineMusicDownload,
@@ -470,6 +536,7 @@ function useOfflineMusics() {
 			&& typeof value.source === 'string'
 			&& 'blob' in value
 			&& value.blob instanceof Blob
+			&& value.blob.size > 0
 	}
 
 	const storage = localforage.createInstance({ name: 'maple-pod' })
@@ -489,14 +556,14 @@ function useOfflineMusics() {
 
 	const offlineReadyMusics = ref(new Set<string>())
 	async function loadOfflineMusics(getExpectedSource: (musicId: string) => string | undefined) {
-		if (clearingStorage)
+		if (!isOfflineStorageWritable())
 			return
 		const generation = storageGeneration
 		const keys = await storage.keys()
 		const ready = new Set<string>()
 		await Promise.all(keys.map(async (musicId) => {
 			const value = await storage.getItem<unknown>(musicId)
-			if (clearingStorage || generation !== storageGeneration)
+			if (!isOfflineStorageWritable() || generation !== storageGeneration)
 				return
 			const expectedSource = getExpectedSource(musicId)
 			if (expectedSource != null && isOfflineMusicEntry(value) && value.source === expectedSource) {
@@ -505,96 +572,171 @@ function useOfflineMusics() {
 			}
 
 			const legacySource = `/resources/bgm/${musicId}.mp3`
-			if (value instanceof Blob && expectedSource === legacySource) {
+			if (value instanceof Blob && value.size > 0 && expectedSource === legacySource) {
+				// Raw Blob is a self-identifying legacy storage representation. Only
+				// migrate it when today's explicit resource metadata selects the same
+				// source; this does not participate in source fallback.
 				await runStorageMutation(async () => {
-					if (clearingStorage || generation !== storageGeneration)
+					if (!isOfflineStorageWritable() || generation !== storageGeneration)
 						return
 					await storage.setItem<OfflineMusicEntry>(musicId, { source: legacySource, blob: value })
 				})
-				if (!clearingStorage && generation === storageGeneration)
+				if (isOfflineStorageWritable() && generation === storageGeneration)
 					ready.add(musicId)
 				return
 			}
 
 			if (value != null) {
 				await runStorageMutation(async () => {
-					if (!clearingStorage && generation === storageGeneration)
+					if (isOfflineStorageWritable() && generation === storageGeneration)
 						await storage.removeItem(musicId)
 				})
 			}
 		}))
-		if (!clearingStorage && generation === storageGeneration)
+		if (isOfflineStorageWritable() && generation === storageGeneration)
 			offlineReadyMusics.value = ready
 	}
 	const cancelFns = new Map<string, () => void>()
+	const activeAttempts = new Map<string, number>()
+	const activeAttemptRequests = new Map<string, Promise<void>>()
+	let nextAttemptId = 0
 	const offlineMusicDownloadingProgress = ref<Map<string, 'pending' | number>>(new Map())
-	async function _saveMusicForOffline(musicId: string, src: string, signal: AbortSignal, generation: number) {
-		const blob = await fetchBlob(
-			src,
-			(loaded, total) => {
-				const percent = Math.round((loaded / total) * 100)
-				offlineMusicDownloadingProgress.value.set(musicId, percent)
-			},
-			signal,
-		)
-			.catch(() => null)
-		offlineMusicDownloadingProgress.value.delete(musicId)
+	const offlineMusicDownloadErrors = ref(new Set<string>())
 
-		if (generation !== storageGeneration)
-			return
-
-		if (blob == null) {
-			await storage.removeItem(musicId)
-			return
-		}
-
-		await storage.setItem<OfflineMusicEntry>(musicId, { source: src, blob })
-		if (generation !== storageGeneration) {
-			await storage.removeItem(musicId)
-			return
-		}
-		offlineReadyMusics.value.add(musicId)
+	function isOfflineStorageWritable(): boolean {
+		return !clearingStorage && !isFactoryResetting()
 	}
+
+	function isCurrentAttempt(musicId: string, attemptId: number, generation: number, signal: AbortSignal) {
+		return isOfflineStorageWritable()
+			&& generation === storageGeneration
+			&& !signal.aborted
+			&& activeAttempts.get(musicId) === attemptId
+	}
+
+	async function removeAttemptStorage(musicId: string): Promise<void> {
+		try {
+			await storage.removeItem(musicId)
+		}
+		catch (error) {
+			console.error('Failed to clean up offline music storage:', error)
+		}
+	}
+
+	async function _saveMusicForOffline(
+		musicId: string,
+		src: string,
+		signal: AbortSignal,
+		generation: number,
+		attemptId: number,
+	) {
+		try {
+			const blob = await fetchBlob(
+				src,
+				(loaded, total) => {
+					if (!isCurrentAttempt(musicId, attemptId, generation, signal))
+						return
+					const percent = Math.round((loaded / total) * 100)
+					offlineMusicDownloadingProgress.value.set(musicId, percent)
+				},
+				signal,
+			)
+			if (blob.size === 0)
+				throw new Error('Offline music download returned an empty response.')
+			if (!isCurrentAttempt(musicId, attemptId, generation, signal))
+				return
+
+			await storage.setItem<OfflineMusicEntry>(musicId, { source: src, blob })
+			if (!isCurrentAttempt(musicId, attemptId, generation, signal)) {
+				await removeAttemptStorage(musicId)
+				return
+			}
+
+			offlineMusicDownloadErrors.value.delete(musicId)
+			offlineReadyMusics.value.add(musicId)
+		}
+		catch {
+			const cancelled = signal.aborted
+				|| generation !== storageGeneration
+				|| !isOfflineStorageWritable()
+			await removeAttemptStorage(musicId)
+			if (!cancelled && activeAttempts.get(musicId) === attemptId) {
+				offlineReadyMusics.value.delete(musicId)
+				offlineMusicDownloadErrors.value.add(musicId)
+			}
+		}
+		finally {
+			if (activeAttempts.get(musicId) === attemptId) {
+				activeAttempts.delete(musicId)
+				cancelFns.delete(musicId)
+				offlineMusicDownloadingProgress.value.delete(musicId)
+			}
+		}
+	}
+
 	const offlineMusicsQueue = new PromiseQueue(5)
 	async function saveMusicForOffline(musicId: string, src: string) {
-		if (clearingStorage || offlineMusicDownloadingProgress.value.has(musicId) || offlineReadyMusics.value.has(musicId)) {
+		if (!isOfflineStorageWritable() || activeAttempts.has(musicId) || offlineReadyMusics.value.has(musicId))
 			return
-		}
 
+		offlineMusicDownloadErrors.value.delete(musicId)
 		offlineMusicDownloadingProgress.value.set(musicId, 'pending')
 		const abortController = new AbortController()
 		const generation = storageGeneration
-		const task = offlineMusicsQueue.add(() => runStorageMutation(() => _saveMusicForOffline(musicId, src, abortController.signal, generation)))
+		const attemptId = ++nextAttemptId
+		activeAttempts.set(musicId, attemptId)
+		let started = false
+		const task = offlineMusicsQueue.add(async () => {
+			started = true
+			const request = runStorageMutation(() => _saveMusicForOffline(musicId, src, abortController.signal, generation, attemptId))
+			activeAttemptRequests.set(musicId, request)
+			try {
+				await request
+			}
+			finally {
+				if (activeAttemptRequests.get(musicId) === request)
+					activeAttemptRequests.delete(musicId)
+			}
+		})
 		cancelFns.set(musicId, () => {
+			if (activeAttempts.get(musicId) !== attemptId)
+				return
 			task.cancel()
 			abortController.abort()
-			offlineMusicDownloadingProgress.value.delete(musicId)
-			cancelFns.delete(musicId)
+			offlineMusicDownloadErrors.value.delete(musicId)
+			if (!started) {
+				offlineMusicDownloadingProgress.value.delete(musicId)
+				activeAttempts.delete(musicId)
+				cancelFns.delete(musicId)
+			}
+			// A running attempt retains its progress entry until its abort/cleanup
+			// settles, so the UI cannot expose Retry while this attempt still owns
+			// the per-track lock.
 		})
 	}
 	async function getSavedOfflineMusicBlob(musicId: string, expectedSource: string): Promise<Blob | null> {
-		if (clearingStorage)
+		if (!isOfflineStorageWritable())
 			return null
 		const generation = storageGeneration
 		const value = await storage.getItem<unknown>(musicId)
-		if (clearingStorage || generation !== storageGeneration)
+		if (!isOfflineStorageWritable() || generation !== storageGeneration)
 			return null
 		if (isOfflineMusicEntry(value) && value.source === expectedSource)
 			return value.blob
 
 		const legacySource = `/resources/bgm/${musicId}.mp3`
-		if (value instanceof Blob && expectedSource === legacySource) {
+		if (value instanceof Blob && value.size > 0 && expectedSource === legacySource) {
 			await runStorageMutation(async () => {
-				if (clearingStorage || generation !== storageGeneration)
+				if (!isOfflineStorageWritable() || generation !== storageGeneration)
 					return
 				await storage.setItem<OfflineMusicEntry>(musicId, { source: legacySource, blob: value })
 			})
-			return !clearingStorage && generation === storageGeneration ? value : null
+			return isOfflineStorageWritable() && generation === storageGeneration ? value : null
 		}
 
 		if (value != null) {
 			await runStorageMutation(async () => {
-				if (!clearingStorage && generation === storageGeneration)
+				if (isOfflineStorageWritable() && generation === storageGeneration)
 					await storage.removeItem(musicId)
 			})
 		}
@@ -605,20 +747,40 @@ function useOfflineMusics() {
 		cancelFns.get(musicId)?.()
 	}
 	async function removeSavedOfflineMusic(musicId: string) {
+		cancelOfflineMusicDownload(musicId)
+		await activeAttemptRequests.get(musicId)
+			?.catch(() => null)
 		await runStorageMutation(() => storage.removeItem(musicId))
 		offlineReadyMusics.value.delete(musicId)
+		offlineMusicDownloadErrors.value.delete(musicId)
 	}
+	const unregisterFactoryResetQuiesce = registerFactoryResetQuiesceHandler(async () => {
+		storageGeneration++
+		for (const cancel of [...cancelFns.values()])
+			cancel()
+		await Promise.allSettled([...activeAttemptRequests.values()])
+		await Promise.allSettled([...storageMutationRequests])
+		cancelFns.clear()
+		activeAttempts.clear()
+		offlineMusicDownloadingProgress.value = new Map()
+		offlineMusicDownloadErrors.value = new Set()
+	})
+	tryOnScopeDispose(unregisterFactoryResetQuiesce)
+
 	async function clearSavedOfflineMusics() {
 		clearingStorage = true
 		storageGeneration++
 		try {
 			for (const cancel of [...cancelFns.values()])
 				cancel()
-			cancelFns.clear()
+			await Promise.allSettled([...activeAttemptRequests.values()])
 			await Promise.allSettled([...storageMutationRequests])
+			cancelFns.clear()
+			activeAttempts.clear()
 			await storage.clear()
 			offlineReadyMusics.value = new Set()
 			offlineMusicDownloadingProgress.value = new Map()
+			offlineMusicDownloadErrors.value = new Set()
 		}
 		finally {
 			clearingStorage = false
@@ -629,6 +791,7 @@ function useOfflineMusics() {
 		offlineReadyMusics,
 		loadOfflineMusics,
 		offlineMusicDownloadingProgress,
+		offlineMusicDownloadErrors,
 		saveMusicForOffline,
 		getSavedOfflineMusicBlob,
 		cancelOfflineMusicDownload,

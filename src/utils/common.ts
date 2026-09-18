@@ -79,17 +79,25 @@ export async function fetchBlob(
 	signal?: AbortSignal | null,
 ): Promise<Blob> {
 	const response = await fetch(url, { signal })
+	if (!response.ok)
+		throw new Error(`Request failed with status ${response.status}`)
+	const body = response.body
+	if (body == null)
+		throw new Error('Response body unavailable')
+
 	const contentEncoding = response.headers.get('content-encoding')
 	const contentLength = response.headers.get(contentEncoding ? 'x-file-size' : 'content-length')
-	if (contentLength === null) {
+	if (contentLength === null)
 		throw new Error('Response size header unavailable')
-	}
 	const total = Number.parseInt(contentLength, 10)
+	if (!Number.isFinite(total) || total < 0)
+		throw new Error('Invalid response size header')
+
 	let loaded = 0
 	const newResponse = new Response(
 		new ReadableStream({
 			start(controller) {
-				const reader = response.body!.getReader()
+				const reader = body.getReader()
 
 				read()
 
@@ -112,7 +120,11 @@ export async function fetchBlob(
 			},
 		}),
 	)
-	return await newResponse.blob()
+	const blob = await newResponse.blob()
+	if (loaded !== total)
+		throw new Error(`Incomplete response body: expected ${total} bytes, received ${loaded}`)
+
+	return blob
 }
 
 export function createPromise<T = any>() {
