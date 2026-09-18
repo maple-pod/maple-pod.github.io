@@ -11,7 +11,7 @@ function toSavedPreferenceRef<P extends keyof SavedUserData['preferences']>(
 	})
 }
 
-function createInitialSavedUserData(): SavedUserData {
+export function createInitialSavedUserData(): SavedUserData {
 	return {
 		preferences: {
 			theme: 'auto',
@@ -37,6 +37,11 @@ export const useSavedUserData = createSharedComposable(() => {
 		createInitialSavedUserData,
 		{
 			mergeDefaults: true,
+			writeDefaults: false,
+			eventFilter: (invoke) => {
+				if (!isFactoryResetting())
+					invoke()
+			},
 		},
 	)
 

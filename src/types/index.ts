@@ -15,7 +15,7 @@ export interface SavedUserData {
 export interface ResourceBgm {
 	description: string
 	filename: string
-	audio?: {
+	audio: {
 		file: string
 		codec: string
 		container: string
@@ -88,10 +88,19 @@ export interface Playlist<Id extends PlaylistId = PlaylistId> {
 
 export interface HashActionImportSavedUserData {
 	type: 'import-saved-user-data'
-	data: SavedUserData
+	data: PortableSavedUserData
 }
 
 export interface HashActionImportSaveablePlaylist {
 	type: 'import-saveable-playlist'
 	data: Playlist<SaveablePlaylistId>
+}
+
+export interface PortableSavedUserData {
+	preferences?: Partial<SavedUserData['preferences']>
+	liked?: Playlist<'liked'>
+	playlists?: Playlist<CustomPlaylistId>[]
+	worldMap?: {
+		lastSelectedSnapshot?: string | null
+	}
 }

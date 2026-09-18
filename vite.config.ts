@@ -58,6 +58,7 @@ export default defineConfig(async () => ({
 				],
 			},
 			workbox: {
+				importScripts: ['sw-reset.js'],
 				globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
 				runtimeCaching: [
 					{
