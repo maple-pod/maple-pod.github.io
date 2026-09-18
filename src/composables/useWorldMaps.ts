@@ -363,12 +363,14 @@ async function fetchWorldMapNode(
 export function useWorldMaps() {
 	const catalog = shallowRef<WorldMapSnapshotCatalog | null>(catalogCache)
 	const selectedSnapshotId = ref<WorldMapSnapshotId | null>(null)
+	const pendingSnapshotId = ref<WorldMapSnapshotId | null>(null)
 	const manifest = shallowRef<WorldMapManifest | null>(null)
 	const loadedNodes = shallowRef(new Map<string, WorldMapNode>())
 	const nodeStates = shallowRef(new Map<string, WorldMapNodeLoadState>())
 	const loading = ref(false)
 	const error = shallowRef<unknown>(null)
 	let generation = 0
+	let selectionRequestGeneration = 0
 
 	const selectableSnapshots = computed(() => (catalog.value?.entries ?? []).filter(entry => entry.selectable))
 	const selectedSnapshot = computed<WorldMapSnapshotCatalogEntry | null>(() => {
@@ -428,41 +430,53 @@ export function useWorldMaps() {
 		if (entry == null)
 			throw new Error(`World map snapshot "${snapshotId}" is not selectable.`)
 
-		if (!force && selectedSnapshotId.value === snapshotId && manifest.value != null)
+		if (!force && selectedSnapshotId.value === snapshotId && manifest.value != null) {
+			selectionRequestGeneration++
+			pendingSnapshotId.value = null
+			error.value = null
+			loading.value = false
 			return manifest.value
+		}
 
-		const previousSnapshotId = selectedSnapshotId.value
-		const currentGeneration = ++generation
-		selectedSnapshotId.value = snapshotId
-		manifest.value = null
-		loadedNodes.value = new Map()
-		nodeStates.value = new Map()
+		const currentSelectionRequestGeneration = ++selectionRequestGeneration
+		pendingSnapshotId.value = snapshotId
 		loading.value = true
 		error.value = null
-		if (previousSnapshotId != null && previousSnapshotId !== snapshotId)
-			clearWorldMapSnapshotMemoryCache(previousSnapshotId)
 
 		try {
 			const nextManifest = await fetchWorldMapManifest(snapshotId, force)
-			if (
-				generation === currentGeneration
-				&& selectedSnapshotId.value === snapshotId
-				&& isLastSelectedSnapshotWriteEpochCurrent(selectionWriteEpoch)
-			) {
-				manifest.value = nextManifest
-				writeLastSelectedSnapshotId(snapshotId, selectionWriteEpoch)
+			if (selectionRequestGeneration !== currentSelectionRequestGeneration)
+				return nextManifest
+			if (!isLastSelectedSnapshotWriteEpochCurrent(selectionWriteEpoch)) {
+				pendingSnapshotId.value = null
+				return nextManifest
 			}
+
+			const previousSnapshotId = selectedSnapshotId.value
+			if (!writeLastSelectedSnapshotId(snapshotId, selectionWriteEpoch)) {
+				if (!isLastSelectedSnapshotWriteEpochCurrent(selectionWriteEpoch)) {
+					pendingSnapshotId.value = null
+					return nextManifest
+				}
+				throw new Error('Failed to persist the selected World Map snapshot.')
+			}
+			generation++
+			selectedSnapshotId.value = snapshotId
+			manifest.value = nextManifest
+			loadedNodes.value = new Map()
+			nodeStates.value = new Map()
+			pendingSnapshotId.value = null
+			if (previousSnapshotId != null && previousSnapshotId !== snapshotId)
+				clearWorldMapSnapshotMemoryCache(previousSnapshotId)
 			return nextManifest
 		}
 		catch (cause) {
-			if (generation === currentGeneration && selectedSnapshotId.value === snapshotId) {
+			if (selectionRequestGeneration === currentSelectionRequestGeneration)
 				error.value = cause
-				manifest.value = null
-			}
 			throw cause
 		}
 		finally {
-			if (generation === currentGeneration && selectedSnapshotId.value === snapshotId)
+			if (selectionRequestGeneration === currentSelectionRequestGeneration)
 				loading.value = false
 		}
 	}
@@ -505,6 +519,7 @@ export function useWorldMaps() {
 		catalog,
 		selectableSnapshots,
 		selectedSnapshotId,
+		pendingSnapshotId,
 		selectedSnapshot,
 		manifest,
 		loadedNodes,
@@ -516,8 +531,9 @@ export function useWorldMaps() {
 		selectSnapshot,
 		loadNode,
 		reload: async () => {
-			if (selectedSnapshotId.value != null)
-				return selectSnapshot(selectedSnapshotId.value, true)
+			const snapshotId = pendingSnapshotId.value ?? selectedSnapshotId.value
+			if (snapshotId != null)
+				return selectSnapshot(snapshotId, true)
 			return loadCatalog(true)
 		},
 		retryNode: (worldMapId: string) => loadNode(worldMapId, true),
