@@ -4,8 +4,8 @@
     "maintain-spec-workspace": {
       "source": "DevilTea/deviltea-labs",
       "sourceType": "github",
-      "skillPath": "packages/spec-tool/skills/maintain-spec-workspace/SKILL.md",
-      "computedHash": "e58edec9d3bd604020d69d72fbe212cef6f3353c34e40129c868537b5d359395"
+      "skillPath": "skills/maintain-spec-workspace/SKILL.md",
+      "computedHash": "556cd3bc199003699d94c7726e99e6c9417cc51ba6e7810fa93b003df7f63df2"
     },
     "pikacss-use": {
       "source": "pikacss/pikacss",
@@ -16,8 +16,8 @@
     "review-spec-workspace": {
       "source": "DevilTea/deviltea-labs",
       "sourceType": "github",
-      "skillPath": "packages/spec-tool/skills/review-spec-workspace/SKILL.md",
-      "computedHash": "6c056c4f91d8e77a2f2ed8b24e5a9f8d5a93a187b7ee2e0371c174b27d2d140f"
+      "skillPath": "skills/review-spec-workspace/SKILL.md",
+      "computedHash": "3ad12dd2982d03d4c244419aa1fb9c55b2a7758e7ef3ca0853d1db412c3df0f6"
     }
   }
 }

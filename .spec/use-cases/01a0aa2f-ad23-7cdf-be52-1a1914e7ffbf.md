@@ -10,28 +10,19 @@ relations:
 resources: []
 ---
 ## Preconditions
-Maple Pod may have portable saved data and other Maple Pod-owned local state.
+Maple Pod contains personal saved data and may also contain device-local history, offline content, or onboarding state.
 
 ## Main Flow
-1. The user may export portable saved data as JSON or a transferable setup link.
-2. An incoming file/link payload is decoded and validated for known portable fields.
-3. Import asks for explicit confirmation before applying changes.
-4. Accepted import merges known incoming fields into local portable state: incoming values win on fields/entities supplied by the payload, omitted portable fields keep their local values, and unknown fields are ignored.
-5. The portable payload covers preferences, Liked/custom playlists, and the World Map last-selected snapshot; Recent History, offline downloads/caches, and first-visit metadata are not transferred.
-6. The user may choose Reset Saved Data to clear preferences, Liked/custom playlists, World Map last-selected snapshot, and Recent History back to defaults/empty state while retaining offline downloads and onboarding metadata.
-7. The user may choose Factory Reset to clear all Maple Pod-owned local state, including offline music/world-map data and firstVisit/onboarding metadata.
+1. The user exports portable saved data as a file or setup link.
+2. The user selects an incoming file or link; Maple Pod validates it and shows the import action for confirmation.
+3. After confirmation, Maple Pod merges the accepted portable data according to the Saved Data contract.
+4. The user may choose Reset Saved Data or Factory Reset, reviews the stated scope, and confirms the destructive action.
+5. Maple Pod applies the selected reset scope and returns to normal use.
 
 ## Alternate & Failure Flows
-- Malformed, undecodable, or invalid known fields must fail closed and make no local-state change.
-- Unknown incoming fields are ignored rather than persisted.
-- Omitted portable fields are treated as no-op for that field during merge.
-- Destructive reset actions require explicit confirmation.
+- Malformed or invalid incoming data is rejected without changing local state.
+- Cancelling import or reset leaves local state unchanged.
+- The two reset choices preserve or clear device-local state according to their stated scopes.
 
 ## Observable Outcomes
-The user can transfer portable personal configuration without copying device-local caches/history, merge it into another installation predictably, perform a narrower saved-data reset, or deliberately perform a full factory reset.
-
-## Compatibility Protocol
-The current saved-data transfer link is compatibility-sensitive: `/setup` with a hash carrying action `import-saved-user-data`, serialized as JSON, compressed with the current DEFLATE helper (`fflate`), encoded with Base64 URL-safe `-`/`_` substitutions and removed padding. Existing links must remain parseable unless a deliberate compatibility migration supersedes this contract.
-
-## Reverse-spec evidence
-Observed in settings handlers, `/setup` middleware, shared hash encoding helpers, saved-data store/schema, world-map selection persistence, offline storage, and `firstVisit`. Merge semantics, portable scope, and reset layering were explicitly accepted during product review and may differ from current implementation.
+The user can transfer personal configuration without unintentionally transferring device-local content, merge accepted data predictably, and distinguish the narrower reset from the full reset.

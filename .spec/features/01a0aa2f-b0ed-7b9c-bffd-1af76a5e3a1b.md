@@ -10,29 +10,17 @@ relations:
 resources: []
 ---
 ## Capability
-Provide portable saved-data export/import and two distinct destructive reset scopes: Reset Saved Data and Factory Reset.
+Provide portable personal-data transfer and two deliberate scopes for clearing Maple Pod-owned state.
 
 ## Semantics
-Portable saved data contains known personal configuration intended to transfer between browser/storage instances: preferences, Liked/custom playlists, and World Map last-selected snapshot. Recent History, offline media/world-map caches, and firstVisit/onboarding metadata are device-local and excluded from transfer. Import is a validated merge, not replacement: incoming known values win when supplied, omitted fields preserve local values, and unknown fields are ignored.
-
-Reset Saved Data is broader than the portable payload because it also clears Recent History, but it deliberately preserves offline downloads/caches and onboarding metadata. Factory Reset clears all Maple Pod-owned local state, including those preserved categories.
+Portable data is a selected subset of personal configuration, separate from device-local activity, cached content, and onboarding state. Import is a validated merge: supplied known values take precedence, omitted values remain local, and unknown values do not become opaque stored state. Reset Saved Data and Factory Reset have intentionally different ownership boundaries.
 
 ## Rules
-- Export/import must round-trip all known portable fields.
-- Recent History is not portable.
-- World Map last-selected snapshot is portable.
-- Offline music/world-map data and firstVisit/onboarding metadata are not portable.
-- Import must validate known fields before mutation.
-- Incoming known values override corresponding local values.
-- Missing portable fields preserve local values.
-- Unknown incoming fields are ignored and are not persisted.
-- Reset Saved Data clears portable state plus Recent History, but preserves offline data and onboarding metadata.
-- Factory Reset clears all Maple Pod-owned local state, including offline data and onboarding metadata.
-- Both destructive reset scopes require explicit user confirmation.
-- The existing `/setup` hash transport is compatibility-sensitive.
+- The portable boundary follows the Saved Data contract and excludes device-local history, offline content, and onboarding state.
+- Reset Saved Data clears portable state and recent activity while preserving device-local offline and onboarding state.
+- Factory Reset clears all Maple Pod-owned local state.
+- Import and both destructive resets require explicit user confirmation where the contract specifies it.
+- Transfer wire compatibility is defined by the separate Saved Data protocol requirement.
 
 ## Edge Cases
-A partial-but-valid import updates only supplied known fields. A same-ID custom playlist supplied by import replaces/updates that local entity according to incoming-wins semantics. Invalid known-field data must prevent the import from mutating local state. Unknown future fields must not cause rejection or opaque persistence. Factory Reset may require clearing multiple storage mechanisms; the mechanism is non-normative, but the resulting owned-state boundary is normative.
-
-## Reverse-spec evidence
-Observed across saved-data store/schema, settings UI, `/setup` route, world-map selection persistence, offline stores/caches, and onboarding state. Current implementation exports broader runtime SavedUserData, imports by replacement, and exposes a single reset path; those are implementation gaps where they conflict with the accepted contract.
+Partial valid imports update only supplied data. Invalid known data causes no mutation. A same-identity incoming entity follows incoming-wins merge semantics. A full reset may span several storage domains without changing the product-level scope.
