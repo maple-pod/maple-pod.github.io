@@ -15,7 +15,8 @@ import {
 	WORLD_MAP_RUNTIME_SCHEMA_VERSION,
 } from '@/constants/worldMapRuntime'
 import { parseWorldMapManifest, parseWorldMapNodeChunk } from '@/schemas'
-import { beginWorldMapStorageReset, isWorldMapStorageResetting, runWorldMapStorageOperation } from '@/utils/worldMapStorageReset'
+import { registerFactoryResetQuiesceHandler } from '@/utils/factoryReset'
+import { beginWorldMapStorageReset, isWorldMapStorageResetting, runWorldMapStorageOperation, waitForWorldMapStorageOperations } from '@/utils/worldMapStorageReset'
 
 const WORLD_MAP_OFFLINE_METADATA_PREFIX = 'maple-pod.world-map-offline'
 const OFFLINE_METADATA_VERSION = 1
@@ -56,6 +57,7 @@ const downloadError = shallowRef<DownloadErrorState | null>(null)
 const verifiedCacheKeys = shallowRef<Record<string, string>>({})
 const manifestSyncGenerations = new Map<WorldMapSnapshotId, number>()
 const manifestSyncRequests = new Set<Promise<void>>()
+const verificationRequests = new Set<Promise<void>>()
 const fallbackSnapshotLocks = new Map<string, Promise<void>>()
 let initializeRequest: Promise<void> | null = null
 let downloadRequest: Promise<void> | null = null
@@ -213,9 +215,15 @@ function installStorageListener(): void {
 	window.addEventListener('storage', (event) => {
 		if (event.key != null && !event.key.startsWith(WORLD_MAP_OFFLINE_METADATA_PREFIX))
 			return
+		if (isWorldMapStorageResetting())
+			return
 		refreshEntriesFromStorage()
 		verifiedCacheKeys.value = {}
-		void verifyStoredReadyEntries()
+		const request = verifyStoredReadyEntries()
+		verificationRequests.add(request)
+		void request
+			.catch(() => null)
+			.finally(() => verificationRequests.delete(request))
 	})
 }
 
@@ -384,10 +392,17 @@ async function verifyReadyEntry(entry: WorldMapOfflineEntry): Promise<boolean> {
 }
 
 async function verifyStoredReadyEntries(): Promise<void> {
+	if (isWorldMapStorageResetting())
+		return
+
 	const snapshotIds = Object.values(entriesBySnapshot.value)
 		.map(entry => entry.snapshotId)
 	for (const snapshotId of snapshotIds) {
+		if (isWorldMapStorageResetting())
+			return
 		await withSnapshotLock(snapshotId, async () => {
+			if (isWorldMapStorageResetting())
+				return
 			const entry = readStoredEntry(snapshotId)
 			if (entry == null || entry.status !== 'ready') {
 				clearVerified(snapshotId)
@@ -395,6 +410,8 @@ async function verifyStoredReadyEntries(): Promise<void> {
 			}
 
 			const valid = await verifyReadyEntry(entry)
+			if (isWorldMapStorageResetting())
+				return
 			const current = readStoredEntry(snapshotId)
 			if (current?.cacheKey !== entry.cacheKey || current.status !== 'ready')
 				return
@@ -405,6 +422,8 @@ async function verifyStoredReadyEntries(): Promise<void> {
 
 			clearVerified(snapshotId)
 			await removeSnapshotCaches(snapshotId)
+			if (isWorldMapStorageResetting())
+				return
 			setEntry({ ...entry, status: 'partial', updatedAt: Date.now() })
 		})
 	}
@@ -730,6 +749,21 @@ async function remove(snapshotId = selectedSnapshotId.value): Promise<void> {
 			downloadError.value = null
 	})
 }
+
+async function quiesceWorldMapOfflineStorage(): Promise<void> {
+	await initializeRequest?.catch(() => null)
+	generation++
+	downloadController?.abort()
+	await downloadRequest?.catch(() => null)
+	manifestSyncGenerations.clear()
+	await Promise.allSettled([...manifestSyncRequests])
+	await Promise.allSettled([...verificationRequests])
+	await waitForWorldMapStorageOperations()
+}
+
+const unregisterFactoryResetQuiesce = registerFactoryResetQuiesceHandler(quiesceWorldMapOfflineStorage)
+if (import.meta.hot)
+	import.meta.hot.dispose(unregisterFactoryResetQuiesce)
 
 async function clearAll(): Promise<void> {
 	const reset = beginWorldMapStorageReset()

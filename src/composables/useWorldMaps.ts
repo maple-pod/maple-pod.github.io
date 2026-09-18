@@ -23,8 +23,17 @@ import {
 	parseWorldMapNodeChunk,
 	parseWorldMapSnapshotCatalog,
 } from '@/schemas'
-import { readLastSelectedSnapshotId, writeLastSelectedSnapshotId } from '@/utils/worldMapSelectionStorage'
-import { runWorldMapStorageOperation } from '@/utils/worldMapStorageReset'
+import {
+	getLastSelectedSnapshotWriteEpoch,
+	isLastSelectedSnapshotWriteEpochCurrent,
+	readLastSelectedSnapshotId,
+	writeLastSelectedSnapshotId,
+} from '@/utils/worldMapSelectionStorage'
+import {
+	getWorldMapStorageGeneration,
+	isWorldMapStorageGenerationCurrent,
+	runWorldMapStorageOperation,
+} from '@/utils/worldMapStorageReset'
 
 export interface WorldMapNameRow {
 	region: 'GMS' | 'KMS' | 'JMS' | 'CMS' | 'TWMS' | 'SEA'
@@ -92,14 +101,19 @@ export function getWorldMapNodeAssetUrls(node: WorldMapNode, cacheKey: string): 
 		.map(asset => getWorldMapAssetPath(asset.file, cacheKey))
 }
 
-async function cacheResponse(cacheName: string, url: string, response: Response): Promise<void> {
+async function cacheResponse(
+	cacheName: string,
+	url: string,
+	response: Response,
+	storageGeneration: number,
+): Promise<void> {
 	if (typeof caches === 'undefined')
 		return
 	try {
 		await runWorldMapStorageOperation(async () => {
 			const cache = await caches.open(cacheName)
 			await cache.put(url, response.clone())
-		})
+		}, storageGeneration)
 	}
 	catch {
 		// Cache Storage is an enhancement for normal progressive loading. The
@@ -107,7 +121,7 @@ async function cacheResponse(cacheName: string, url: string, response: Response)
 	}
 }
 
-async function getCachedResponse(cacheName: string, url: string): Promise<Response | null> {
+async function getCachedResponse(cacheName: string, url: string, storageGeneration: number): Promise<Response | null> {
 	if (typeof caches === 'undefined')
 		return null
 	try {
@@ -115,14 +129,18 @@ async function getCachedResponse(cacheName: string, url: string): Promise<Respon
 			const cache = await caches.open(cacheName)
 			const response = await cache.match(url)
 			return response?.ok ? response : null
-		}) ?? null
+		}, storageGeneration) ?? null
 	}
 	catch {
 		return null
 	}
 }
 
-async function getCachedWorldMapManifest(snapshotId: WorldMapSnapshotId, url: string): Promise<WorldMapManifest | null> {
+async function getCachedWorldMapManifest(
+	snapshotId: WorldMapSnapshotId,
+	url: string,
+	storageGeneration: number,
+): Promise<WorldMapManifest | null> {
 	if (typeof caches === 'undefined')
 		return null
 	try {
@@ -147,7 +165,7 @@ async function getCachedWorldMapManifest(snapshotId: WorldMapSnapshotId, url: st
 
 			const response = await cache.match(url)
 			return response?.ok === true ? parseWorldMapManifest(await response.json()) : null
-		}) ?? null
+		}, storageGeneration) ?? null
 	}
 	catch {
 		return null
@@ -155,6 +173,12 @@ async function getCachedWorldMapManifest(snapshotId: WorldMapSnapshotId, url: st
 }
 
 export async function fetchWorldMapCatalog(force = false, signal?: AbortSignal): Promise<WorldMapSnapshotCatalog> {
+	const storageGeneration = getWorldMapStorageGeneration()
+	const assertCurrentStorage = () => {
+		if (!isWorldMapStorageGenerationCurrent(storageGeneration))
+			throw new DOMException('World map catalog request was superseded by storage reset.', 'AbortError')
+	}
+	assertCurrentStorage()
 	if (!force && catalogCache != null)
 		return catalogCache
 	if (!force && catalogRequest != null)
@@ -166,18 +190,25 @@ export async function fetchWorldMapCatalog(force = false, signal?: AbortSignal):
 				throw new Error(`World map catalog request failed with ${response.status}.`)
 			const value = parseWorldMapSnapshotCatalog(await response.clone()
 				.json())
-			await cacheResponse(WORLD_MAP_RUNTIME_CACHE_NAMES.manifest, WORLD_MAP_CATALOG_URL, response)
+			assertCurrentStorage()
+			await cacheResponse(WORLD_MAP_RUNTIME_CACHE_NAMES.manifest, WORLD_MAP_CATALOG_URL, response, storageGeneration)
+			assertCurrentStorage()
 			return value
 		})
 		.catch(async (cause) => {
+			if (cause instanceof DOMException && cause.name === 'AbortError')
+				throw cause
 			if (!force) {
-				const cached = await getCachedResponse(WORLD_MAP_RUNTIME_CACHE_NAMES.manifest, WORLD_MAP_CATALOG_URL)
-				if (cached != null)
+				const cached = await getCachedResponse(WORLD_MAP_RUNTIME_CACHE_NAMES.manifest, WORLD_MAP_CATALOG_URL, storageGeneration)
+				if (cached != null) {
+					assertCurrentStorage()
 					return parseWorldMapSnapshotCatalog(await cached.json())
+				}
 			}
 			throw cause
 		})
 		.then((value) => {
+			assertCurrentStorage()
 			catalogCache = value
 			return value
 		})
@@ -198,9 +229,10 @@ export async function fetchWorldMapManifest(
 	force = false,
 	signal?: AbortSignal,
 ): Promise<WorldMapManifest> {
+	const storageGeneration = getWorldMapStorageGeneration()
 	if (!force) {
 		const cached = manifestCache.get(snapshotId)
-		if (cached != null)
+		if (cached != null && isWorldMapStorageGenerationCurrent(storageGeneration))
 			return cached
 		const pending = manifestRequests.get(snapshotId)
 		if (pending != null)
@@ -211,9 +243,14 @@ export async function fetchWorldMapManifest(
 	const requestGeneration = (manifestRequestGenerations.get(snapshotId) ?? 0) + 1
 	manifestRequestGenerations.set(snapshotId, requestGeneration)
 	const assertCurrentRequest = () => {
-		if (manifestRequestGenerations.get(snapshotId) !== requestGeneration)
+		if (
+			manifestRequestGenerations.get(snapshotId) !== requestGeneration
+			|| !isWorldMapStorageGenerationCurrent(storageGeneration)
+		) {
 			throw new DOMException('World map manifest request was superseded.', 'AbortError')
+		}
 	}
+	assertCurrentRequest()
 	const request = fetch(url, { signal, cache: force ? 'no-cache' : 'default' })
 		.then(async (response) => {
 			if (!response.ok)
@@ -227,7 +264,7 @@ export async function fetchWorldMapManifest(
 			if (cause instanceof DOMException && cause.name === 'AbortError')
 				throw cause
 			if (!force) {
-				const value = await getCachedWorldMapManifest(snapshotId, url)
+				const value = await getCachedWorldMapManifest(snapshotId, url, storageGeneration)
 				if (value != null) {
 					assertCurrentRequest()
 					return value
@@ -258,6 +295,12 @@ async function fetchWorldMapNode(
 	worldMapId: string,
 	force = false,
 ): Promise<WorldMapNode> {
+	const storageGeneration = getWorldMapStorageGeneration()
+	const assertCurrentStorage = () => {
+		if (!isWorldMapStorageGenerationCurrent(storageGeneration))
+			throw new DOMException('World map node request was superseded by storage reset.', 'AbortError')
+	}
+	assertCurrentStorage()
 	const manifestNode = getManifestNode(manifest, worldMapId)
 	if (manifestNode == null)
 		throw new Error(`World map node "${worldMapId}" is not listed in the ${snapshotId} manifest.`)
@@ -281,13 +324,18 @@ async function fetchWorldMapNode(
 				.json())
 			if (node.worldMapId !== worldMapId)
 				throw new Error(`World map node response was "${node.worldMapId}", expected "${worldMapId}".`)
-			await cacheResponse(WORLD_MAP_RUNTIME_CACHE_NAMES.nodes, url, response)
+			assertCurrentStorage()
+			await cacheResponse(WORLD_MAP_RUNTIME_CACHE_NAMES.nodes, url, response, storageGeneration)
+			assertCurrentStorage()
 			return node
 		})
 		.catch(async (cause) => {
+			if (cause instanceof DOMException && cause.name === 'AbortError')
+				throw cause
 			if (!force) {
-				const cached = await getCachedResponse(WORLD_MAP_RUNTIME_CACHE_NAMES.nodes, url)
+				const cached = await getCachedResponse(WORLD_MAP_RUNTIME_CACHE_NAMES.nodes, url, storageGeneration)
 				if (cached != null) {
+					assertCurrentStorage()
 					const node = parseWorldMapNodeChunk(await cached.json())
 					if (node.worldMapId === worldMapId)
 						return node
@@ -296,6 +344,7 @@ async function fetchWorldMapNode(
 			throw cause
 		})
 		.then((node) => {
+			assertCurrentStorage()
 			nodeCache.set(key, node)
 			return node
 		})
@@ -372,6 +421,7 @@ export function useWorldMaps() {
 	}
 
 	async function selectSnapshot(snapshotId: WorldMapSnapshotId, force = false) {
+		const selectionWriteEpoch = getLastSelectedSnapshotWriteEpoch()
 		const currentCatalog = catalog.value ?? await fetchWorldMapCatalog()
 		catalog.value = currentCatalog
 		const entry = currentCatalog.entries.find(candidate => candidate.id === snapshotId && candidate.selectable)
@@ -394,9 +444,13 @@ export function useWorldMaps() {
 
 		try {
 			const nextManifest = await fetchWorldMapManifest(snapshotId, force)
-			if (generation === currentGeneration && selectedSnapshotId.value === snapshotId) {
+			if (
+				generation === currentGeneration
+				&& selectedSnapshotId.value === snapshotId
+				&& isLastSelectedSnapshotWriteEpochCurrent(selectionWriteEpoch)
+			) {
 				manifest.value = nextManifest
-				writeLastSelectedSnapshotId(snapshotId)
+				writeLastSelectedSnapshotId(snapshotId, selectionWriteEpoch)
 			}
 			return nextManifest
 		}
