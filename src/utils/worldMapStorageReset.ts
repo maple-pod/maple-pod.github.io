@@ -1,12 +1,30 @@
+import { isFactoryResetting } from '@/utils/factoryReset'
+
 let resetting = false
+let generation = 0
 const operations = new Set<Promise<unknown>>()
 
 export function isWorldMapStorageResetting(): boolean {
-	return resetting
+	return resetting || isFactoryResetting()
 }
 
-export async function runWorldMapStorageOperation<T>(operation: () => Promise<T>): Promise<T | undefined> {
-	if (resetting)
+export function getWorldMapStorageGeneration(): number {
+	return generation
+}
+
+export function isWorldMapStorageGenerationCurrent(expectedGeneration: number): boolean {
+	return generation === expectedGeneration && !isWorldMapStorageResetting()
+}
+
+export async function waitForWorldMapStorageOperations(): Promise<void> {
+	await Promise.allSettled([...operations])
+}
+
+export async function runWorldMapStorageOperation<T>(
+	operation: () => Promise<T>,
+	expectedGeneration = generation,
+): Promise<T | undefined> {
+	if (!isWorldMapStorageGenerationCurrent(expectedGeneration))
 		return undefined
 
 	const request = operation()
@@ -24,6 +42,7 @@ export function beginWorldMapStorageReset() {
 		throw new Error('World Map storage reset is already in progress.')
 
 	resetting = true
+	generation++
 	let ended = false
 	return {
 		async waitForOperations(): Promise<void> {

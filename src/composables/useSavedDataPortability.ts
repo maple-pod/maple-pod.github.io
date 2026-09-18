@@ -1,6 +1,6 @@
-import type { CustomPlaylistId, Playlist, PortableSavedUserData } from '@/types'
+import type { CustomPlaylistId, Playlist, PortableSavedUserData, SavedUserData } from '@/types'
 import { createInitialSavedUserData, useSavedUserData } from '@/composables/useSavedUserData'
-import { readLastSelectedSnapshotId, writeLastSelectedSnapshotId } from '@/utils/worldMapSelectionStorage'
+import { clearLastSelectedSnapshotId, readLastSelectedSnapshotId, writeLastSelectedSnapshotId } from '@/utils/worldMapSelectionStorage'
 
 function clonePlaylist<Id extends Playlist['id']>(playlist: Playlist<Id>): Playlist<Id> {
 	return {
@@ -45,7 +45,7 @@ export function useSavedDataPortability() {
 
 	function mergePortableSavedUserData(incoming: PortableSavedUserData): void {
 		const current = savedUserData.value
-		savedUserData.value = {
+		const merged: SavedUserData = {
 			preferences: incoming.preferences == null
 				? { ...current.preferences }
 				: { ...current.preferences, ...incoming.preferences },
@@ -58,13 +58,21 @@ export function useSavedDataPortability() {
 			history: [...current.history],
 		}
 
-		if (incoming.worldMap != null && 'lastSelectedSnapshot' in incoming.worldMap)
-			writeLastSelectedSnapshotId(incoming.worldMap.lastSelectedSnapshot ?? null)
+		if (
+			incoming.worldMap != null
+			&& 'lastSelectedSnapshot' in incoming.worldMap
+			&& !writeLastSelectedSnapshotId(incoming.worldMap.lastSelectedSnapshot ?? null)
+		) {
+			throw new Error('Failed to persist the imported World Map selection.')
+		}
+		savedUserData.value = merged
 	}
 
 	function resetSavedData(): void {
+		if (!clearLastSelectedSnapshotId()) {
+			throw new Error('Failed to clear the saved World Map selection.')
+		}
 		savedUserData.value = createInitialSavedUserData()
-		writeLastSelectedSnapshotId(null)
 	}
 
 	return {
