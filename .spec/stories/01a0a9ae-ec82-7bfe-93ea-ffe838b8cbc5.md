@@ -8,13 +8,10 @@ relations: []
 resources: []
 ---
 ## Actor
-A person organizing music in Maple Pod.
+A person managing personal music collections in Maple Pod.
 
 ## Goal
-Keep music in reusable collections through All, Liked, and custom playlists.
+Organize MapleStory BGM into reusable playlists.
 
 ## Value
-Return to known music collections without rebuilding them each session.
-
-## Reverse-spec evidence
-Observed in `src/views/Playlists.vue`, `src/views/Playlist.vue`, playlist dialogs/menus, `src/composables/useMusicStore.ts`, and `src/composables/useSavedUserData.ts`. During reverse-spec review, All, Liked, and custom playlists were explicitly accepted as stable product concepts; this intent was explicitly accepted during reverse-spec review.
+Return to personal music selections without rebuilding them each session.
