@@ -89,6 +89,15 @@ const FACTORY_RESET_RUNTIME_CACHE_NAMES = new Set([
 	'maple-pod-loudness-cache',
 ])
 
+const FACTORY_RESET_QUIESCE_MESSAGE = 'MAPLE_POD_FACTORY_RESET_QUIESCE'
+const FACTORY_RESET_QUIESCED_MESSAGE = 'MAPLE_POD_FACTORY_RESET_QUIESCED'
+const FACTORY_RESET_QUIESCE_FAILED_MESSAGE = 'MAPLE_POD_FACTORY_RESET_QUIESCE_FAILED'
+const FACTORY_RESET_ABORT_MESSAGE = 'MAPLE_POD_FACTORY_RESET_ABORT'
+const FACTORY_RESET_ABORTED_MESSAGE = 'MAPLE_POD_FACTORY_RESET_ABORTED'
+const FACTORY_RESET_FINALIZE_MESSAGE = 'MAPLE_POD_FACTORY_RESET_FINALIZE'
+const FACTORY_RESET_FINALIZED_MESSAGE = 'MAPLE_POD_FACTORY_RESET_FINALIZED'
+const FACTORY_RESET_QUIESCE_TIMEOUT_MS = 15_000
+
 async function clearWorkboxExpirationMetadata(cacheNames: string[]) {
 	if (typeof indexedDB === 'undefined' || cacheNames.length === 0)
 		return
@@ -149,41 +158,174 @@ function getAppServiceWorkerScope(): string {
 	return new URL(import.meta.env.BASE_URL, window.location.origin).href
 }
 
-async function unregisterAppServiceWorker(scope: string): Promise<void> {
-	if (!('serviceWorker' in navigator))
-		return
-	const registrations = await navigator.serviceWorker.getRegistrations()
-	await Promise.all(registrations
-		.filter(registration => registration.scope === scope)
-		.map(async (registration) => {
-			if (!await registration.unregister())
-				throw new Error(`Failed to unregister Maple Pod service worker for ${scope}.`)
-		}))
+async function requestFactoryResetServiceWorker(
+	worker: ServiceWorker,
+	messageType: string,
+	expectedResponseType: string,
+	resetId: string,
+): Promise<void> {
+	await new Promise<void>((resolve, reject) => {
+		const channel = new MessageChannel()
+		const timeout = window.setTimeout(() => {
+			channel.port1.close()
+			reject(new Error(`Timed out while waiting for the Maple Pod service worker to handle ${messageType}.`))
+		}, FACTORY_RESET_QUIESCE_TIMEOUT_MS)
+		const finish = (callback: () => void) => {
+			window.clearTimeout(timeout)
+			channel.port1.close()
+			callback()
+		}
+		channel.port1.onmessage = (event) => {
+			if (event.data?.resetId !== resetId) {
+				finish(() => reject(new Error('Maple Pod service worker returned a mismatched Factory Reset response.')))
+				return
+			}
+			if (event.data?.type === FACTORY_RESET_QUIESCE_FAILED_MESSAGE) {
+				finish(() => reject(new Error(event.data?.message || 'Maple Pod service worker failed to coordinate Factory Reset.')))
+				return
+			}
+			if (event.data?.type !== expectedResponseType) {
+				finish(() => reject(new Error('Maple Pod service worker returned an unexpected Factory Reset response.')))
+				return
+			}
+			finish(resolve)
+		}
+		channel.port1.onmessageerror = () => {
+			finish(() => reject(new Error('Failed to decode the Maple Pod service worker Factory Reset response.')))
+		}
+		worker.postMessage({ type: messageType, resetId }, [channel.port2])
+	})
 }
 
-async function clearFactoryResetCaches() {
+async function waitForServiceWorkerInstallation(worker: ServiceWorker): Promise<void> {
+	if (worker.state !== 'installing')
+		return
+
+	await new Promise<void>((resolve, reject) => {
+		let timeout: number | undefined
+		const onStateChange = () => {
+			if (worker.state === 'installing')
+				return
+			if (timeout != null)
+				window.clearTimeout(timeout)
+			worker.removeEventListener('statechange', onStateChange)
+			resolve()
+		}
+		timeout = window.setTimeout(() => {
+			worker.removeEventListener('statechange', onStateChange)
+			reject(new Error('Timed out while waiting for the Maple Pod service worker installation to settle.'))
+		}, FACTORY_RESET_QUIESCE_TIMEOUT_MS)
+		worker.addEventListener('statechange', onStateChange)
+		onStateChange()
+	})
+}
+
+interface FactoryResetServiceWorkerCoordination {
+	registrations: ServiceWorkerRegistration[]
+	workers: ServiceWorker[]
+}
+
+async function quiesceAppServiceWorkers(
+	scope: string,
+	resetId: string,
+): Promise<FactoryResetServiceWorkerCoordination> {
+	if (!('serviceWorker' in navigator))
+		return { registrations: [], workers: [] }
+
+	const registrations = (await navigator.serviceWorker.getRegistrations())
+		.filter(registration => registration.scope === scope)
+	const installingWorkers = registrations
+		.map(registration => registration.installing)
+		.filter((worker): worker is ServiceWorker => worker != null)
+	await Promise.all(installingWorkers.map(waitForServiceWorkerInstallation))
+
+	const workers = new Set<ServiceWorker>()
+	for (const registration of registrations) {
+		if (registration.active != null)
+			workers.add(registration.active)
+		if (registration.waiting != null)
+			workers.add(registration.waiting)
+	}
+
+	const workerList = [...workers]
+	try {
+		await Promise.all(workerList.map(worker => requestFactoryResetServiceWorker(
+			worker,
+			FACTORY_RESET_QUIESCE_MESSAGE,
+			FACTORY_RESET_QUIESCED_MESSAGE,
+			resetId,
+		)))
+	}
+	catch (error) {
+		await Promise.allSettled(workerList.map(worker => requestFactoryResetServiceWorker(
+			worker,
+			FACTORY_RESET_ABORT_MESSAGE,
+			FACTORY_RESET_ABORTED_MESSAGE,
+			resetId,
+		)))
+		throw error
+	}
+
+	return { registrations, workers: workerList }
+}
+
+async function abortFactoryResetServiceWorkers(
+	coordination: FactoryResetServiceWorkerCoordination,
+	resetId: string,
+): Promise<void> {
+	await Promise.allSettled(coordination.workers
+		.filter(worker => worker.state !== 'redundant')
+		.map(worker => requestFactoryResetServiceWorker(
+			worker,
+			FACTORY_RESET_ABORT_MESSAGE,
+			FACTORY_RESET_ABORTED_MESSAGE,
+			resetId,
+		)))
+}
+
+async function finalizeFactoryResetServiceWorkers(
+	coordination: FactoryResetServiceWorkerCoordination,
+	resetId: string,
+): Promise<void> {
+	const coordinator = coordination.workers.find(worker => worker.state !== 'redundant')
+	if (coordinator != null) {
+		await requestFactoryResetServiceWorker(
+			coordinator,
+			FACTORY_RESET_FINALIZE_MESSAGE,
+			FACTORY_RESET_FINALIZED_MESSAGE,
+			resetId,
+		)
+		return
+	}
+
+	await Promise.all(coordination.registrations.map(async (registration) => {
+		if (!await registration.unregister())
+			throw new Error(`Failed to unregister Maple Pod service worker for ${registration.scope}.`)
+	}))
+}
+
+function isOwnedPrecache(cacheName: string, appScope: string): boolean {
+	return cacheName.includes('-precache-') && cacheName.includes(appScope)
+}
+
+async function clearFactoryResetCaches(appScope: string) {
 	if (typeof caches === 'undefined')
 		return
 
-	const appScope = getAppServiceWorkerScope()
-	await unregisterAppServiceWorker(appScope)
-
-	const ownedPrecacheName = `workbox-precache-v2-${appScope}`
 	const cacheNames = await caches.keys()
 	const ownedCacheNames = cacheNames.filter(cacheName =>
-		FACTORY_RESET_RUNTIME_CACHE_NAMES.has(cacheName) || cacheName === ownedPrecacheName)
-	const runtimeCacheNames = ownedCacheNames.filter(cacheName => FACTORY_RESET_RUNTIME_CACHE_NAMES.has(cacheName))
-	await clearWorkboxExpirationMetadata(runtimeCacheNames)
+		FACTORY_RESET_RUNTIME_CACHE_NAMES.has(cacheName) || isOwnedPrecache(cacheName, appScope))
+	await clearWorkboxExpirationMetadata([...FACTORY_RESET_RUNTIME_CACHE_NAMES])
 	const deletionResults = await Promise.all(ownedCacheNames.map(cacheName => caches.delete(cacheName)))
 	if (deletionResults.some(deleted => !deleted))
 		throw new Error('One or more Maple Pod caches could not be deleted.')
 }
 
-async function performFactoryReset() {
+async function performFactoryReset(appScope: string) {
 	const cleanupResults = await Promise.allSettled([
 		clearSavedOfflineMusics(),
 		clearAllWorldMapOffline(),
-		clearFactoryResetCaches(),
+		clearFactoryResetCaches(appScope),
 	])
 	const failures = cleanupResults
 		.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
@@ -204,22 +346,38 @@ async function handleFactoryReset() {
 	if (!agreed)
 		return
 
-	while (true) {
-		try {
-			await performFactoryReset()
-			window.location.reload()
-			return
-		}
-		catch (error) {
-			console.error('Factory Reset storage cleanup failed:', error)
-			const retry = await confirm({
-				title: 'Factory Reset incomplete',
-				description: 'Some Maple Pod local data could not be cleared. Retry the cleanup before reloading?',
-				confirmText: 'Retry',
-				cancelText: 'Close',
-			})
-			if (!retry)
+	const reset = beginFactoryReset()
+	const appScope = getAppServiceWorkerScope()
+	let coordination: FactoryResetServiceWorkerCoordination | null = null
+	let completed = false
+	try {
+		while (true) {
+			try {
+				coordination ??= await quiesceAppServiceWorkers(appScope, reset.resetId)
+				await performFactoryReset(appScope)
+				await finalizeFactoryResetServiceWorkers(coordination, reset.resetId)
+				completed = true
+				window.location.reload()
 				return
+			}
+			catch (error) {
+				console.error('Factory Reset storage cleanup failed:', error)
+				const retry = await confirm({
+					title: 'Factory Reset incomplete',
+					description: 'Some Maple Pod local data could not be cleared. Retry the cleanup before reloading?',
+					confirmText: 'Retry',
+					cancelText: 'Close',
+				})
+				if (!retry)
+					return
+			}
+		}
+	}
+	finally {
+		if (!completed) {
+			if (coordination != null)
+				await abortFactoryResetServiceWorkers(coordination, reset.resetId)
+			reset.end()
 		}
 	}
 }
