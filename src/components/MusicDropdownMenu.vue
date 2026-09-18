@@ -9,7 +9,7 @@ const props = defineProps<{
 }>()
 
 const musicStore = useMusicStore()
-const { likedPlaylist, savedPlaylists, offlineReadyMusics, offlineMusicDownloadingProgress } = storeToRefs(musicStore)
+const { likedPlaylist, savedPlaylists, offlineReadyMusics, offlineMusicDownloadingProgress, offlineMusicDownloadErrors } = storeToRefs(musicStore)
 const { toggleMusicInPlaylist, isAddedInPlaylist, getPlayMusicLink, saveMusicForOffline } = musicStore
 
 const { dialog } = useAppDialog()
@@ -28,6 +28,7 @@ function handleCopyMusicLink(musicId: string) {
 
 const isReadyForOffline = computed(() => offlineReadyMusics.value.has(props.musicId))
 const isDownloading = computed(() => offlineMusicDownloadingProgress.value.has(props.musicId))
+const hasDownloadError = computed(() => offlineMusicDownloadErrors.value.has(props.musicId))
 const downloadingProgress = computed(() => offlineMusicDownloadingProgress.value.get(props.musicId) ?? null)
 const downloadStatusLabel = computed(() => {
 	if (isReadyForOffline.value)
@@ -37,6 +38,8 @@ const downloadStatusLabel = computed(() => {
 			? 'Pending for Download'
 			: `Downloading ${downloadingProgress.value}%`
 	}
+	if (hasDownloadError.value)
+		return 'Download Failed — Retry'
 	return 'Download for Offline'
 })
 

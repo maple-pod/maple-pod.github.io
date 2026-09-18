@@ -34,6 +34,7 @@ const {
 	catalog,
 	selectableSnapshots,
 	selectedSnapshotId,
+	pendingSnapshotId,
 	manifest,
 	loadedNodes,
 	loading,
@@ -47,7 +48,6 @@ const {
 } = useWorldMaps()
 const {
 	status: worldMapOfflineStatus,
-	setSnapshot: setWorldMapOfflineSnapshot,
 	setManifest: setWorldMapOfflineManifest,
 	downloadAll: downloadWorldMapsForOffline,
 	isReady: worldMapOfflineReady,
@@ -63,7 +63,6 @@ const currentNodeId = ref<string>('')
 const activeTarget = shallowRef<ActiveTarget | null>(null)
 const worldMapRef = useTemplateRef<HTMLDivElement>('worldMapRef')
 let activeTargetCloseTimer: ReturnType<typeof setTimeout> | null = null
-let snapshotSelectionGeneration = 0
 
 const worldMapInteractionSelector = '[data-world-map-hotspot], [data-world-map-popover]'
 
@@ -92,7 +91,7 @@ const selectableSnapshotOptions = computed(() => selectableSnapshots.value.map(s
 	label: snapshot.label,
 })))
 const selectedSnapshotModel = computed({
-	get: () => selectedSnapshotId.value ?? '',
+	get: () => pendingSnapshotId.value ?? selectedSnapshotId.value ?? '',
 	set: (snapshotId: string) => selectSnapshotFromUi(snapshotId),
 })
 const selectedRootModel = computed({
@@ -211,8 +210,13 @@ function routeMatches(rootWorldMapId: string, worldMapId: string) {
 }
 
 function selectSnapshotFromUi(snapshotId: string) {
-	if (snapshotId === selectedSnapshotId.value)
+	if (
+		snapshotId === selectedSnapshotId.value
+		&& pendingSnapshotId.value == null
+		&& snapshotRouteValue(route.query.snapshot) === snapshotId
+	) {
 		return
+	}
 	const candidate = selectableSnapshots.value.find(entry => entry.id === snapshotId)
 	if (candidate == null)
 		return
@@ -220,7 +224,6 @@ function selectSnapshotFromUi(snapshotId: string) {
 }
 
 watch([catalog, () => route.query.snapshot], async ([currentCatalog, routeSnapshot]) => {
-	const currentSelectionGeneration = ++snapshotSelectionGeneration
 	if (currentCatalog == null)
 		return
 	const resolvedSnapshotId = resolveSnapshotId(snapshotRouteValue(routeSnapshot))
@@ -230,14 +233,10 @@ watch([catalog, () => route.query.snapshot], async ([currentCatalog, routeSnapsh
 	if (snapshotRouteValue(routeSnapshot) !== resolvedSnapshotId)
 		void router.replace(currentSnapshotRouteLocation(resolvedSnapshotId))
 
-	if (selectedSnapshotId.value !== resolvedSnapshotId) {
+	if (selectedSnapshotId.value !== resolvedSnapshotId)
 		activeTarget.value = null
-		await setWorldMapOfflineSnapshot(resolvedSnapshotId)
-		if (currentSelectionGeneration !== snapshotSelectionGeneration || resolveSnapshotId(snapshotRouteValue(route.query.snapshot)) !== resolvedSnapshotId)
-			return
-		await selectSnapshot(resolvedSnapshotId)
-			.catch(() => null)
-	}
+	await selectSnapshot(resolvedSnapshotId)
+		.catch(() => null)
 }, { immediate: true })
 
 watch([manifest, selectedSnapshotId], ([currentManifest, snapshotId]) => {
@@ -284,6 +283,11 @@ watch([manifest, selectedSnapshotId, currentNodeId], ([currentManifest, snapshot
 watch([selectedSnapshotId, currentNodeId], () => {
 	activeTarget.value = null
 })
+
+function retryWorldMap() {
+	void reload()
+		.catch(() => null)
+}
 
 function goBackToPlaylists() {
 	return router.push({ name: Routes.Playlists })
@@ -649,7 +653,7 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 		</div>
 
 		<div
-			v-if="loading"
+			v-if="loading && manifest == null"
 			role="status"
 			:class="pika({ padding: '32px 16px', textAlign: 'center', color: 'var(--color-secondary-text)' })"
 		>
@@ -657,20 +661,42 @@ function spotAccessibleName(spot: WorldMapGraphSpot) {
 		</div>
 
 		<div
-			v-else-if="error != null"
+			v-else-if="error != null && manifest == null"
 			role="alert"
 			:class="pika({ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '16px' })"
 		>
 			<span>World map catalog or snapshot runtime could not be loaded or did not match the versioned resource contract.</span>
 			<button
 				:class="pika('primary-btn')"
-				@click="reload"
+				@click="retryWorldMap"
 			>
 				Retry
 			</button>
 		</div>
 
-		<template v-else-if="manifest != null">
+		<template v-if="manifest != null">
+			<div
+				v-if="loading"
+				role="status"
+				:class="pika({ padding: '10px 12px', borderRadius: 'var(--radius-control)', color: 'var(--color-secondary-text)', backgroundColor: 'var(--color-surface-card)' })"
+			>
+				Loading requested snapshot… The current snapshot remains available.
+			</div>
+
+			<div
+				v-else-if="error != null"
+				role="alert"
+				:class="pika({ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '10px 12px', borderRadius: 'var(--radius-control)', backgroundColor: 'var(--color-surface-card)' })"
+			>
+				<span>The requested snapshot could not be loaded. The current snapshot remains selected.</span>
+				<button
+					:class="pika('primary-btn')"
+					@click="retryWorldMap"
+				>
+					Retry snapshot
+				</button>
+			</div>
+
 			<nav
 				aria-label="World map location"
 				:class="pika({

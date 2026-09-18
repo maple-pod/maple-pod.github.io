@@ -17,23 +17,23 @@ src/utils/common.ts       # Shared helpers (auto-imported)
 pika.config.ts            # PikaCSS engine config (design tokens for theme colors, preflights, selectors, shortcuts, icons)
 vite.config.ts            # Vite + PWA manifest/workbox + dev proxy + auto-imports
 public/                   # PWA icons, logo
-.github/workflows/        # deploy-pages.yml, security-audit.yml, ef-validate.yml
-.engineering/             # EF engineering files (PROJECT/PRD/REQ/ADR/POL/CHG) managed via the `ef` CLI (@deviltea/ef)
+.github/workflows/        # deploy-pages.yml, security-audit.yml, spec-validate.yml
+.spec/                    # Spec-native engineering specification workspace managed via `spec` (@deviltea/spec-tool)
 ```
 
-Engineering knowledge (product intent, requirements, decisions, policies) lives in `.engineering/` and is managed with the `ef` CLI (`pnpm exec ef help`) — see the Engineering Workflow section below.
+Engineering specification state lives in `.spec/` and is managed with the `spec` CLI (`pnpm exec spec --help`) — see the Spec Workflow section below.
 
-## Engineering Workflow (EF)
+## Engineering Workflow (Spec)
 
-Every feature request or behavior change follows this loop — not only edits to `.engineering/` files. Use the `author-engineering-files` skill when authoring EF content and `review-engineering-change` when reviewing a proposed change.
+Use the `maintain-spec-workspace` skill for Spec mutations and `review-spec-workspace` for read-only review.
 
-1. **Discover context** — answer "what does the project intend?" with `ef query list/search/lookup` against `.engineering/`, not by re-reading source for intent.
-2. **Draft first** — capture the new requirement/decision as a draft PRD/REQ/ADR (`ef artifact create <type>`) and confirm wording with the maintainer before implementing. Drafts are freely editable and need no CHG.
-3. **Implement** the code change as usual (lint, type-check, verify).
-4. **Complete via CHG** — create a CHG Artifact recording the transaction (`introduces`/`modifies`/`retires` effect relations), flip accepted drafts to `active`, and fill the CHG's Rationale / Sources / Changes / Verification sections.
-5. **Validate, then integrate** — `ef validate --scope snapshot` on the working tree; build the candidate commit on a detached HEAD; `ef validate --scope transition --baseline <master tip> --proposed <candidate>`; fast-forward `master` only after it passes. Transition validation exits 2 (EF-VAL-002) if `master` already points at the candidate — always validate before moving the ref.
+1. **Validate and discover** — start with `spec validate --format json --no-input`, then use `spec artifact list/get`, `spec search`, `spec trace`, and relation/resource inspection instead of scanning all Spec files blindly.
+2. **Draft first** — capture proposed Story / Use Case / Feature / REQ / ADR / POL / CHG content as draft Artifacts. Lifecycle, relations, and Resources are changed only through their dedicated CLI operations.
+3. **Implement** the code change as usual (lint, type-check, build, and relevant behavioral verification).
+4. **Review before authority changes** — activation/completion/retirement/supersession changes specification authority and must reflect an accepted human/agent review, not merely observed implementation behavior.
+5. **Validate current state** — finish mutation sequences with `spec validate --format json --no-input`. The validator proves deterministic current-workspace invariants; it does not prove prose quality, implementation conformance, Git-history correctness, or provider approval.
 
-Hard rules: any change to *active* EF content — frontmatter, body, tags, relations, Resources, `ef.yaml`, even a typo — requires a CHG; PROJECT is edited only via CHG (it is never recreated); pure questions need only `ef query` and no mutation. CI re-runs transition validation on every push (`.github/workflows/ef-validate.yml`), so changes that bypass this workflow fail there.
+For reverse-spec work, implementation is evidence rather than normative truth. Reverse-engineered non-PROJECT Artifacts remain `draft` until explicitly accepted; do not activate inferred behavior automatically. Keep reverse-spec evidence in Artifact prose/resources without treating source-code location as canonical implementation linkage. Spec MVP has no EF compatibility, transition/range/bootstrap authority scopes, or manual implementation-linkage manifest.
 
 ## Setup Commands
 
@@ -61,7 +61,7 @@ pnpm type-check
 ## Code Style
 
 - TypeScript via `@deviltea/tsconfig` (project references: `tsconfig.app.json` extends `@deviltea/tsconfig/browser`, `tsconfig.node.json` for tooling)
-- ESLint flat config extending `@deviltea/eslint-config` (tabs, single quotes, no semicolons); `.engineering/**` (canonically formatted by the `ef` CLI) and tool-managed agent skill/hook files (`.agents/`, `.claude/`, `.codex/`, `skills-lock.json`) are ignored
+- ESLint flat config extending `@deviltea/eslint-config` (tabs, single quotes, no semicolons); `.spec/**` (managed by the `spec` CLI) and tool-managed agent skill/hook files (`.agents/`, `.claude/`, `.codex/`, `skills-lock.json`) are ignored
 - Auto-imports (unplugin-auto-import): `vue`, `vue-router`, `pinia`, `@vueuse/core`, `Routes` from `@/router/index`, plus everything in `src/composables/` and `src/utils/` — do not add manual imports for these
 - Components are auto-registered (unplugin-vue-components); `auto-imports.d.ts` / `components.d.ts` / `.pikacss/` are generated — never edit by hand
 - Path alias `@` -> `src/`

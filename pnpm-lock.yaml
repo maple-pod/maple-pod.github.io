@@ -151,12 +151,12 @@ importers:
         specifier: ^5.3.1
         version: 5.3.1(@vue/compiler-sfc@3.5.42)(esbuild@0.28.1)(pinia@4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rolldown@1.2.7)(rollup@2.80.0)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.4)(yaml@2.9.0))(vue@3.5.42(typescript@6.0.3))
     devDependencies:
-      '@deviltea/ef':
-        specifier: ^0.0.2
-        version: 0.0.2
       '@deviltea/eslint-config':
         specifier: ^9.0.0
         version: 9.0.0(@typescript-eslint/typescript-estree@8.69.0(typescript@6.0.3))(@typescript-eslint/utils@8.69.0(eslint@10.10.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.42)(eslint@10.10.0(jiti@2.7.0))(typescript@6.0.3)
+      '@deviltea/spec-tool':
+        specifier: ^0.0.1
+        version: 0.0.1
       '@deviltea/tsconfig':
         specifier: ^1.0.0
         version: 1.0.0(@types/node@26.4.1)(typescript@6.0.3)
@@ -878,30 +878,24 @@ packages:
   '@cacheable/utils@2.5.0':
     resolution: {integrity: sha512-buipgOVDkkPXNR5+xBpDw7Zk2n1EvU7qBJCNUcL7rhQ//kfpOXPAvQ511Os0vpLYJ1pZnvudNytkQt2hst3wqA==}
 
-  '@clack/core@0.4.2':
-    resolution: {integrity: sha512-NYQfcEy8MWIxrT5Fj8nIVchfRFA26yYKJcvBS7WlUIlw2OmQOY9DhGGXMovyI5J5PpxrCPGkgUi207EBrjpBvg==}
-
   '@clack/core@1.4.3':
     resolution: {integrity: sha512-/kr3UWNtdJfxZtPgDqUOmG2pvwlmcLGheex5yiZKdwbzZJxhV+HMNR9QNmyY5cGwTNV6LrR7Jtp+KjhUAP1qBQ==}
     engines: {node: '>= 20.12.0'}
 
-  '@clack/prompts@0.10.1':
-    resolution: {integrity: sha512-Q0T02vx8ZM9XSv9/Yde0jTmmBQufZhPJfYAg2XrrrxWWaZgq1rr8nU8Hv710BQ1dhoP8rtY7YUdpGej2Qza/cw==}
-
   '@clack/prompts@1.7.0':
     resolution: {integrity: sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A==}
     engines: {node: '>= 20.12.0'}
-
-  '@deviltea/ef@0.0.2':
-    resolution: {integrity: sha512-LFEiP24YlsDYoEa+hJB3eYlA8UPXSCSHEc2Di2XARSfCJzVDTB9HcO+Vy5LT0yLZ6qCk2DmUiXPMwTZ4vi+xmg==}
-    engines: {node: ^22.14.0 || ^24.0.0}
-    hasBin: true
 
   '@deviltea/eslint-config@9.0.0':
     resolution: {integrity: sha512-xq7HqfB9z6mEtn2PkqbSA7CQCwpw/trzHMFkgYF/v4255+fmSoHty9wbrEzQI5q0d2rr55LH1zwzIKoTABFCPw==}
     engines: {node: '>=24'}
     peerDependencies:
       eslint: ^10.4.0
+
+  '@deviltea/spec-tool@0.0.1':
+    resolution: {integrity: sha512-UxXZWmOYs/8l62qcKdx9Aji9Iei7z9wFHN7W/NDk91k64A+bAWHb45Hrw9MU2gB+M1JMk6mWEBMtiLwUH4DqEQ==}
+    engines: {node: ^22.14.0 || ^24.0.0}
+    hasBin: true
 
   '@deviltea/tsconfig@1.0.0':
     resolution: {integrity: sha512-yJYtRa9l8LFGtHqdFftL/HvHesAJ0I8TL9KelANVvITwpol79+sXH+UkJL8oF+C5DTtxUY7q1If18/Pz65E1Ow==}
@@ -5017,20 +5011,9 @@ snapshots:
       hashery: 1.5.1
       keyv: 5.6.0
 
-  '@clack/core@0.4.2':
-    dependencies:
-      picocolors: 1.1.1
-      sisteransi: 1.0.5
-
   '@clack/core@1.4.3':
     dependencies:
       fast-wrap-ansi: 0.2.2
-      sisteransi: 1.0.5
-
-  '@clack/prompts@0.10.1':
-    dependencies:
-      '@clack/core': 0.4.2
-      picocolors: 1.1.1
       sisteransi: 1.0.5
 
   '@clack/prompts@1.7.0':
@@ -5039,18 +5022,6 @@ snapshots:
       fast-string-width: 3.0.2
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
-
-  '@deviltea/ef@0.0.2':
-    dependencies:
-      '@clack/prompts': 0.10.1
-      commander: 15.0.0
-      mdast-util-from-markdown: 2.0.3
-      mdast-util-gfm: 3.1.0
-      micromark-extension-gfm: 3.0.0
-      pathe: 2.0.3
-      yaml: 2.9.0
-    transitivePeerDependencies:
-      - supports-color
 
   '@deviltea/eslint-config@9.0.0(@typescript-eslint/typescript-estree@8.69.0(typescript@6.0.3))(@typescript-eslint/utils@8.69.0(eslint@10.10.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.42)(eslint@10.10.0(jiti@2.7.0))(typescript@6.0.3)':
     dependencies:
@@ -5084,6 +5055,11 @@ snapshots:
       - ts-declaration-location
       - typescript
       - vitest
+
+  '@deviltea/spec-tool@0.0.1':
+    dependencies:
+      commander: 15.0.0
+      yaml: 2.9.0
 
   '@deviltea/tsconfig@1.0.0(@types/node@26.4.1)(typescript@6.0.3)':
     dependencies:

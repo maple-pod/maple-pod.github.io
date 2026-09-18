@@ -92,8 +92,34 @@ watch(() => props.playlistId, () => {
 	selectedMarks.value.clear()
 })
 const uiVerticalListRef = useTemplateRef('uiVerticalListRef')
+const appStore = useAppStore()
+async function revealMusicInPlaylist(musicId: string) {
+	const target = allTracks.value.find(track => track.id === musicId)
+	if (target == null)
+		return
 
-useAppStore().scrollPlaylistToIndex = (index: number) => uiVerticalListRef.value?.scrollToIndex(index)
+	if (hasActiveFilters.value && selectedMarks.value.has(target.data.mark) === false)
+		selectedMarks.value = new Set()
+
+	await nextTick()
+	const index = filteredTracks.value.findIndex(track => track.id === musicId)
+	if (index >= 0)
+		uiVerticalListRef.value?.scrollToIndex(index)
+}
+watch(
+	[() => appStore.playlistRevealRequest, () => props.playlistId],
+	async ([request, playlistId]) => {
+		if (request == null || request.playlistId !== playlistId)
+			return
+		try {
+			await revealMusicInPlaylist(request.musicId)
+		}
+		finally {
+			appStore.completePlaylistReveal(request)
+		}
+	},
+	{ immediate: true, flush: 'post' },
+)
 
 function handlePlayPlaylist() {
 	if (playlist.value.list.length === 0)
@@ -113,14 +139,41 @@ function goBackToPlaylists() {
 }
 
 const canDragAndSort = computed(() => playlist.value.id !== 'all')
+
+function reorderVisiblePlaylistMembers(newItems: MusicData[]) {
+	const visibleIds = filteredTracks.value.map(item => item.id)
+	const reorderedIds = newItems.map(item => item.id)
+	if (reorderedIds.length !== visibleIds.length)
+		return
+
+	const visibleIdCounts = new Map<string, number>()
+	const reorderedIdCounts = new Map<string, number>()
+	for (const id of visibleIds)
+		visibleIdCounts.set(id, (visibleIdCounts.get(id) ?? 0) + 1)
+	for (const id of reorderedIds)
+		reorderedIdCounts.set(id, (reorderedIdCounts.get(id) ?? 0) + 1)
+	if (
+		reorderedIdCounts.size !== visibleIdCounts.size
+		|| [...visibleIdCounts].some(([id, count]) => reorderedIdCounts.get(id) !== count)
+	) {
+		return
+	}
+
+	const visibleIdSet = new Set(visibleIds)
+	let reorderedIndex = 0
+	playlist.value.list = playlist.value.list.map((id) => {
+		if (visibleIdSet.has(id) === false)
+			return id
+
+		return reorderedIds[reorderedIndex++]!
+	})
+}
 const { pointerPosition, placeholderIndex, isDragging, items } = useDragAndSort({
 	draggableElementHandlerSelector: '[data-draggable-handler]',
 	draggableElementSelector: '[data-draggable=true]',
 	items: computed({
 		get: () => filteredTracks.value,
-		set: (newItems) => {
-			playlist.value.list = newItems.map(item => item.id)
-		},
+		set: reorderVisiblePlaylistMembers,
 	}),
 	modifyGhostElement(ghostElement) {
 		ghostElement.classList.add(...pika('card', { padding: '0' })

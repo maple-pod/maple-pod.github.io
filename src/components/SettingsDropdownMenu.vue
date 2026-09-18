@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import type { UiDropdownMenuItem } from './UiDropdownMenu.vue'
-import type { HashActionImportSavedUserData, SavedUserData } from '@/types'
+import type { HashActionImportSavedUserData, PortableSavedUserData } from '@/types'
 import { safeParse } from 'valibot'
 import AboutDialog from '@/components/AboutDialog.vue'
-import { SavedUserDataSchema } from '@/schemas'
+import { PortableSavedUserDataSchema } from '@/schemas'
 import { chunkArray } from '@/utils/common'
 
 const appStore = useAppStore()
-const { toggleDark } = appStore
-const { bgData, savedBgImage, currentAutoBgPreview } = storeToRefs(appStore)
+const { setTheme } = appStore
+const { theme, bgData, savedBgImage, currentAutoBgPreview } = storeToRefs(appStore)
 
-const { savedUserData } = useSavedUserData()
-
-function resetSavedUserData() {
-	savedUserData.value = undefined
-	window.location.reload()
-}
+const musicStore = useMusicStore()
+const { normalizeSavedPlaylists, clearSavedOfflineMusics } = musicStore
+const { clearAll: clearAllWorldMapOffline } = useWorldMapOffline()
+const {
+	exportPortableSavedUserData,
+	mergePortableSavedUserData,
+	resetSavedData,
+} = useSavedDataPortability()
 
 function handleDownloadSavedDataFile() {
 	const timeStr = new Date()
 		.toISOString()
-	exportToJSONFile(savedUserData.value, `maple-pod.${timeStr}.json`)
+	exportToJSONFile(exportPortableSavedUserData(), `maple-pod.${timeStr}.json`)
 }
 
 const { confirm } = useUiConfirmDialog()
@@ -36,25 +38,30 @@ importSavedDataFileDialog.onChange(async (files) => {
 		return
 
 	const file = files[0]!
-
-	const agreed = await confirm({
-		title: 'Import Saved Data',
-		description: 'Are you sure you want to import saved data from this file? This will overwrite your current saved data.',
-	})
-
-	if (!agreed)
+	let data: unknown
+	try {
+		data = JSON.parse(await file.text())
+	}
+	catch (cause) {
+		console.error('Failed to decode saved user data:', cause)
 		return
+	}
 
-	const text = await file.text()
-	const data = JSON.parse(text)
-	const result = safeParse(SavedUserDataSchema, data)
-
+	const result = safeParse(PortableSavedUserDataSchema, data)
 	if (result.success === false) {
 		console.error('Failed to parse saved user data:', result.issues)
 		return
 	}
 
-	savedUserData.value = result.output as SavedUserData
+	const agreed = await confirm({
+		title: 'Import Saved Data',
+		description: 'Import the validated saved data and merge it with your current Maple Pod data?',
+	})
+	if (!agreed)
+		return
+
+	mergePortableSavedUserData(result.output as PortableSavedUserData)
+	normalizeSavedPlaylists()
 	window.location.reload()
 })
 
@@ -65,20 +72,321 @@ function handleUploadSavedDataFile() {
 async function handleResetSavedData() {
 	const agreed = await confirm({
 		title: 'Reset Saved Data',
-		description: 'Are you sure you want to reset saved data?',
+		description: 'Reset preferences, playlists, World Map selection, and recent history? Offline data and first-visit state will be preserved.',
 	})
 
 	if (!agreed)
 		return
 
-	resetSavedUserData()
+	resetSavedData()
+	window.location.reload()
+}
+
+const FACTORY_RESET_RUNTIME_CACHE_NAMES = new Set([
+	'google-fonts-cache',
+	'gstatic-fonts-cache',
+	'maple-pod-data-cache',
+	'maple-pod-loudness-cache',
+])
+
+const FACTORY_RESET_QUIESCE_MESSAGE = 'MAPLE_POD_FACTORY_RESET_QUIESCE'
+const FACTORY_RESET_QUIESCED_MESSAGE = 'MAPLE_POD_FACTORY_RESET_QUIESCED'
+const FACTORY_RESET_QUIESCE_FAILED_MESSAGE = 'MAPLE_POD_FACTORY_RESET_QUIESCE_FAILED'
+const FACTORY_RESET_ABORT_MESSAGE = 'MAPLE_POD_FACTORY_RESET_ABORT'
+const FACTORY_RESET_ABORTED_MESSAGE = 'MAPLE_POD_FACTORY_RESET_ABORTED'
+const FACTORY_RESET_FINALIZE_MESSAGE = 'MAPLE_POD_FACTORY_RESET_FINALIZE'
+const FACTORY_RESET_FINALIZED_MESSAGE = 'MAPLE_POD_FACTORY_RESET_FINALIZED'
+const FACTORY_RESET_QUIESCE_TIMEOUT_MS = 15_000
+
+async function clearWorkboxExpirationMetadata(cacheNames: string[]) {
+	if (typeof indexedDB === 'undefined' || cacheNames.length === 0)
+		return
+
+	await new Promise<void>((resolve, reject) => {
+		const request = indexedDB.open('workbox-expiration')
+		let createdDatabase = false
+		request.onupgradeneeded = () => {
+			createdDatabase = true
+		}
+		request.onerror = () => reject(request.error)
+		request.onsuccess = () => {
+			const database = request.result
+			if (createdDatabase || !database.objectStoreNames.contains('cache-entries')) {
+				database.close()
+				if (!createdDatabase) {
+					resolve()
+					return
+				}
+				const deleteRequest = indexedDB.deleteDatabase('workbox-expiration')
+				deleteRequest.onsuccess = () => resolve()
+				deleteRequest.onerror = () => reject(deleteRequest.error)
+				deleteRequest.onblocked = () => reject(new Error('Workbox expiration metadata deletion is blocked by another connection.'))
+				return
+			}
+
+			const transaction = database.transaction('cache-entries', 'readwrite')
+			const cacheNameIndex = transaction.objectStore('cache-entries')
+				.index('cacheName')
+			for (const cacheName of cacheNames) {
+				const cursorRequest = cacheNameIndex.openCursor(IDBKeyRange.only(cacheName))
+				cursorRequest.onsuccess = () => {
+					const cursor = cursorRequest.result
+					if (cursor == null)
+						return
+					cursor.delete()
+					cursor.continue()
+				}
+				cursorRequest.onerror = () => transaction.abort()
+			}
+			transaction.oncomplete = () => {
+				database.close()
+				resolve()
+			}
+			transaction.onerror = () => {
+				database.close()
+				reject(transaction.error)
+			}
+			transaction.onabort = () => {
+				database.close()
+				reject(transaction.error)
+			}
+		}
+	})
+}
+
+function getAppServiceWorkerScope(): string {
+	return new URL(import.meta.env.BASE_URL, window.location.origin).href
+}
+
+async function requestFactoryResetServiceWorker(
+	worker: ServiceWorker,
+	messageType: string,
+	expectedResponseType: string,
+	resetId: string,
+): Promise<void> {
+	await new Promise<void>((resolve, reject) => {
+		const channel = new MessageChannel()
+		const timeout = window.setTimeout(() => {
+			channel.port1.close()
+			reject(new Error(`Timed out while waiting for the Maple Pod service worker to handle ${messageType}.`))
+		}, FACTORY_RESET_QUIESCE_TIMEOUT_MS)
+		const finish = (callback: () => void) => {
+			window.clearTimeout(timeout)
+			channel.port1.close()
+			callback()
+		}
+		channel.port1.onmessage = (event) => {
+			if (event.data?.resetId !== resetId) {
+				finish(() => reject(new Error('Maple Pod service worker returned a mismatched Factory Reset response.')))
+				return
+			}
+			if (event.data?.type === FACTORY_RESET_QUIESCE_FAILED_MESSAGE) {
+				finish(() => reject(new Error(event.data?.message || 'Maple Pod service worker failed to coordinate Factory Reset.')))
+				return
+			}
+			if (event.data?.type !== expectedResponseType) {
+				finish(() => reject(new Error('Maple Pod service worker returned an unexpected Factory Reset response.')))
+				return
+			}
+			finish(resolve)
+		}
+		channel.port1.onmessageerror = () => {
+			finish(() => reject(new Error('Failed to decode the Maple Pod service worker Factory Reset response.')))
+		}
+		worker.postMessage({ type: messageType, resetId }, [channel.port2])
+	})
+}
+
+async function waitForServiceWorkerInstallation(worker: ServiceWorker): Promise<void> {
+	if (worker.state !== 'installing')
+		return
+
+	await new Promise<void>((resolve, reject) => {
+		let timeout: number | undefined
+		const onStateChange = () => {
+			if (worker.state === 'installing')
+				return
+			if (timeout != null)
+				window.clearTimeout(timeout)
+			worker.removeEventListener('statechange', onStateChange)
+			resolve()
+		}
+		timeout = window.setTimeout(() => {
+			worker.removeEventListener('statechange', onStateChange)
+			reject(new Error('Timed out while waiting for the Maple Pod service worker installation to settle.'))
+		}, FACTORY_RESET_QUIESCE_TIMEOUT_MS)
+		worker.addEventListener('statechange', onStateChange)
+		onStateChange()
+	})
+}
+
+interface FactoryResetServiceWorkerCoordination {
+	registrations: ServiceWorkerRegistration[]
+	workers: ServiceWorker[]
+}
+
+async function quiesceAppServiceWorkers(
+	scope: string,
+	resetId: string,
+): Promise<FactoryResetServiceWorkerCoordination> {
+	if (!('serviceWorker' in navigator))
+		return { registrations: [], workers: [] }
+
+	const registrations = (await navigator.serviceWorker.getRegistrations())
+		.filter(registration => registration.scope === scope)
+	const installingWorkers = registrations
+		.map(registration => registration.installing)
+		.filter((worker): worker is ServiceWorker => worker != null)
+	await Promise.all(installingWorkers.map(waitForServiceWorkerInstallation))
+
+	const workers = new Set<ServiceWorker>()
+	for (const registration of registrations) {
+		if (registration.active != null)
+			workers.add(registration.active)
+		if (registration.waiting != null)
+			workers.add(registration.waiting)
+	}
+
+	const workerList = [...workers]
+	try {
+		await Promise.all(workerList.map(worker => requestFactoryResetServiceWorker(
+			worker,
+			FACTORY_RESET_QUIESCE_MESSAGE,
+			FACTORY_RESET_QUIESCED_MESSAGE,
+			resetId,
+		)))
+	}
+	catch (error) {
+		await Promise.allSettled(workerList.map(worker => requestFactoryResetServiceWorker(
+			worker,
+			FACTORY_RESET_ABORT_MESSAGE,
+			FACTORY_RESET_ABORTED_MESSAGE,
+			resetId,
+		)))
+		throw error
+	}
+
+	return { registrations, workers: workerList }
+}
+
+async function abortFactoryResetServiceWorkers(
+	coordination: FactoryResetServiceWorkerCoordination,
+	resetId: string,
+): Promise<void> {
+	await Promise.allSettled(coordination.workers
+		.filter(worker => worker.state !== 'redundant')
+		.map(worker => requestFactoryResetServiceWorker(
+			worker,
+			FACTORY_RESET_ABORT_MESSAGE,
+			FACTORY_RESET_ABORTED_MESSAGE,
+			resetId,
+		)))
+}
+
+async function finalizeFactoryResetServiceWorkers(
+	coordination: FactoryResetServiceWorkerCoordination,
+	resetId: string,
+): Promise<void> {
+	const coordinator = coordination.workers.find(worker => worker.state !== 'redundant')
+	if (coordinator != null) {
+		await requestFactoryResetServiceWorker(
+			coordinator,
+			FACTORY_RESET_FINALIZE_MESSAGE,
+			FACTORY_RESET_FINALIZED_MESSAGE,
+			resetId,
+		)
+		return
+	}
+
+	await Promise.all(coordination.registrations.map(async (registration) => {
+		if (!await registration.unregister())
+			throw new Error(`Failed to unregister Maple Pod service worker for ${registration.scope}.`)
+	}))
+}
+
+function isOwnedPrecache(cacheName: string, appScope: string): boolean {
+	return cacheName.includes('-precache-') && cacheName.includes(appScope)
+}
+
+async function clearFactoryResetCaches(appScope: string) {
+	if (typeof caches === 'undefined')
+		return
+
+	const cacheNames = await caches.keys()
+	const ownedCacheNames = cacheNames.filter(cacheName =>
+		FACTORY_RESET_RUNTIME_CACHE_NAMES.has(cacheName) || isOwnedPrecache(cacheName, appScope))
+	await clearWorkboxExpirationMetadata([...FACTORY_RESET_RUNTIME_CACHE_NAMES])
+	const deletionResults = await Promise.all(ownedCacheNames.map(cacheName => caches.delete(cacheName)))
+	if (deletionResults.some(deleted => !deleted))
+		throw new Error('One or more Maple Pod caches could not be deleted.')
+}
+
+async function performFactoryReset(appScope: string) {
+	const cleanupResults = await Promise.allSettled([
+		clearSavedOfflineMusics(),
+		clearAllWorldMapOffline(),
+		clearFactoryResetCaches(appScope),
+	])
+	const failures = cleanupResults
+		.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+		.map(result => result.reason)
+	if (failures.length > 0)
+		throw new AggregateError(failures, 'Factory Reset storage cleanup was incomplete.')
+
+	resetSavedData()
+	localStorage.removeItem('maple-pod')
+	localStorage.removeItem('firstVisit')
+}
+
+async function handleFactoryReset() {
+	const agreed = await confirm({
+		title: 'Factory Reset',
+		description: 'Clear all Maple Pod local state, including saved data, offline music, World Map offline data, and first-visit state?',
+	})
+	if (!agreed)
+		return
+
+	const reset = beginFactoryReset()
+	const appScope = getAppServiceWorkerScope()
+	let coordination: FactoryResetServiceWorkerCoordination | null = null
+	let completed = false
+	try {
+		while (true) {
+			try {
+				coordination ??= await quiesceAppServiceWorkers(appScope, reset.resetId)
+				await performFactoryReset(appScope)
+				await finalizeFactoryResetServiceWorkers(coordination, reset.resetId)
+				completed = true
+				window.location.reload()
+				return
+			}
+			catch (error) {
+				console.error('Factory Reset storage cleanup failed:', error)
+				const retry = await confirm({
+					title: 'Factory Reset incomplete',
+					description: 'Some Maple Pod local data could not be cleared. Retry the cleanup before reloading?',
+					confirmText: 'Retry',
+					cancelText: 'Close',
+				})
+				if (!retry)
+					return
+			}
+		}
+	}
+	finally {
+		if (!completed) {
+			if (coordination != null)
+				await abortFactoryResetServiceWorkers(coordination, reset.resetId)
+			reset.end()
+		}
+	}
 }
 
 const { copyLink } = useCopyLink()
 async function handleCopySavedDataLink() {
 	const data: HashActionImportSavedUserData = {
 		type: 'import-saved-user-data',
-		data: savedUserData.value,
+		data: exportPortableSavedUserData(),
 	}
 
 	const hash = dataToUrlHash(data)
@@ -106,11 +414,21 @@ const bgChunks = computed(() => {
 const menuItems = computed<UiDropdownMenuItem[]>(() => [
 	{
 		icon: pika('i-f7:sun-max', { '@dark': ['i-f7:moon'] }),
-		label: 'Theme',
-		onSelect: (event) => {
-			event.preventDefault()
-			toggleDark()
-		},
+		label: `Theme: ${theme.value === 'auto' ? 'Auto' : theme.value === 'dark' ? 'Dark' : 'Light'}`,
+		items: [
+			{
+				label: `Light${theme.value === 'light' ? ' ✓' : ''}`,
+				onSelect: () => setTheme('light'),
+			},
+			{
+				label: `Dark${theme.value === 'dark' ? ' ✓' : ''}`,
+				onSelect: () => setTheme('dark'),
+			},
+			{
+				label: `Auto (System)${theme.value === 'auto' ? ' ✓' : ''}`,
+				onSelect: () => setTheme('auto'),
+			},
+		],
 	},
 	{
 		icon: pika('i-f7:photo-on-rectangle'),
@@ -139,8 +457,14 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 			},
 			{
 				icon: pika('i-f7:arrow-counterclockwise'),
-				label: 'Reset',
+				label: 'Reset Saved Data',
 				onSelect: handleResetSavedData,
+			},
+
+			{
+				icon: pika('i-f7:trash'),
+				label: 'Factory Reset',
+				onSelect: handleFactoryReset,
 			},
 		],
 	},
