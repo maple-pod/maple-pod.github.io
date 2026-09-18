@@ -2,8 +2,8 @@
 import type { MusicData } from '@/types'
 
 const musicStore = useMusicStore()
-const { getMusicData, removeSavedOfflineMusic, cancelOfflineMusicDownload } = musicStore
-const { offlineReadyMusics, offlineMusicDownloadingProgress } = storeToRefs(musicStore)
+const { getMusicData, saveMusicForOffline, removeSavedOfflineMusic, cancelOfflineMusicDownload } = musicStore
+const { offlineReadyMusics, offlineMusicDownloadingProgress, offlineMusicDownloadErrors } = storeToRefs(musicStore)
 const {
 	selectedSnapshotId: worldMapSelectedSnapshotId,
 	manifest: worldMapManifest,
@@ -65,6 +65,11 @@ const items = computed<DownloadItem[]>(() => {
 			kind: 'music' as const,
 			music: getMusicData(id)!,
 			progress,
+		})),
+		...Array.from(offlineMusicDownloadErrors.value.values(), id => ({
+			kind: 'music' as const,
+			music: getMusicData(id)!,
+			progress: 'error' as const,
 		})),
 		...Array.from(offlineReadyMusics.value.values(), id => ({
 			kind: 'music' as const,
@@ -182,6 +187,15 @@ const items = computed<DownloadItem[]>(() => {
 										@click.stop="cancelOfflineMusicDownload(item.music.id)"
 									>
 										<div :class="pika('i-f7:trash')" />
+									</button>
+									<button
+										v-else
+										:class="pika('icon-btn')"
+										:aria-label="`Retry ${item.music.title} offline download`"
+										:disabled="isOnline === false"
+										@click.stop="saveMusicForOffline(item.music.id)"
+									>
+										<div :class="pika('i-f7:arrow-clockwise')" />
 									</button>
 								</template>
 							</div>

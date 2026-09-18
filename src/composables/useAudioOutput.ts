@@ -275,7 +275,7 @@ export function useAudioOutput({ audio, getVolume, getMuted }: UseAudioOutputOpt
 
 	async function fadeOutputTo(value: number, durationMs: number) {
 		if (!enhancedOutputAllowed) {
-			setOutputGain(1)
+			setOutputGain(value)
 			return
 		}
 
