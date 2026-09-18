@@ -6,10 +6,19 @@ const { isPaused } = storeToRefs(useMusicStore())
 const { AppDialog, dialog } = useAppDialog()
 const { UiToast } = useUiToast()
 
-const firstVisit = useLocalStorage('firstVisit', true)
+const firstVisit = useLocalStorage('firstVisit', true, {
+	writeDefaults: false,
+	eventFilter: (invoke) => {
+		if (!isFactoryResetting())
+			invoke()
+	},
+})
 if (firstVisit.value) {
 	dialog(AboutDialog, {})
-		.then(() => firstVisit.value = false)
+		.then(() => {
+			if (!isFactoryResetting())
+				firstVisit.value = false
+		})
 }
 
 useEventListener('pointerdown', () => {
@@ -21,7 +30,7 @@ useEventListener('pointerup', () => {
 
 // Prevent direct close of the app
 useEventListener('beforeunload', (event) => {
-	if (isPaused.value)
+	if (isPaused.value || isFactoryResetting())
 		return
 	event.preventDefault()
 	event.returnValue = ''
