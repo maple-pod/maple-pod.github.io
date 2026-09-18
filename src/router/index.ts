@@ -37,8 +37,11 @@ const middlewares = {
 			})
 
 			if (agreed) {
-				const { savedUserData } = useSavedUserData()
-				savedUserData.value = (result.output as HashActionImportSavedUserData).data
+				const { mergePortableSavedUserData } = useSavedDataPortability()
+				mergePortableSavedUserData((result.output as HashActionImportSavedUserData).data)
+				const musicStore = useMusicStore()
+				musicStore.normalizeSavedPlaylists()
+				musicStore.applySavedPlaybackPreferences()
 			}
 		}
 

@@ -79,17 +79,25 @@ export async function fetchBlob(
 	signal?: AbortSignal | null,
 ): Promise<Blob> {
 	const response = await fetch(url, { signal })
+	if (!response.ok)
+		throw new Error(`Request failed with status ${response.status}`)
+	const body = response.body
+	if (body == null)
+		throw new Error('Response body unavailable')
+
 	const contentEncoding = response.headers.get('content-encoding')
 	const contentLength = response.headers.get(contentEncoding ? 'x-file-size' : 'content-length')
-	if (contentLength === null) {
+	if (contentLength === null)
 		throw new Error('Response size header unavailable')
-	}
 	const total = Number.parseInt(contentLength, 10)
+	if (!Number.isFinite(total) || total < 0)
+		throw new Error('Invalid response size header')
+
 	let loaded = 0
 	const newResponse = new Response(
 		new ReadableStream({
 			start(controller) {
-				const reader = response.body!.getReader()
+				const reader = body.getReader()
 
 				read()
 
@@ -112,7 +120,11 @@ export async function fetchBlob(
 			},
 		}),
 	)
-	return await newResponse.blob()
+	const blob = await newResponse.blob()
+	if (loaded !== total)
+		throw new Error(`Incomplete response body: expected ${total} bytes, received ${loaded}`)
+
+	return blob
 }
 
 export function createPromise<T = any>() {
@@ -152,6 +164,10 @@ export class PromiseQueue {
 
 	public add(fn: TaskFn): Task {
 		const { promise, resolve, reject } = createPromise()
+		// A queued task can be cancelled before runNext() attaches its handler.
+		// Observe the promise immediately so intentional cancellation never becomes
+		// an unhandled rejection. runNext() still observes the same promise below.
+		void promise.catch(() => {})
 
 		const task: Task = {
 			run: () => {
@@ -180,18 +196,13 @@ export class PromiseQueue {
 		const task = this.queue.shift()!
 		this.running++
 		task.run()
-			.then(() => {
+			.catch((error) => {
+				if (!(error instanceof CancelledError))
+					console.error('Task failed:', error)
+			})
+			.finally(() => {
 				this.running--
 				this.runNext()
-			})
-			.catch((error) => {
-				if (error instanceof CancelledError) {
-					this.running--
-					this.runNext()
-				}
-				else {
-					console.error('Task failed:', error)
-				}
 			})
 	}
 }

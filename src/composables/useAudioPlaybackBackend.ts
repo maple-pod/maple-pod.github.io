@@ -17,6 +17,7 @@ export interface AudioPlaybackBackend {
 	isWaiting: Readonly<Ref<boolean>>
 	canPlay: Readonly<Ref<boolean>>
 	hasError: Readonly<Ref<boolean>>
+	hasEnded: Readonly<Ref<boolean>>
 	normalizationSupported: Readonly<Ref<boolean>>
 	normalizationEnabled: Readonly<Ref<boolean>>
 	normalizationGainDb: Readonly<Ref<number>>
@@ -47,6 +48,7 @@ export function useHtmlAudioPlaybackBackend(options: AudioPlaybackBackendOptions
 	audio.value.muted = initialMuted
 	audio.value.volume = initialVolume
 	audio.value.preload = 'auto'
+	const disposed = ref(false)
 	const audioStatus = ref({
 		duration: 0,
 		currentTime: 0,
@@ -57,6 +59,7 @@ export function useHtmlAudioPlaybackBackend(options: AudioPlaybackBackendOptions
 		isWaiting: false,
 		canPlay: false,
 		hasError: false,
+		hasEnded: false,
 	})
 
 	const audioOutput = useAudioOutput({
@@ -105,10 +108,12 @@ export function useHtmlAudioPlaybackBackend(options: AudioPlaybackBackendOptions
 	const isWaiting = computed(() => audioStatus.value.isWaiting)
 	const canPlay = computed(() => audioStatus.value.canPlay)
 	const hasError = computed(() => audioStatus.value.hasError)
+	const hasEnded = computed(() => audioStatus.value.hasEnded)
 
 	function load(src: string) {
 		audioStatus.value.canPlay = false
 		audioStatus.value.hasError = false
+		audioStatus.value.hasEnded = false
 		audioStatus.value.isWaiting = true
 		audio.value.src = src
 	}
@@ -123,6 +128,7 @@ export function useHtmlAudioPlaybackBackend(options: AudioPlaybackBackendOptions
 		audioStatus.value.isWaiting = false
 		audioStatus.value.canPlay = false
 		audioStatus.value.hasError = false
+		audioStatus.value.hasEnded = false
 	}
 
 	async function play() {
@@ -142,10 +148,10 @@ export function useHtmlAudioPlaybackBackend(options: AudioPlaybackBackendOptions
 	}
 
 	async function waitUntilReady() {
-		if (canPlay.value || hasError.value)
+		if (canPlay.value || hasError.value || hasEnded.value || disposed.value)
 			return
 
-		await until(computed(() => canPlay.value || hasError.value))
+		await until(computed(() => canPlay.value || hasError.value || hasEnded.value || disposed.value))
 			.toBe(true)
 	}
 
@@ -169,10 +175,12 @@ export function useHtmlAudioPlaybackBackend(options: AudioPlaybackBackendOptions
 	})
 	useEventListener(audio, 'play', () => {
 		audioStatus.value.isPaused = audio.value.paused
+		audioStatus.value.hasEnded = false
 		preparePlayback()
 	})
 	useEventListener(audio, 'ended', () => {
 		audioStatus.value.isPaused = audio.value.paused
+		audioStatus.value.hasEnded = true
 	})
 	useEventListener(audio, 'waiting', () => {
 		audioStatus.value.isWaiting = true
@@ -194,6 +202,7 @@ export function useHtmlAudioPlaybackBackend(options: AudioPlaybackBackendOptions
 	})
 
 	tryOnScopeDispose(() => {
+		disposed.value = true
 		audio.value.autoplay = false
 		unload()
 		audioOutput.dispose()
@@ -209,6 +218,7 @@ export function useHtmlAudioPlaybackBackend(options: AudioPlaybackBackendOptions
 		isWaiting,
 		canPlay,
 		hasError,
+		hasEnded,
 		normalizationSupported,
 		normalizationEnabled,
 		normalizationGainDb,
