@@ -1,4 +1,4 @@
-import type { PlaylistId } from '@/types'
+import type { PlaylistId, SavedUserData } from '@/types'
 import { useHead } from '@unhead/vue'
 import { ofetch } from 'ofetch'
 
@@ -42,23 +42,27 @@ export const useAppStore = defineStore('app', () => {
 		return bgData.value.preview[autoBgImageList.value[currentAutoBgImageIndex.value]!] || null
 	})
 	const currentBgImage = computed(() => {
-		if (savedBgImage.value === 'none' || bgData.value == null) {
+		if (savedBgImage.value === 'none' || bgData.value == null)
 			return null
-		}
-		if (savedBgImage.value === 'auto') {
-			return autoBgImageList.value[currentAutoBgImageIndex.value]!
-		}
+		if (savedBgImage.value === 'auto')
+			return autoBgImageList.value[currentAutoBgImageIndex.value] ?? null
+		if (bgData.value.list.includes(savedBgImage.value) === false)
+			return null
 		return savedBgImage.value
 	})
 
-	const isDark = useDark({
-		selector: 'body',
-		attribute: 'color-scheme',
-		valueDark: 'dark',
-		valueLight: 'light',
-		storageRef: theme,
-	})
-	const toggleDark = useToggle(isDark)
+	const systemPrefersDark = usePreferredDark()
+	const isDark = computed(() => theme.value === 'dark' || (theme.value === 'auto' && systemPrefersDark.value))
+	watch(
+		isDark,
+		(dark) => {
+			document.body.setAttribute('color-scheme', dark ? 'dark' : 'light')
+		},
+		{ immediate: true },
+	)
+	function setTheme(nextTheme: SavedUserData['preferences']['theme']) {
+		theme.value = nextTheme
+	}
 
 	const title = ref('Maple Pod')
 
@@ -154,7 +158,8 @@ export const useAppStore = defineStore('app', () => {
 
 	return {
 		isDark,
-		toggleDark,
+		theme,
+		setTheme,
 		bgData,
 		savedBgImage,
 		currentBgImage,
