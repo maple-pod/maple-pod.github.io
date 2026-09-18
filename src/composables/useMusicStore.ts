@@ -1,4 +1,4 @@
-import type { CustomPlaylistId, LoudnessAnalysisReport, MusicData, Playlist, PlaylistId, Resources } from '@/types'
+import type { CustomPlaylistId, LoudnessAnalysisReport, MusicData, Playlist, PlaylistId, ResourceBgm, Resources } from '@/types'
 import localforage from 'localforage'
 import { ofetch } from 'ofetch'
 import { convertImageDataUrlToDataUrl512, decodeImageFromBinary } from '@/utils/common'
@@ -16,8 +16,52 @@ function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playli
 	}
 }
 
-function getResourceBgmSrc(bgm: Resources['bgms'][number]): string {
-	return `/resources/bgm/${bgm.audio?.file ?? `${bgm.filename}.mp3`}`
+type ResourceBgmInput = Omit<ResourceBgm, 'audio'> & { audio?: ResourceBgm['audio'] | null }
+type ResourcesInput = Omit<Resources, 'bgms'> & { bgms: ResourceBgmInput[] }
+
+function hasValidAudioRepresentation(audio: ResourceBgmInput['audio']): audio is ResourceBgm['audio'] {
+	return audio != null
+		&& typeof audio.file === 'string'
+		&& audio.file.length > 0
+		&& typeof audio.codec === 'string'
+		&& audio.codec.length > 0
+		&& typeof audio.container === 'string'
+		&& audio.container.length > 0
+}
+
+function normalizeResourceCatalog(input: ResourcesInput): Resources {
+	const missingAudioCount = input.bgms.filter(bgm => bgm.audio == null).length
+	const legacyCatalog = input.bgms.length > 0 && missingAudioCount === input.bgms.length
+
+	return {
+		...input,
+		bgms: input.bgms.map((bgm) => {
+			if (legacyCatalog) {
+				// Catalogs cached by older installed PWAs predate explicit audio metadata.
+				// Normalize that whole legacy shape once at ingestion; current source
+				// resolution remains strict and never synthesizes a fallback path.
+				return {
+					...bgm,
+					audio: {
+						file: `${bgm.filename}.mp3`,
+						codec: 'mp3',
+						container: 'mp3',
+					},
+				}
+			}
+
+			if (!hasValidAudioRepresentation(bgm.audio))
+				throw new Error(`Music resource "${bgm.filename}" has no valid declared audio representation.`)
+
+			return { ...bgm, audio: bgm.audio }
+		}),
+	}
+}
+
+function getResourceBgmSrc(bgm: ResourceBgm): string {
+	if (!hasValidAudioRepresentation(bgm.audio))
+		throw new Error(`Music resource "${bgm.filename}" has no valid declared audio representation.`)
+	return `/resources/bgm/${bgm.audio.file}`
 }
 
 function groupByMark(data: MusicData[]): Map<string, MusicData[]> {
@@ -45,7 +89,7 @@ export const useMusicStore = defineStore('music', () => {
 		isReady: isDataReady,
 	} = useAsyncState(
 		async () => {
-			const res = await ofetch<Resources>('/resources/data.json')
+			const res = normalizeResourceCatalog(await ofetch<ResourcesInput>('/resources/data.json'))
 			resourceBuiltAt.value = res.builtAt
 			const marks = res.marks
 			return Promise.all<MusicData>(res.bgms.map(async bgm => ({
@@ -393,10 +437,17 @@ export const useMusicStore = defineStore('music', () => {
 
 	function normalizePlaylistMusicIds(list: string[]): string[] {
 		return list
-			// Process old data
-			.map(src => src.split('/')
-				.pop()!.replace('.mp3', ''))
-			.filter(id => getMusicData(id) != null)
+			.map((value) => {
+				if (getMusicData(value) != null)
+					return value
+
+				// Persisted data before stable music IDs used the exact resource path.
+				// This is an input migration only; source resolution below never
+				// synthesizes an mp3 filename when resource metadata is missing.
+				const legacy = value.match(/^\/resources\/bgm\/([^/]+)\.mp3$/)
+				return legacy != null && getMusicData(legacy[1]!) != null ? legacy[1]! : null
+			})
+			.filter((id): id is string => id != null)
 	}
 
 	function normalizeSavedPlaylists(): void {
@@ -518,6 +569,9 @@ function useOfflineMusics() {
 
 			const legacySource = `/resources/bgm/${musicId}.mp3`
 			if (value instanceof Blob && value.size > 0 && expectedSource === legacySource) {
+				// Raw Blob is a self-identifying legacy storage representation. Only
+				// migrate it when today's explicit resource metadata selects the same
+				// source; this does not participate in source fallback.
 				await runStorageMutation(async () => {
 					if (!isOfflineStorageWritable() || generation !== storageGeneration)
 						return
