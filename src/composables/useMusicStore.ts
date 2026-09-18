@@ -448,6 +448,10 @@ export const useMusicStore = defineStore('music', () => {
 			.filter((id): id is string => id != null)
 	}
 
+	function normalizeRecentHistory(): void {
+		history.value = normalizePlaylistMusicIds(history.value)
+	}
+
 	function normalizeSavedPlaylists(): void {
 		const normalizedPlaylists = savedPlaylists.value
 			.filter((playlist) => {
@@ -479,6 +483,7 @@ export const useMusicStore = defineStore('music', () => {
 		.then(async () => {
 			await loadOfflineMusics(id => getMusicData(id)?.src)
 			normalizeSavedPlaylists()
+			normalizeRecentHistory()
 		})
 
 	return {
@@ -489,6 +494,7 @@ export const useMusicStore = defineStore('music', () => {
 			.map(playlist => playlist)),
 		normalizeSavedPlaylists,
 		applySavedPlaybackPreferences,
+		normalizeRecentHistory,
 		getPlaylist,
 		findMusicInPlaylistIndex,
 		isCustomPlaylist,

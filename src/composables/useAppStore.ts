@@ -79,42 +79,69 @@ export const useAppStore = defineStore('app', () => {
 		},
 	)
 
-	const scrollPlaylistToIndex = shallowRef<((index: number) => void) | null>(null)
+	interface PlaylistRevealRequest {
+		id: number
+		playlistId: PlaylistId
+		musicId: string
+	}
+
+	let nextPlaylistRevealRequestId = 0
+	let playlistRevealCompletion: { id: number, resolve: () => void } | null = null
+	const playlistRevealRequest = shallowRef<PlaylistRevealRequest | null>(null)
 	const isHandlingShowMusicInPlaylist = ref(false)
 	const router = useRouter()
+
+	function completePlaylistReveal(request: PlaylistRevealRequest) {
+		if (playlistRevealRequest.value?.id === request.id)
+			playlistRevealRequest.value = null
+		if (playlistRevealCompletion?.id === request.id) {
+			playlistRevealCompletion.resolve()
+			playlistRevealCompletion = null
+		}
+	}
+
 	async function handleShowMusicInPlaylist(musicId?: string, playlistId?: PlaylistId) {
 		const theMusicId = musicId || musicStore.currentMusic?.id
 		const thePlaylistId = playlistId || musicStore.currentPlaylist?.id
 
-		if (
-			isHandlingShowMusicInPlaylist.value
-			|| thePlaylistId == null
-			|| theMusicId == null
-		) {
-			isHandlingShowMusicInPlaylist.value = false
+		if (isHandlingShowMusicInPlaylist.value || thePlaylistId == null || theMusicId == null)
 			return
-		}
 
 		const thePlaylist = musicStore.getPlaylist(thePlaylistId)
-		if (thePlaylist == null) {
-			isHandlingShowMusicInPlaylist.value = false
+		if (thePlaylist == null || thePlaylist.list.includes(theMusicId) === false)
 			return
-		}
 
-		isHandlingShowMusicInPlaylist.value = true
-		const scrollToIndex = thePlaylist.list.indexOf(theMusicId)
-		if (scrollToIndex === -1) {
-			isHandlingShowMusicInPlaylist.value = false
-			return
+		const request: PlaylistRevealRequest = {
+			id: ++nextPlaylistRevealRequestId,
+			playlistId: thePlaylistId,
+			musicId: theMusicId,
 		}
-
-		await router.push({
-			name: Routes.Playlist,
-			params: { playlistId: thePlaylistId },
+		const completion = new Promise<void>((resolve) => {
+			playlistRevealCompletion = { id: request.id, resolve }
 		})
-		scrollPlaylistToIndex.value?.(scrollToIndex)
-
-		isHandlingShowMusicInPlaylist.value = false
+		playlistRevealRequest.value = request
+		isHandlingShowMusicInPlaylist.value = true
+		try {
+			await router.push({
+				name: Routes.Playlist,
+				params: { playlistId: thePlaylistId },
+			})
+			if (
+				router.currentRoute.value.name !== Routes.Playlist
+				|| router.currentRoute.value.params.playlistId !== thePlaylistId
+			) {
+				completePlaylistReveal(request)
+				return
+			}
+			await completion
+		}
+		catch (cause) {
+			completePlaylistReveal(request)
+			throw cause
+		}
+		finally {
+			isHandlingShowMusicInPlaylist.value = false
+		}
 	}
 
 	const isReady = ref(false)
@@ -132,7 +159,8 @@ export const useAppStore = defineStore('app', () => {
 		savedBgImage,
 		currentBgImage,
 		currentAutoBgPreview,
-		scrollPlaylistToIndex,
+		playlistRevealRequest,
+		completePlaylistReveal,
 		handleShowMusicInPlaylist,
 		ready,
 		isReady,

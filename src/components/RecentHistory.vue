@@ -4,7 +4,9 @@ const { history } = storeToRefs(musicStore)
 const { getMusicData, play, isMusicDisabled } = musicStore
 
 const displayList = computed(() => {
-	return history.value.map(id => getMusicData(id)!)
+	return history.value
+		.map(id => getMusicData(id))
+		.filter((music): music is NonNullable<typeof music> => music != null)
 })
 </script>
 
