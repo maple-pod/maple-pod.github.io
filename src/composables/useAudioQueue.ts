@@ -80,6 +80,15 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 		if (index < 0)
 			return null
 
+		if (random.value) {
+			return candidate({
+				originalAudioIdList: [...audioIdList],
+				playedQueue: [],
+				cursor: list[index]!,
+				toPlayQueue: [...list.slice(0, index), ...list.slice(index + 1)],
+			})
+		}
+
 		return candidate({
 			originalAudioIdList: [...audioIdList],
 			playedQueue: list.slice(0, index),
@@ -104,9 +113,11 @@ export function useAudioQueue(options: UseAudioQueueOptions) {
 
 			commit(candidate({
 				originalAudioIdList: [...state.originalAudioIdList],
-				playedQueue: list.slice(0, index),
+				playedQueue: random.value ? [] : list.slice(0, index),
 				cursor: state.cursor,
-				toPlayQueue: list.slice(index + 1),
+				toPlayQueue: random.value
+					? [...list.slice(0, index), ...list.slice(index + 1)]
+					: list.slice(index + 1),
 			}))
 		},
 		{ flush: 'sync' },
