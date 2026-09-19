@@ -164,7 +164,10 @@ export function useAudioPlayer({
 		const pendingWrapNext = navigationWrapNext
 		const pendingEndedTransition = navigationEndedTransition || activeEndedWhilePending
 		cancelPendingTransition()
-		audioQueueLogic.toggleRandom(bool)
+		if (bool == null)
+			audioQueueLogic.toggleRandom()
+		else
+			audioQueueLogic.toggleRandom(bool)
 		if (pendingCandidate == null)
 			return
 
