@@ -25,15 +25,17 @@ Engineering specification state lives in `.spec/` and is managed with the `spec`
 
 ## Engineering Workflow (Spec)
 
-Use the `maintain-spec-workspace` skill for Spec mutations and `review-spec-workspace` for read-only review.
+This project uses **@deviltea/spec-tool 0.1.0 (frozen v1)**. The old Artifact/Use Case/Requirement/lifecycle/Resource CLI and persistence formats are **not compatible**. The only authoritative Spec workspace is the validated v1 graph under `.spec/`; `docs/spec-migration/legacy/` is a read-only historical archive, not parallel specification authority.
 
-1. **Validate and discover** — start with `spec validate --format json --no-input`, then use `spec artifact list/get`, `spec search`, `spec trace`, and relation/resource inspection instead of scanning all Spec files blindly.
-2. **Draft first** — capture proposed Story / Use Case / Feature / REQ / ADR / POL / CHG content as draft Artifacts. Lifecycle, relations, and Resources are changed only through their dedicated CLI operations.
-3. **Implement** the code change as usual (lint, type-check, build, and relevant behavioral verification).
-4. **Review before authority changes** — activation/completion/retirement/supersession changes specification authority and must reflect an accepted human/agent review, not merely observed implementation behavior.
-5. **Validate current state** — finish mutation sequences with `spec validate --format json --no-input`. The validator proves deterministic current-workspace invariants; it does not prove prose quality, implementation conformance, Git-history correctness, or provider approval.
+Use the installed `maintain-spec-workspace` skill for semantic changes and `review-spec-workspace` for read-only reviews. Both must match the 0.1.0 package.
 
-For reverse-spec work, implementation is evidence rather than normative truth. Reverse-engineered non-PROJECT Artifacts remain `draft` until explicitly accepted; do not activate inferred behavior automatically. Keep reverse-spec evidence in Artifact prose/resources without treating source-code location as canonical implementation linkage. Spec MVP has no EF compatibility, transition/range/bootstrap authority scopes, or manual implementation-linkage manifest.
+1. **Validate first:** `pnpm exec spec workspace validate --root .` — invalid workspaces expose diagnostics only, not partial semantic reads. A fresh workspace is initialized with `spec workspace init --root .` **only if** no `.spec/` exists.
+2. **Discover semantic state:** `pnpm exec spec graph export --root .` gives normalized Story / Feature / Rule / Scenario / Contract / Clause nodes and their `motivates`, `demonstrates` and `constrains` edges. Use `spec graph get/list/incoming/outgoing` and the individual resource CLI commands to inspect specific IDs rather than guessing references.
+3. **Mutate through the v1 API:** `story`, `feature`, `rule`, `scenario`, `contract` and `clause` each expose their documented create/update/delete operations. Structured CLI mutation requests are JSON on stdin and **require the latest `expectedRevision`** from a validation or graph snapshot. Reread the graph after conflicts; never blindly replay a stale write. Set relations with `graph set-relation-targets`.
+4. **Keep semantic boundaries:** Story records intent; Feature and embedded Rules record local semantics; Scenario records observable Given/When/Then interaction, with `demonstrates` as a semantic link **not** test-pass evidence. Standalone Contracts exist only for cross-Feature normative authority requiring independent ownership. Implementation, release status, verification results, and noncanonical notes do not become new Spec authority by implication.
+5. **Verify changes:** finish every mutation sequence with `pnpm exec spec workspace validate --root .` and `pnpm exec spec graph export --root .`, plus relevant code lint/type-check/build/behavioral checks. Validation proves structural/reference invariants only, not prose adequacy or implementation conformance. Review any authority-changing edit explicitly.
+
+The v1 root is closed-world: exactly `.spec/spec.yaml` (`formatVersion: 1`) and optional flat `stories/`, `features/`, `contracts/` and `scenarios/` directories. Never create the old `changes/`, `decisions/`, `policies/`, `prds/`, `projects/`, `requirements/` or `use-cases/` directories inside `.spec/`.
 
 ## Setup Commands
 

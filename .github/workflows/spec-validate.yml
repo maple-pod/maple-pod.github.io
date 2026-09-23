@@ -29,4 +29,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: validate Spec workspace
-        run: pnpm exec spec validate --format json --no-input
+        run: pnpm exec spec workspace validate --root .
+
+      - name: audit frozen-v1 migration provenance
+        run: pnpm spec:migration-check

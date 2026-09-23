@@ -155,8 +155,8 @@ importers:
         specifier: ^9.0.0
         version: 9.0.0(@typescript-eslint/typescript-estree@8.69.0(typescript@6.0.3))(@typescript-eslint/utils@8.69.0(eslint@10.10.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.42)(eslint@10.10.0(jiti@2.7.0))(typescript@6.0.3)
       '@deviltea/spec-tool':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: 0.1.0
+        version: 0.1.0
       '@deviltea/tsconfig':
         specifier: ^1.0.0
         version: 1.0.0(@types/node@26.4.1)(typescript@6.0.3)
@@ -892,8 +892,8 @@ packages:
     peerDependencies:
       eslint: ^10.4.0
 
-  '@deviltea/spec-tool@0.0.1':
-    resolution: {integrity: sha512-UxXZWmOYs/8l62qcKdx9Aji9Iei7z9wFHN7W/NDk91k64A+bAWHb45Hrw9MU2gB+M1JMk6mWEBMtiLwUH4DqEQ==}
+  '@deviltea/spec-tool@0.1.0':
+    resolution: {integrity: sha512-+eaNqRiV5F20KV6wJ/2kkoanK5Ohf7wW6flCUxOpbX+0REQxI05l/PfcPaf4GOLcK26NIcWUGjBatjZcT4m3Tw==}
     engines: {node: ^22.14.0 || ^24.0.0}
     hasBin: true
 
@@ -2056,10 +2056,6 @@ packages:
   ci-info@4.4.0:
     resolution: {integrity: sha512-77PSwercCZU2Fc4sX94eF8k8Pxte6JAwL4/ICZLFjJLqegs7kCuAsqqj/70NQF6TvDpgFjkubQB2FW2ZZddvQg==}
     engines: {node: '>=8'}
-
-  commander@15.0.0:
-    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
-    engines: {node: '>=22.12.0'}
 
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
@@ -5056,9 +5052,8 @@ snapshots:
       - typescript
       - vitest
 
-  '@deviltea/spec-tool@0.0.1':
+  '@deviltea/spec-tool@0.1.0':
     dependencies:
-      commander: 15.0.0
       yaml: 2.9.0
 
   '@deviltea/tsconfig@1.0.0(@types/node@26.4.1)(typescript@6.0.3)':
@@ -6134,8 +6129,6 @@ snapshots:
       readdirp: 5.1.1
 
   ci-info@4.4.0: {}
-
-  commander@15.0.0: {}
 
   commander@2.20.3: {}
 
