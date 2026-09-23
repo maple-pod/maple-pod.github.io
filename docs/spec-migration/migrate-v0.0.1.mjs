@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+const stepEdits = JSON.parse(readFileSync(join(root, 'docs/spec-migration/main-flow-step-edits.json'), 'utf8'))
 const legacyRoot = join(root, 'docs/spec-migration/legacy')
 const specRoot = join(root, '.spec')
 const kinds = ['projects', 'stories', 'use-cases', 'features', 'requirements']
@@ -149,7 +150,10 @@ function section(record, key) {
 }
 function mainFlow(text) {
 	const items = text.split(/\r?\n(?=\d+\.\s)/)
-		.map(x => line(x.replace(/^\d+\.\s*/, '')))
+		.map((x) => {
+			const original = line(x.replace(/^\d+\.\s*/, ''))
+			return stepEdits[original] ?? original
+		})
 		.filter(Boolean)
 	return items.length ? items : [line(text)]
 }

@@ -31,5 +31,8 @@ jobs:
       - name: validate Spec workspace
         run: pnpm exec spec workspace validate --root .
 
-      - name: audit frozen-v1 migration provenance
+      - name: check Scenario step quality
+        run: pnpm spec:scenario-quality
+
+      - name: replay frozen migration provenance independently of current specs
         run: pnpm spec:migration-check

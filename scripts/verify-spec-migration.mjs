@@ -2,12 +2,14 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join, resolve } from 'node:path'
+import process from 'node:process'
 import { createSpecClient } from '@deviltea/spec-tool'
 import YAML from 'yaml'
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+assert.ok(process.env.SPEC_MIGRATION_ROOT, 'This is a historical intermediate-state verifier. Run pnpm spec:migration-check for the current repository; direct use requires SPEC_MIGRATION_ROOT pointing to a mechanical-only replay workspace.')
+const root = resolve(process.env.SPEC_MIGRATION_ROOT)
+const stepEdits = JSON.parse(readFileSync(join(root, 'docs/spec-migration/main-flow-step-edits.json'), 'utf8'))
 const legacy = join(root, 'docs/spec-migration/legacy')
 const manifest = JSON.parse(readFileSync(join(root, 'docs/spec-migration/legacy-sha256.json'), 'utf8'))
 const kinds = { 'projects': 1, 'stories': 11, 'use-cases': 16, 'features': 16, 'requirements': 16 }
@@ -82,7 +84,10 @@ for (const [id, record] of records['use-cases']) {
 		.trim()
 	const interactions = section(record, 'Main Flow')
 		.split(/\r?\n(?=\d+\.\s)/)
-		.map(step => normalize(step.replace(/^\d+\.\s*/, '')))
+		.map((step) => {
+			const original = normalize(step.replace(/^\d+\.\s*/, ''))
+			return stepEdits[original] ?? original
+		})
 		.filter(Boolean)
 	assert.ok(interactions.length > 0, `no source interactions in ${id}`)
 	assert.deepEqual(node.steps, [

@@ -16,7 +16,9 @@
 		"type-check": "pikacss prepare && vue-tsc --build --noEmit",
 		"verify:theme": "node scripts/verify-theme-tokens.mjs",
 		"spec:validate": "spec workspace validate --root .",
-		"spec:migration-check": "node scripts/verify-spec-migration.mjs"
+		"spec:scenario-quality": "node scripts/verify-spec-scenario-quality.mjs",
+		"spec:migration-check": "node scripts/replay-spec-migration.mjs",
+		"spec:baseline-compare": "node scripts/replay-spec-migration.mjs --compare-live"
 	},
 	"dependencies": {
 		"@deviltea/vue-router-middleware": "^0.0.4",
