@@ -2,14 +2,13 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createSpecClient } from '@deviltea/spec-tool'
+import YAML from 'yaml'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const legacy = join(root, 'docs/spec-migration/legacy')
-const yaml = createRequire(import.meta.resolve('@deviltea/spec-tool'))('yaml')
 const manifest = JSON.parse(readFileSync(join(root, 'docs/spec-migration/legacy-sha256.json'), 'utf8'))
 const kinds = { 'projects': 1, 'stories': 11, 'use-cases': 16, 'features': 16, 'requirements': 16 }
 const expectedPaths = ['config.yaml']
@@ -25,7 +24,7 @@ for (const [kind, expectedCount] of Object.entries(kinds)) {
 		const source = readFileSync(join(legacy, path), 'utf8')
 		const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/.exec(source)
 		assert.ok(match, `${path} frontmatter`)
-		const meta = yaml.parse(match[1])
+		const meta = YAML.parse(match[1])
 		assert.equal(meta.id, name.slice(0, -3), path)
 		return [meta.id, { meta, body: match[2] }]
 	}))
@@ -81,11 +80,16 @@ for (const [id, record] of records['use-cases']) {
 	assert.ok(edges.has(`${parentOf(record)}:motivates:${featureId}`), `missing Story→Feature ${id}`)
 	const normalize = text => text.replace(/\s+/g, ' ')
 		.trim()
-	assert.equal(node.steps[0]?.type, 'given')
-	assert.equal(node.steps[0]?.text, normalize(section(record, 'Preconditions')))
-	assert.equal(node.steps.at(-1)?.type, 'then')
-	assert.equal(node.steps.at(-1)?.text, normalize(section(record, 'Observable Outcomes')))
-	assert.ok(node.steps.some(step => step.type === 'when'), `no interactions in ${id}`)
+	const interactions = section(record, 'Main Flow')
+		.split(/\r?\n(?=\d+\.\s)/)
+		.map(step => normalize(step.replace(/^\d+\.\s*/, '')))
+		.filter(Boolean)
+	assert.ok(interactions.length > 0, `no source interactions in ${id}`)
+	assert.deepEqual(node.steps, [
+		{ type: 'given', text: normalize(section(record, 'Preconditions')) },
+		...interactions.map(text => ({ type: 'when', text })),
+		{ type: 'then', text: normalize(section(record, 'Observable Outcomes')) },
+	], `Scenario dropped, rewrote or reordered legacy steps: ${id}`)
 }
 for (const [id, record] of records.features) {
 	const node = byId.get(id)

@@ -3,14 +3,12 @@
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
+import YAML from 'yaml'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const requireFromPackage = createRequire(import.meta.resolve('@deviltea/spec-tool'))
-const YAML = requireFromPackage('yaml')
 const legacyRoot = join(root, 'docs/spec-migration/legacy')
 const specRoot = join(root, '.spec')
 const kinds = ['projects', 'stories', 'use-cases', 'features', 'requirements']
