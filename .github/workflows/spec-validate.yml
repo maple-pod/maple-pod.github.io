@@ -29,4 +29,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: validate Spec workspace
-        run: pnpm exec spec validate --format json --no-input
+        run: pnpm exec spec workspace validate --root .
+
+      - name: check Scenario step quality
+        run: pnpm spec:scenario-quality
+
+      - name: replay frozen migration provenance independently of current specs
+        run: pnpm spec:migration-check

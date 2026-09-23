@@ -1,214 +1,95 @@
 ---
 name: maintain-spec-workspace
-description: Author and maintain a Spec-native `.spec/` workspace with @deviltea/spec-tool. Use when choosing the right specification layer, creating or revising Artifacts, maintaining refinement relationships, performing lifecycle transitions, managing Resources, searching/tracing, and validating the workspace.
+description: Maintain a frozen-v1 @deviltea/spec-tool workspace through semantic UUID-oriented CLI and TypeScript operations. Use for Story/Feature/Rule/Scenario/Contract/Clause authoring, validated source-owned relations, revision-safe changes and explicit cross-kind lifecycle/compound deletion.
 ---
 
-# Maintain Spec Workspace
+# Maintain Spec Workspace (frozen v1)
 
-Use the `spec` CLI as the invariant-aware interface to the current `.spec/`
-workspace. Prefer `--format json` for Agent operation and inspect the returned
-`ok`, result payload, and diagnostics before continuing.
+Spec Tool is **semantic specification authority**, not a PM, implementation, testing or migration system. [Discussion #65, Thread 4](https://github.com/DevilTea/deviltea-labs/discussions/65) is the canonical design source. Never infer v0 Artifact/status/Resource/refines behavior from historical files; those operations do not exist in the replacement.
 
-Start by validating the workspace:
+## Start with a validated snapshot
 
-```text
-spec validate --format json --no-input
+Resolve the current repository root explicitly when possible. The default is Git toplevel; outside Git, `--root` is required.
+
+```sh
+spec workspace validate --root .
+spec graph export --root .
 ```
 
-Initialize only when no Spec workspace exists:
+Before initialization, inspect whether `.spec` exists. Only when **absent**, use:
 
-```text
-spec init --format json --no-input --title "<project title>"
+```sh
+spec workspace init --root .
 ```
 
-## Specification model
+This creates **only** `.spec/spec.yaml` (exactly `formatVersion: 1` plus newline). An empty semantic workspace is valid. Never use init to repair/overwrite existing files.
 
-Treat the main refinement chain as semantic layers, not as a template that must
-always contain one Artifact of every kind:
+All structured requests go on **stdin as JSON**. Output defaults to one JSON result on stdout for success, one JSON error on stderr for failure; `--format human` is opt-in. A failed `workspace validate` emits `{valid:false,issues:[]}` to stderr with nonzero exit. If validation fails, inspect `issues[]` and ask the owner to repair invalid persistence externally; no semantic read, write or repair API is valid while the workspace is invalid.
 
-```text
-User Story       -> Intent
-Use Case         -> Interaction
-Feature Spec     -> Semantics
-Requirement      -> Normative Contract
-Implementation   -> Mechanism (outside persisted Spec authority)
+Keep the current `revision` from `graph export`. Every mutation must include `expectedRevision`, and after every semantic change refresh it from the success response. On `revision_conflict`, reread relevant nodes and effective relations, reconcile intent, then retry only with a confirmed current revision.
+
+## Place the semantic obligation correctly
+
+| Unit | Responsibility | Creation rule |
+| --- | --- | --- |
+| Story | Intent: actor, goal, value | Story `motivates` ≥1 existing Feature |
+| Feature | Capability semantics and invariants | Can contain 0..N stable-addressed Rules |
+| Rule | Local behavioral obligation | Embedded in exactly one Feature |
+| Scenario | Observable interaction | Gherkin Scenario `demonstrates` ≥1 Rule/Clause/Feature/Contract |
+| Contract | Independently governed normative authority crossing Feature boundaries | `constrains` ≥1 Feature |
+| Clause | Contract-owned obligation | 0..N per Contract; optional effective-scope override |
+
+Use a standalone Contract **only if** the authority both crosses Feature boundaries and requires independent ownership/lifecycle; importance, testability or sharing alone does not suffice. Use a Feature-local Rule otherwise. Use Cases are analysis concepts, not persisted artifacts. Implementations, running tests and claims of coverage belong downstream.
+
+### Canonical relations
+
+- `motivates`: Story → Feature (1..N).
+- `demonstrates`: Scenario → Rule | Clause | Feature | Contract (1..N), a **specification** relation, not execution/coverage evidence. Prefer the precise Rule/Clause when it exists.
+- `constrains`: Contract → Feature (1..N). Clause → Feature | Rule with an optional own complete override; omitted override means inherit Contract scope.
+
+Never invent relations by prose implication. Query the normalized graph for real existing target UUIDs and check kind legality before modifying them. Target UUID arrays are sets: no duplicates, sorted canonically in persistence.
+
+```sh
+spec graph list --root . <<<'{"kind":"feature"}'
+spec graph outgoing --root . <<<'{"id":"<semantic-uuid>"}'
+spec graph incoming --root . <<<'{"id":"<target-uuid>"}'
 ```
 
-Stored `refines` edges point from the more specific child to its semantic
-parent:
+`graph set-relation-targets` uses `{sourceId,type,targets,expectedRevision}`. Supply complete final target sets, not incremental patches. For Clause `constrains`, `targets:null` **removes its override and restores inheritance**; an explicit nonempty array fully replaces the inherited scope, not a union. An empty array is invalid where 1..N is required.
 
-```text
-use-case     -> story
-feature      -> use-case
-requirement  -> feature
+## Semantic mutations
+
+```sh
+printf '%s\n' '{"title":"Search","summary":"Return matching items","expectedRevision":"<current-sha256>"}' \
+  | spec feature create --root .
+
+printf '%s\n' '{"ownerId":"<feature-uuid>","statement":"Results have deterministic ordering","expectedRevision":"<new-sha256>"}' \
+  | spec rule create --root .
 ```
 
-The graph is many-to-many; these are allowed kind pairs, not cardinality rules.
-
-Each layer answers a different question:
-
-- **Story — Intent:** Who needs something, what goal are they pursuing, and why
-  is it valuable? Keep implementation and detailed behavior out of this layer.
-- **Use Case — Interaction:** What scenario or interaction realizes that intent?
-  Describe preconditions, main flow, alternate/failure flows, and observable
-  outcomes without turning the scenario into an internal design.
-- **Feature — Semantics:** What capability, state semantics, rules, invariants,
-  and edge-case behavior make the interaction coherent? A Feature describes
-  what the capability means, not how a framework or subsystem implements it.
-- **Requirement — Normative Contract:** What independently verifiable
-  obligation must hold? Requirements state enforceable behavior and the reason
-  and verification boundary for that behavior.
-- **Implementation — Mechanism:** Code structure, framework/library choice,
-  storage mechanism, internal algorithm, component layout, and similar
-  realization details are outside persisted Spec authority unless a detail has
-  itself become an externally observable compatibility contract.
-
-PROJECT and PRD are higher-level product context rather than extra mandatory
-steps in the refinement chain. Decisions and Policies are cross-cutting
-Artifacts. Changes record specification-change provenance rather than current
-product truth.
-
-### Refinement discipline
-
-Do not create Artifacts merely to fill every layer. A child Artifact must add a
-distinct semantic responsibility instead of restating its parent in a different
-template.
-
-- A Story may be refined by multiple Use Cases.
-- A shared Feature may refine multiple Use Cases when one semantic capability
-  serves multiple interactions.
-- A Use Case may be refined by multiple Features when distinct capabilities are
-  needed.
-- A Feature may be refined by one or multiple Requirements.
-- Split Requirements when obligations can evolve, be verified, or be consumed
-  independently. Keep tightly coupled obligations together when they form one
-  coherent contract.
-- Do not infer a missing child solely because a parent exists.
-
-Before creating a child, ask what new information it contributes:
+Public resource namespaces and operations:
 
 ```text
-Story        -> new intent/value?
-Use Case     -> new interaction/scenario?
-Feature      -> new semantic capability/invariant?
-Requirement  -> new independently verifiable obligation?
+workspace init|validate
+graph export|get|list|incoming|outgoing|set-relation-targets
+story create|update|delete
+feature create|update|delete|delete-with-children
+rule create|update|delete|reorder|reparent|promote
+scenario create|update|delete
+contract create|update|delete|delete-with-children
+clause create|update|delete|reorder|reparent|demote
 ```
 
-If the answer is only "the same content in this layer's headings", do not create
-the child yet.
+Creates allocate the UUID; never provide an ID to create. Updates change only named semantic fields. Scenario `steps` are supplied as the complete normalized array of `{type:"given"|"when"|"then",text}` and need effective phase order `Given* → When+ → Then+`. Persistence uses restricted Gherkin, with `And/But` normalized to their previous phase. No step-level insert API, arbitrary tags or Scenario storage repack API.
 
-### Authority and implementation evidence
+Rule/Clause reorder takes `{ownerId,orderedIds,expectedRevision}` containing exactly **all** current child UUIDs. Reparent takes `{id,newOwnerId,expectedRevision}`, keeps identity and appends to the new owner. Neither array order nor Markdown notes are semantic revision inputs.
 
-Existing implementation is evidence, not normative truth. For reverse-spec
-work:
+Rule → Clause promotion is `{id,newOwnerId,relations:{constrains:null|UUID[]},expectedRevision}`, where null is inheritance; Clause → Rule demotion is `{id,newOwnerId,relations:{},expectedRevision}`. Conversion preserves UUID and explicitly resolves final relationship state. Audit inbound `constrains` and `demonstrates` first; incompatible inbound references **block** conversion and cannot be silently cleaned.
 
-1. Observe current behavior and implementation evidence.
-2. Distinguish accidental behavior, defects, workarounds, and legacy behavior
-   from desired semantics.
-3. Promote behavior into active specification only after it is accepted as the
-   intended contract.
-4. When implementation and an accepted active Contract disagree, treat that as
-   a discrepancy to investigate; do not silently rewrite the Spec to match code.
+Ordinary Feature/Contract deletion refuses any attached children; normal deletion of any unit with inbound references is blocked. Compound `delete-with-children` requires `{ownerId,childIds,expectedRevision}` and an exact current child-ID set, with each child and owner having no inbound edges. Never imply a broader cascade. If in doubt, query `graph incoming` for every deleted ID.
 
-Use an implementation-independence test when placement is unclear: if the
-framework, library, storage mechanism, or internal architecture changed, would
-the statement still need to be true? If yes, it likely belongs in canonical
-Spec. If no, it usually belongs in downstream technical design or
-implementation.
+## Finish and verify
 
-Compatibility-sensitive transport details, persisted formats, protocol shapes,
-or externally consumed schema fields may legitimately be normative. A specific
-library or internal mechanism normally is not, unless interoperability depends
-on that exact behavior.
+After changes, run `workspace validate`, inspect the full normalized `graph export` and compare semantic nodes and effective edge deltas against the original intent. Success mutation responses include `revision,changedNodes,deletedIds,changedEdges.added,changedEdges.removed`. Check the complete result, especially inherited Clause edges after Contract scope changes and cross-kind conversion.
 
-## Artifacts
-
-Use Artifact commands for title/body authoring and deterministic lookup:
-
-```text
-spec artifact create --kind <kind> --title "<title>" --format json
-spec artifact get <uuid> --format json
-spec artifact update <uuid> --body-file <path> --format json
-spec artifact list --kind <kind> --status <status> --format json
-spec artifact delete <uuid> --format json
-```
-
-New non-PROJECT Artifacts begin as `draft`. Only draft Artifacts may be
-physically deleted. Do not directly edit `id`, `kind`, `schema`, lifecycle,
-relations, or Resource descriptors when the CLI has a dedicated operation.
-
-Before activation or CHG completion, populate the kind's required body sections.
-Required sections are structural prompts, not permission to duplicate parent
-content:
-
-```text
-PRD          Problem / User Need / Desired Outcome / Success Criteria / Non-goals
-Story        Actor / Goal / Value
-Use Case     Preconditions / Main Flow / Alternate & Failure Flows / Observable Outcomes
-Feature      Capability / Semantics / Rules / Edge Cases
-Requirement  Contract / Rationale / Verification
-```
-
-Use lifecycle commands for state changes:
-
-```text
-spec lifecycle activate <uuid> --format json
-spec lifecycle complete <change-uuid> --format json
-spec lifecycle retire <uuid> --format json
-spec lifecycle supersede <replacement-uuid> <replaced-uuid> --format json
-```
-
-`superseded`, `retired`, and `completed` are terminal. Chained supersession
-transfers the replaced Artifact's current replacement targets to the new active
-replacement.
-
-## Relations and Resources
-
-Use dedicated relation operations so graph invariants are checked:
-
-```text
-spec relation add <source-uuid> <target-uuid> --type <type> --format json
-spec relation remove <source-uuid> <target-uuid> --type <type> --format json
-spec relation list --artifact <uuid> --direction all --format json
-```
-
-Local Resources must live under `.spec/resources/<owner-uuid>/...`. HTTPS
-Resources are descriptor-only; `spec resource read` never fetches them. In JSON
-mode, byte-safe UTF-8 Resource content uses `encoding: utf8`; arbitrary binary
-content uses `encoding: base64` so bytes are not corrupted.
-
-```text
-spec resource add <owner-uuid> --location <location> --role <role> --media-type <media-type> --format json
-spec resource remove <owner-uuid> <location> --format json
-spec resource list --artifact <owner-uuid> --format json
-spec resource read <owner-uuid> <location> --format json
-```
-
-## Discovery
-
-Use deterministic local discovery instead of guessing IDs or relationships:
-
-```text
-spec search <text> --kind <kind> --status <status> --format json
-spec trace <uuid> --direction <up|down|both> --format json
-```
-
-Search is case-insensitive literal substring matching over Artifact title/body
-with no ranking. Trace follows only the `refines` graph.
-
-Use `spec trace` before adding a new refinement so existing shared Features or
-Requirements are reused instead of creating parallel copies. Use relation
-listing for cross-cutting dependencies that are not `refines`.
-
-Run `spec validate --format json --no-input` after a mutation sequence. A clean
-validation proves the deterministic current-workspace invariants only; it does
-not prove natural-language semantic adequacy, correct layer placement,
-non-duplicative decomposition, or Git-history correctness. Treat
-`spec/error-result@1` as the stable JSON envelope for CLI usage/parse failures.
-Concurrent mutating CLI invocations fail fast through an ephemeral workspace
-lock rather than overwriting one another; retry after the other mutation ends.
-
-Spec MVP has no `.engineering/` compatibility, EF schema aliases, Git
-transition/range/bootstrap authority, implementation-linkage manifest, or
-provider dependency. Do not introduce those concepts while operating this
-skill.
+Canonical persisted state is only `.spec/spec.yaml` and the four optional flat roots (`stories`, `features`, `contracts`, `scenarios`). Preserve free-form Markdown bodies and Scenario comments on unrelated semantic edits. Only Spec Tool processes use its transient read/write filesystem locks; direct external writes bypass them. A crashed process may leave stale tokens, so verify liveness before manually clearing `.spec-tool-v1.lock` or `.spec-tool-v1.readers`. Neither test execution nor invalid-state repair is part of this skill.

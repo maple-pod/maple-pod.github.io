@@ -1,0 +1,6 @@
+{
+	"When automatic background presentation is selected, Maple Pod changes among eligible backgrounds over time.": "The user enables automatic background presentation and Maple Pod rotates among eligible backgrounds over time.",
+	"When they do, Maple Pod applies automatic per-track loudness compensation during playback.": "Eligible loudness data and a capable output become available, and Maple Pod applies per-track loudness compensation during playback.",
+	"When that capability is ready, Maple Pod shows an offline-ready notice.": "The application shell becomes ready for offline reuse and Maple Pod shows an offline-ready notice.",
+	"When a newer application version is available, Maple Pod shows an update-ready notice.": "A newer application version becomes available and Maple Pod shows an update-ready notice."
+}

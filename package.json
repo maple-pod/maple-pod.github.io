@@ -10,13 +10,15 @@
 	"scripts": {
 		"dev": "vite",
 		"preview": "vite preview",
-		"postinstall": "node scripts/ensure-spec-workspace.mjs",
-		"spec:prepare": "node scripts/ensure-spec-workspace.mjs",
 		"build": "vite build && pnpm verify:theme",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",
 		"type-check": "pikacss prepare && vue-tsc --build --noEmit",
-		"verify:theme": "node scripts/verify-theme-tokens.mjs"
+		"verify:theme": "node scripts/verify-theme-tokens.mjs",
+		"spec:validate": "spec workspace validate --root .",
+		"spec:scenario-quality": "node scripts/verify-spec-scenario-quality.mjs",
+		"spec:migration-check": "node scripts/replay-spec-migration.mjs",
+		"spec:baseline-compare": "node scripts/replay-spec-migration.mjs --compare-live"
 	},
 	"dependencies": {
 		"@deviltea/vue-router-middleware": "^0.0.4",
@@ -34,7 +36,7 @@
 	},
 	"devDependencies": {
 		"@deviltea/eslint-config": "^9.0.0",
-		"@deviltea/spec-tool": "^0.0.1",
+		"@deviltea/spec-tool": "0.1.0",
 		"@deviltea/tsconfig": "^1.0.0",
 		"@iconify-json/f7": "^1.2.2",
 		"@iconify-json/svg-spinners": "^1.2.4",
@@ -56,7 +58,8 @@
 		"vite-plugin-pwa": "^1.3.0",
 		"vite-plugin-vue-devtools": "^8.2.1",
 		"vue-tsc": "^3.3.11",
-		"workbox-window": "7.4.0"
+		"workbox-window": "7.4.0",
+		"yaml": "2.9.0"
 	},
 	"simple-git-hooks": {
 		"pre-commit": "pnpm lint-staged"

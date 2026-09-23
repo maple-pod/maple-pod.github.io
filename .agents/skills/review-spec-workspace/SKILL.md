@@ -1,119 +1,59 @@
 ---
 name: review-spec-workspace
-description: Review a Spec-native `.spec/` workspace without mutation. Use for deterministic validation and for semantic review of Story, Use Case, Feature, and Requirement boundaries, refinement quality, duplication, implementation leakage, relations, and Resources.
+description: Read-only structural and semantic review of a frozen-v1 @deviltea/spec-tool workspace. Use for validating Story/Feature/Rule/Scenario/Contract/Clause responsibilities, source-owned relation legality, duplicate authority, inherited applicability, graph consistency and agent-ready downstream specification quality without executing tests.
 ---
 
-# Review Spec Workspace
+# Review Spec Workspace (frozen v1)
 
-Keep review read-only. Start with:
+Keep review **read-only**. The canonical model is [Discussion #65, Thread 4](https://github.com/DevilTea/deviltea-labs/discussions/65). The retired Artifact/Resource/status/refines model is not a supported public API. Report actual observations separately from design advice and any speculative test-generation opportunity.
 
-```text
-spec validate --format json --no-input
+## First validate and inspect the graph
+
+```sh
+spec workspace validate --root .
+spec graph export --root .
 ```
 
-Report `valid`, `complete`, Artifact/project counts, and every diagnostic. Do
-not treat a passing validator as proof that prose is correct, complete for the
-product, or aligned with implementation behavior.
+If the validator reports `valid:false` (via JSON **stderr**, nonzero exit), record all `issues[]` with `source.path`, diagnostic `path`, `reason` and `message`. The workspace then has no valid semantic revision; do not request best-effort graph reads or attempt semantic mutations. Structural repair is external to v1. A valid but **empty** workspace is acceptable when its manifest is correct.
 
-## Semantic review model
+For a valid snapshot, use these read-only commands with JSON input on stdin:
 
-Review the main refinement chain using these responsibilities:
-
-```text
-User Story       -> Intent
-Use Case         -> Interaction
-Feature Spec     -> Semantics
-Requirement      -> Normative Contract
-Implementation   -> Mechanism (outside persisted Spec authority)
+```sh
+spec graph list --root . <<<'{"kind":"story"}'
+spec graph get --root . <<<'{"id":"<semantic-uuid>"}'
+spec graph incoming --root . <<<'{"id":"<semantic-uuid>"}'
+spec graph outgoing --root . <<<'{"id":"<semantic-uuid>"}'
 ```
 
-Stored `refines` edges point child -> parent:
+All normal reads return `{revision,data}`. Check the revision remains consistent across sequential queries; if it changes, restart the review against the new snapshot. Inspect the full `graph export` before inferring relations from prose. Normalize facts by UUID and effective edges, not by filenames or headings.
 
-```text
-use-case -> story
-feature -> use-case
-requirement -> feature
-```
+## Structural review
 
-The graph is many-to-many; do not infer one-parent or one-child cardinality from
-the allowed kind pairs.
+Review the six semantic kinds and their placement:
 
-- **Story:** actor, goal, and value; should not be a detailed behavior or
-  implementation description.
-- **Use Case:** scenario and interaction flow, including alternate/failure
-  behavior and observable outcomes.
-- **Feature:** capability semantics, state/rule invariants, and edge cases that
-  make one or more interactions coherent.
-- **Requirement:** enforceable and independently verifiable obligation,
-  rationale, and verification boundary.
+- **Story:** actor, goal and value express intent; requires ≥1 `motivates` Feature.
+- **Feature:** behavior and invariants; owns 0..N embedded Rules with stable global UUIDs.
+- **Rule:** one clear Feature-local behavioral obligation; its `ownerId` must resolve to a Feature.
+- **Scenario:** one first-class observable interaction with ordered effective `given/when/then` steps and ≥1 `demonstrates` Rule/Clause/Feature/Contract. This is **not** a test, coverage or passing-status assertion.
+- **Contract:** normative authority that truly crosses Feature boundaries and requires independent lifecycle/ownership; must constrain ≥1 Feature. A shared local rule alone does not justify a standalone Contract.
+- **Clause:** normative obligation belonging to a Contract, optionally restricting Feature/Rule targets. Absent persisted `constrains` inherits the Contract scope; a present nonempty array completely overrides it. `ownerId` must resolve to its Contract.
 
-PROJECT/PRD provide higher-level context, Decisions and Policies are
-cross-cutting, and Changes are provenance/history rather than current product
-truth.
+Check that `motivates`, `demonstrates` and `constrains` edges have only legal source/target kinds, no duplicates, required minimum cardinalities and no unresolved UUIDs. Normalized IR **materializes Clause effective constrains edges** even for inheritance; `graph incoming/outgoing` can expose the true impact of a Contract scope change. Flag unexpected semantic overlaps, but do not invent errors from presentation-only Rule/Clause order.
 
-### Semantic findings to look for
+Ensure workspace-global lowercase UUIDv7 uniqueness across all six kinds, even children embedded in owner files. Confirm Story/Feature/Contract frontmatter shapes are exact and ordered, filenames match top-level IDs, and Scenario storage IDs are not confused with semantic IDs. Only `.spec/spec.yaml` and the four flat storage directories belong to canonical state; an empty initialized workspace is valid.
 
-Treat the following as review smells, not deterministic validator failures:
+## Qualitative semantic review
 
-- **Mechanical refinement:** every Use Case has exactly one Feature and every
-  Feature exactly one Requirement without evidence that each layer adds a
-  distinct responsibility.
-- **Restatement:** child prose repeats the parent's rules with different
-  headings or stronger modal verbs but adds no semantic information.
-- **Layer leakage:** Story contains feature rules; Use Case contains internal
-  architecture; Feature specifies framework/library mechanisms; Requirement
-  captures incidental implementation instead of a stable contract.
-- **Monolithic Contract:** one Requirement contains unrelated obligations that
-  can evolve, be consumed, or be verified independently.
-- **Artificial fragmentation:** tightly coupled clauses of one coherent
-  contract are split only to make every MUST its own file.
-- **Missed convergence:** multiple Use Cases independently define what should
-  be one shared Feature or Contract.
-- **Hidden cross-cutting dependency:** a portability, playback, offline,
-  security, protocol, or lifecycle rule is duplicated in prose instead of
-  referencing an existing shared semantic owner where appropriate.
-- **Implementation promoted to truth:** reverse-spec copies existing code
-  behavior without distinguishing accepted intent from accidental/legacy
-  behavior or defects.
+Validator success is **structural**, not proof that prose or the product is correct. Independently assess:
 
-The refinement graph is many-to-many. Do not expect a tree and do not recommend
-one Artifact per layer merely for symmetry.
+- **Intent vs semantics:** Story answers who/goal/value; Feature and Rules define actual capability meaning and observable invariants, without implementation framework details.
+- **Interaction vs obligation:** Scenario has meaningful Given/When/Then behavior and demonstrates the most precise suitable Rule/Clause. It should not be written as a claim a test ran. A Rule/Clause should not simply repeat a Scenario's literal step wording.
+- **Normative ownership:** A cross-Feature Contract needs independent authority; Clauses should be cohesive, testable semantic obligations rather than arbitrary line splitting or duplication of local Rules. Clause override must be a deliberate **complete replacement**, not accidental union with the parent.
+- **Reference effects:** Inspect incoming `demonstrates`/`constrains` before Rule↔Clause conversion, owner movement, and deletion. Converting a Rule to Clause can make inbound Clause→Rule constrains illegal; the operation must reject rather than silently drop it. Feature/Contract compound deletion must name all current children and refuse inbound references on the owner and on every child.
+- **Machine usability:** Are IDs, precise language, normalized Scenario steps and effective edges sufficient for downstream analysis, E2E planning or mutation-test design? Report missing observable outcomes or ambiguous obligations as review suggestions; do not claim downstream tests were generated or executed.
 
-When deciding whether detail belongs in canonical Spec, ask whether it must
-remain true if the implementation framework/library/storage mechanism changes.
-Implementation-independent behavior usually belongs in Spec; mechanism-specific
-detail usually belongs downstream. Compatibility-sensitive protocols, persisted
-formats, and externally consumed schemas are exceptions when their exact
-behavior is itself part of the contract.
+## Report
 
-Inspect current specification state with read-only commands:
+Separate deterministic validator issues, confirmed semantic contradictions, possible qualitative improvements and unverified assumptions. Link findings to **semantic UUIDs and repository-relative source paths**, and list affected relations. Use no mutated spec files, no repair commands, no implicit scope changes, no test runners and no implementation management from this review skill.
 
-```text
-spec artifact get <uuid> --format json
-spec artifact list --kind <kind> --status <status> --format json
-spec search <text> --format json
-spec trace <uuid> --direction <up|down|both> --format json
-spec relation list --artifact <uuid> --direction all --format json
-spec resource list --artifact <uuid> --format json
-spec resource read <uuid> <local-location> --format json
-```
-
-Search is deterministic case-insensitive substring matching over title/body and
-has no ranking. Trace traverses only `refines`; use relation listing when other
-relation types matter. Relation direction is a focal-Artifact filter; without
-`--artifact`, relation listing enumerates the same global stored edge set.
-`resource read` is local-only and never fetches HTTPS locations. JSON Resource
-reads report `encoding: utf8` for byte-safe UTF-8 and
-`encoding: base64` for arbitrary binary bytes. CLI usage/parse failures requested
-as JSON use `spec/error-result@1`.
-
-For semantic review, inspect complete chains with `spec trace`, compare parent
-and child responsibilities, and search for repeated domain rules across
-Artifacts. Report deterministic findings separately from semantic judgments.
-Passing structural validation is evidence only for machine-checkable workspace
-invariants.
-
-Review the current `.spec/` workspace only. Do not inspect or interpret an
-`.engineering/` tree as Spec state, and do not infer EF transition/range/
-bootstrap authority, implementation-linkage status, provider approval, or Git
-history from a successful Spec validation.
+The canonical semantic revision excludes comments, bodies, source moves and presentation-only child ordering. If a review spans an external edit or partial file write, rerun validation and graph export after the workspace becomes stable. Direct external edits do not participate in Spec Tool locks; never treat the presence of a temporary lock as a safe invitation to delete it without verifying the holding process.

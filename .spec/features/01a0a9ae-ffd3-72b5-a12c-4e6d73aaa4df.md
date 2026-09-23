@@ -1,14 +1,29 @@
 ---
-schema: spec/feature@1
-kind: feature
 id: 01a0a9ae-ffd3-72b5-a12c-4e6d73aaa4df
 title: Guarded link-based music and playlist sharing
-status: active
-relations:
-  - type: refines
-    target: 01a0a9ae-fbe8-7b66-bc4a-0f7c376d2d23
-resources: []
+summary: Transfer a music selection or saveable playlist through a guarded Maple Pod link action.
+rules:
+  - id: 01a0a9af-03b7-764c-9802-96ae378c85d3
+    statement: |-
+      Maple Pod must support sharing individual music items and saveable Liked/custom playlists through its current URL protocol. All is not a shareable saveable-playlist type.
+
+      A shared music link must use `/play/` with a `musicId` query parameter that identifies the requested music item. The referenced item must resolve before the receiver can authorize playback. Maple Pod must require explicit receiver confirmation before starting playback from the shared link.
+
+      A shared playlist link must use `/import-playlist` and carry its payload in the URL hash. The wire encoding must use the current protocol: JSON serialization, DEFLATE compression, Base64 encoding, URL-safe `-` / `_` substitution, and omitted trailing padding. The decoded payload must identify the `import-saveable-playlist` action and semantically provide playlist kind, title, and an ordered list of music IDs. The sender's custom playlist identity is not required to be preserved as the receiver's playlist identity.
+
+      Before playlist import can proceed, Maple Pod must resolve every referenced music ID against the receiver's current catalog. If all IDs resolve, the full ordered list may proceed to normal receiver confirmation. If one or more IDs are unresolved, Maple Pod must disclose the unresolved items and must not silently discard them. Maple Pod may continue with only the resolvable subset only after the receiver explicitly accepts that reduced import. If the receiver does not accept dropping the unresolved items, no playlist import may proceed. Any reduced import must preserve the original relative order of the remaining resolvable music.
+
+      Maple Pod must require explicit receiver confirmation before proceeding with a valid shared playlist. Acceptance must open a playlist-creation flow prefilled with the accepted title and ordered music list. It must not directly create the playlist. A playlist is created only if the receiver completes that creation flow.
+
+      Malformed, undecodable, wrong-type, or schema-invalid shared content must fail closed. Such input must not start playback, create a playlist, or apply any partial subset of the requested shared action. Declining or cancelling sharing confirmation, rejecting the reduced-import disclosure, or cancelling the subsequent playlist-creation flow must leave the requested shared action unapplied.
 ---
+
+> Historical v0.0.1 explanatory notes; canonical semantics are the v1 frontmatter above.
+> The original Feature and Requirement, including rationale and verification guidance,
+> are preserved verbatim under docs/spec-migration/legacy/.
+
+## Legacy Feature notes
+
 ## Capability
 Transfer a music selection or saveable playlist through a guarded Maple Pod link action.
 
@@ -24,3 +39,24 @@ A link represents a reconstructable selection, not an immediate side effect. Mus
 
 ## Edge Cases
 Unknown selections, invalid payloads, rejected authorization, rejected reduction, and cancelled creation produce no shared-action side effect. Sender-side custom identity is not required to become receiver-side identity.
+
+## Legacy Requirement notes: Validate and confirm shared-link actions
+
+## Contract
+Maple Pod must support sharing individual music items and saveable Liked/custom playlists through its current URL protocol. All is not a shareable saveable-playlist type.
+
+A shared music link must use `/play/` with a `musicId` query parameter that identifies the requested music item. The referenced item must resolve before the receiver can authorize playback. Maple Pod must require explicit receiver confirmation before starting playback from the shared link.
+
+A shared playlist link must use `/import-playlist` and carry its payload in the URL hash. The wire encoding must use the current protocol: JSON serialization, DEFLATE compression, Base64 encoding, URL-safe `-` / `_` substitution, and omitted trailing padding. The decoded payload must identify the `import-saveable-playlist` action and semantically provide playlist kind, title, and an ordered list of music IDs. The sender's custom playlist identity is not required to be preserved as the receiver's playlist identity.
+
+Before playlist import can proceed, Maple Pod must resolve every referenced music ID against the receiver's current catalog. If all IDs resolve, the full ordered list may proceed to normal receiver confirmation. If one or more IDs are unresolved, Maple Pod must disclose the unresolved items and must not silently discard them. Maple Pod may continue with only the resolvable subset only after the receiver explicitly accepts that reduced import. If the receiver does not accept dropping the unresolved items, no playlist import may proceed. Any reduced import must preserve the original relative order of the remaining resolvable music.
+
+Maple Pod must require explicit receiver confirmation before proceeding with a valid shared playlist. Acceptance must open a playlist-creation flow prefilled with the accepted title and ordered music list. It must not directly create the playlist. A playlist is created only if the receiver completes that creation flow.
+
+Malformed, undecodable, wrong-type, or schema-invalid shared content must fail closed. Such input must not start playback, create a playlist, or apply any partial subset of the requested shared action. Declining or cancelling sharing confirmation, rejecting the reduced-import disclosure, or cancelling the subsequent playlist-creation flow must leave the requested shared action unapplied.
+
+## Rationale
+The sharing transport is treated as a compatibility-sensitive external protocol, while the playlist payload contract is semantic rather than tied to sender-side persistence identity. Receiver confirmation protects externally supplied actions. For unresolved playlist music, the contract favors transparent degradation over silent loss or unconditional rejection: the receiver is told what cannot be reconstructed and decides whether the remaining selection is still worth importing.
+
+## Verification
+Generate and open a valid music share link and verify `/play/?musicId=...`, resolution before action, confirmation, and playback only after acceptance. Generate Liked and custom playlist links and verify `/import-playlist`, the JSON → DEFLATE → Base64URL-style hash encoding, the expected action type, title, kind semantics, and ordered music IDs. Verify that sender custom identity is not required to become receiver identity. Verify receiver confirmation opens a prefilled creation flow and does not directly persist a playlist. Exercise a playlist containing one or more unresolved music IDs: verify those items are disclosed, rejection of reduced import produces no playlist action, acceptance removes only the unresolved items, preserves the relative order of the remaining music, and then proceeds to the prefilled creation flow. Exercise an unknown music share, malformed hash, wrong action type, and schema-invalid payload; each must produce no partial side effect. Cancel both the sharing confirmation and the subsequent playlist creation in separate runs and verify that no playlist is created.
