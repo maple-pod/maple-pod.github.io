@@ -39,8 +39,10 @@ jobs:
       - name: lint
         run: pnpm lint
 
-      - name: typecheck
-        run: pnpm type-check
-
+      # Vite generates the ignored auto-imports.d.ts/components.d.ts used
+      # by vue-tsc; clean CI checkouts must build before typechecking.
       - name: build
         run: pnpm build
+
+      - name: typecheck
+        run: pnpm type-check
