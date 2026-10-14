@@ -14,6 +14,7 @@ export interface SavedUserData {
 
 export interface ResourceBgm {
 	id?: string
+	aliases?: string[]
 	description: string
 	filename: string
 	audio: {

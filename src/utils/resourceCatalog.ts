@@ -19,6 +19,12 @@ export function isSafeResourceAudioFile(file: unknown): file is string {
 		&& !/\p{Cc}/u.test(file)
 }
 
+function isSafeResourceMusicAlias(alias: unknown): alias is string {
+	return isSafeResourceAudioFile(alias)
+		&& !/^[a-z][a-z\d+.-]*:\/\//i.test(alias)
+		&& !/^(?:https?|ftp|file|blob|data|javascript|mailto|tel):/i.test(alias)
+}
+
 export function hasValidAudioRepresentation(audio: ResourceBgmInput['audio']): audio is ResourceBgm['audio'] {
 	return audio != null
 		&& isSafeResourceAudioFile(audio.file)
@@ -60,6 +66,8 @@ export function normalizeResourceCatalog(input: ResourcesInput): Resources {
 			throw new Error('Music resource has no valid filename.')
 		if (bgm.id != null && (typeof bgm.id !== 'string' || bgm.id.length === 0))
 			throw new Error(`Music resource "${bgm.filename}" has no valid stable ID.`)
+		if (Object.hasOwn(bgm, 'aliases') && !Array.isArray(bgm.aliases))
+			throw new Error(`Music resource "${bgm.filename}" has invalid aliases.`)
 		if (bgm.youtube != null && typeof bgm.youtube !== 'string')
 			throw new Error(`Music resource "${bgm.filename}" has an invalid YouTube reference.`)
 		if (!hasValidCatalogMetadata(bgm))
@@ -90,6 +98,37 @@ export function normalizeResourceCatalog(input: ResourcesInput): Resources {
 		seenIds.add(id)
 		return normalized
 	})
+	const ownerById = new Map(bgms.map((bgm) => {
+		const id = getResourceBgmId(bgm)
+		return [id, id] as const
+	}))
+	const ownerByAlias = new Map<string, string>()
+	for (const bgm of bgms) {
+		const aliases = bgm.aliases
+		if (aliases == null)
+			continue
+
+		const id = getResourceBgmId(bgm)
+		if (aliases.length > 0 && (
+			bgm.id == null
+			|| bgm.catalog?.membership !== 'supplemental'
+			|| bgm.catalog.status !== 'curated'
+		)) {
+			throw new Error(`Music resource "${bgm.filename}" can declare aliases only as a promoted supplemental track.`)
+		}
+
+		for (const alias of aliases) {
+			if (!isSafeResourceMusicAlias(alias))
+				throw new Error(`Music resource "${bgm.filename}" has an invalid alias.`)
+			if (ownerByAlias.has(alias))
+				throw new Error(`Music catalog contains duplicate alias "${alias}".`)
+
+			const idOwner = ownerById.get(alias)
+			if (idOwner != null && idOwner !== id)
+				throw new Error(`Music alias "${alias}" conflicts with another stable ID.`)
+			ownerByAlias.set(alias, id)
+		}
+	}
 
 	return { ...input, bgms }
 }

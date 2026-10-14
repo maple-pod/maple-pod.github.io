@@ -5,7 +5,7 @@ import { ofetch } from 'ofetch'
 import { convertImageDataUrlToDataUrl512, decodeImageFromBinary } from '@/utils/common'
 import { isFactoryResetting, registerFactoryResetQuiesceHandler } from '@/utils/factoryReset'
 import { normalizeSavedMusicIds } from '@/utils/musicIds'
-import { reconcileOfflineMusicStorageValue } from '@/utils/offlineMusicCache'
+import { migrateOfflineMusicAliasStorageKey, reconcileOfflineMusicStorageValue } from '@/utils/offlineMusicCache'
 import {
 	getCompatibleLoudnessMeasurements,
 	getResourceBgmId,
@@ -70,10 +70,27 @@ export const useMusicStore = defineStore('music', () => {
 		[],
 	)
 	const musicMap = computed(() => new Map<string, MusicData>(musicDataList.value.map(item => [item.id, item])))
+	const musicAliasMap = computed(() => new Map<string, string>(musicDataList.value.flatMap((music) => {
+		return (music.data.aliases ?? []).map(alias => [alias, music.id] as const)
+	})))
+	const musicAliasesById = computed(() => new Map<string, string[]>(musicDataList.value.flatMap((music) => {
+		return music.data.aliases?.length ? [[music.id, music.data.aliases] as const] : []
+	})))
 	const musicsGroupedByCover = computed(() => groupByMark(musicDataList.value))
 
+	function getCanonicalMusicId(id: string): string | undefined {
+		if (musicMap.value.has(id))
+			return id
+		return musicAliasMap.value.get(id)
+	}
+
+	function getMusicAliasIds(id: string): string[] {
+		return musicAliasesById.value.get(id) ?? []
+	}
+
 	function getMusicData(id: string): MusicData | undefined {
-		return musicMap.value.get(id)
+		const canonicalId = getCanonicalMusicId(id)
+		return canonicalId == null ? undefined : musicMap.value.get(canonicalId)
 	}
 
 	async function loadLoudnessMeasurements(): Promise<boolean> {
@@ -129,7 +146,7 @@ export const useMusicStore = defineStore('music', () => {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null)
 			return false
-		return playlist.list.includes(musicId)
+		return playlist.list.includes(getCanonicalMusicId(musicId) ?? musicId)
 	}
 
 	function validatePlaylistTitle(title: string): string | undefined {
@@ -172,21 +189,22 @@ export const useMusicStore = defineStore('music', () => {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null)
 			return -1
-		return playlist.list.indexOf(musicId)
+		return playlist.list.indexOf(getCanonicalMusicId(musicId) ?? musicId)
 	}
 	function toggleMusicInPlaylist(playlistId: PlaylistId, musicId: string, action?: 'add' | 'remove') {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null || playlist.id === 'all')
 			return
 
-		const index = playlist.list.indexOf(musicId)
+		const canonicalId = getCanonicalMusicId(musicId) ?? musicId
+		const index = playlist.list.indexOf(canonicalId)
 		if (index !== -1 && (action === 'remove' || action == null)) {
 			playlist.list.splice(index, 1)
 			return
 		}
 
 		if (index === -1 && (action === 'add' || action == null)) {
-			playlist.list.push(musicId)
+			playlist.list.push(canonicalId)
 		}
 	}
 
@@ -204,8 +222,8 @@ export const useMusicStore = defineStore('music', () => {
 		offlineMusicDownloadingProgress,
 		offlineMusicDownloadErrors,
 		saveMusicForOffline: _saveMusicForOffline,
-		cancelOfflineMusicDownload,
-		removeSavedOfflineMusic,
+		cancelOfflineMusicDownload: _cancelOfflineMusicDownload,
+		removeSavedOfflineMusic: _removeSavedOfflineMusic,
 		clearSavedOfflineMusics,
 		getSavedOfflineMusicBlob,
 	} = useOfflineMusics()
@@ -215,7 +233,14 @@ export const useMusicStore = defineStore('music', () => {
 		if (musicData == null)
 			return
 
-		await _saveMusicForOffline(musicId, musicData.src)
+		await _saveMusicForOffline(musicData.id, musicData.src)
+	}
+	function cancelOfflineMusicDownload(musicId: string) {
+		_cancelOfflineMusicDownload(getCanonicalMusicId(musicId) ?? musicId)
+	}
+	async function removeSavedOfflineMusic(musicId: string) {
+		const canonicalId = getCanonicalMusicId(musicId) ?? musicId
+		await _removeSavedOfflineMusic(canonicalId, getMusicAliasIds(canonicalId))
 	}
 
 	const audioPlayerLogic = useAudioPlayer({
@@ -290,10 +315,11 @@ export const useMusicStore = defineStore('music', () => {
 		if (playlist == null)
 			return
 
-		if (musicId != null && (playlist.list.includes(musicId) === false))
+		const canonicalMusicId = musicId == null ? undefined : getCanonicalMusicId(musicId) ?? musicId
+		if (canonicalMusicId != null && (playlist.list.includes(canonicalMusicId) === false))
 			return
 
-		audioPlayerLogic.play(playlist.list, musicId, () => {
+		audioPlayerLogic.play(playlist.list, canonicalMusicId, () => {
 			currentPlaylist.value = playlist
 		})
 	}
@@ -309,7 +335,7 @@ export const useMusicStore = defineStore('music', () => {
 				window.clearTimeout(historyTimer)
 			}
 			historyTimer = window.setTimeout(() => {
-				if (newMusic != null) {
+				if (newMusic != null && history.value[0] !== newMusic.id) {
 					history.value.unshift(newMusic.id)
 					history.value = history.value.slice(0, MAX_HISTORY_LENGTH)
 				}
@@ -321,17 +347,19 @@ export const useMusicStore = defineStore('music', () => {
 	})
 
 	function getPlayMusicLink(musicId: string) {
-		return `${window.location.origin}${import.meta.env.BASE_URL}play/?musicId=${encodeURIComponent(musicId)}`
+		const canonicalMusicId = getCanonicalMusicId(musicId) ?? musicId
+		return `${window.location.origin}${import.meta.env.BASE_URL}play/?musicId=${encodeURIComponent(canonicalMusicId)}`
 	}
 
 	const isOnline = useOnline()
 	function isMusicDisabled(musicId: string) {
-		if (getMusicData(musicId) == null)
+		const canonicalMusicId = getCanonicalMusicId(musicId)
+		if (canonicalMusicId == null)
 			return true
 		if (isOnline.value)
 			return false
 
-		return offlineReadyMusics.value.has(musicId) === false
+		return offlineReadyMusics.value.has(canonicalMusicId) === false
 	}
 
 	if (navigator.mediaSession != null) {
@@ -396,12 +424,16 @@ export const useMusicStore = defineStore('music', () => {
 		})
 	}
 
+	function normalizeMusicIds(list: string[], dedupe = false): string[] {
+		return normalizeSavedMusicIds(list, getCanonicalMusicId, dedupe)
+	}
+
 	function normalizePlaylistMusicIds(list: string[]): string[] {
-		return normalizeSavedMusicIds(list, id => getMusicData(id) != null)
+		return normalizeMusicIds(list, true)
 	}
 
 	function normalizeRecentHistory(): void {
-		history.value = normalizePlaylistMusicIds(history.value)
+		history.value = normalizeMusicIds(history.value)
 	}
 
 	function normalizeSavedPlaylists(): void {
@@ -433,13 +465,15 @@ export const useMusicStore = defineStore('music', () => {
 	const ready = until(isDataReady)
 		.toBe(true)
 		.then(async () => {
-			await loadOfflineMusics(id => getMusicData(id)?.src)
+			await loadOfflineMusics(getMusicData)
 			normalizeSavedPlaylists()
 			normalizeRecentHistory()
 		})
 
 	return {
 		getMusicData,
+		getCanonicalMusicId,
+		normalizeMusicIds,
 		playlistList,
 		likedPlaylist,
 		savedPlaylists: computed(() => savedPlaylists.value.filter(playlist => isCustomPlaylist(playlist.id))
@@ -492,17 +526,54 @@ function useOfflineMusics() {
 	}
 
 	const offlineReadyMusics = ref(new Set<string>())
-	async function loadOfflineMusics(getExpectedSource: (musicId: string) => string | undefined) {
+	async function loadOfflineMusics(getMusicData: (musicId: string) => MusicData | undefined) {
 		if (!isOfflineStorageWritable())
 			return
 		const generation = storageGeneration
 		const keys = await storage.keys()
+		const storedValues = new Map(await Promise.all(keys.map(async (musicId) => {
+			return [musicId, await storage.getItem<unknown>(musicId)] as const
+		})))
+		const aliasKeys = new Set(keys.filter((musicId) => {
+			const musicData = getMusicData(musicId)
+			return musicData != null && musicData.id !== musicId
+		}))
 		const ready = new Set<string>()
-		await Promise.all(keys.map(async (musicId) => {
-			const value = await storage.getItem<unknown>(musicId)
+		const migratedCanonicalIds = new Set<string>()
+		for (const aliasId of aliasKeys) {
+			const musicData = getMusicData(aliasId)
+			const value = storedValues.get(aliasId)
+			if (musicData == null || value == null)
+				continue
+
+			try {
+				const migrated = await runStorageMutation(async () => {
+					if (!isOfflineStorageWritable() || generation !== storageGeneration)
+						return null
+					return migrateOfflineMusicAliasStorageKey(
+						aliasId,
+						musicData.id,
+						value,
+						musicData.src,
+						storage,
+					)
+				})
+				if (migrated != null && isOfflineStorageWritable() && generation === storageGeneration) {
+					ready.add(musicData.id)
+					migratedCanonicalIds.add(musicData.id)
+				}
+			}
+			catch (error) {
+				console.warn(`Could not migrate offline music key "${aliasId}" to "${musicData.id}"; the old key was retained.`, error)
+			}
+		}
+
+		const keysToReconcile = keys.filter(musicId => !aliasKeys.has(musicId) && !migratedCanonicalIds.has(musicId))
+		await Promise.all(keysToReconcile.map(async (musicId) => {
+			const value = storedValues.get(musicId)
 			if (!isOfflineStorageWritable() || generation !== storageGeneration)
 				return
-			const expectedSource = getExpectedSource(musicId)
+			const expectedSource = getMusicData(musicId)?.src
 			const reconciliation = reconcileOfflineMusicStorageValue(musicId, value, expectedSource)
 			if (reconciliation.kind === 'ready') {
 				if (reconciliation.needsPersist) {
@@ -682,11 +753,14 @@ function useOfflineMusics() {
 	function cancelOfflineMusicDownload(musicId: string) {
 		cancelFns.get(musicId)?.()
 	}
-	async function removeSavedOfflineMusic(musicId: string) {
+	async function removeSavedOfflineMusic(musicId: string, aliasIds: string[] = []) {
 		cancelOfflineMusicDownload(musicId)
 		await activeAttemptRequests.get(musicId)
 			?.catch(() => null)
-		await runStorageMutation(() => storage.removeItem(musicId))
+		await runStorageMutation(async () => {
+			await storage.removeItem(musicId)
+			await Promise.all(aliasIds.map(aliasId => storage.removeItem(aliasId)))
+		})
 		offlineReadyMusics.value.delete(musicId)
 		offlineMusicDownloadErrors.value.delete(musicId)
 	}

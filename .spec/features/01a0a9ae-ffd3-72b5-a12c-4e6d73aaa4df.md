@@ -11,28 +11,33 @@ rules:
       shareable saveable-playlist type.
 
 
-      A shared music link must use `/play/` with a `musicId` query parameter
-      that identifies the requested music item. The referenced item must resolve
-      before the receiver can authorize playback. Maple Pod must require
-      explicit receiver confirmation before starting playback from the shared
-      link. If the ID is missing or does not resolve, Maple Pod must tell the
-      receiver that the music is unavailable, must not open playback
-      confirmation, and must not begin playback.
+      A shared music link must use /play/ with a musicId query parameter that
+      identifies the requested music item. A declared historical catalog alias
+      must resolve to its current track runtime ID before playback is
+      authorized. The referenced item must resolve before the receiver can
+      authorize playback. Maple Pod must require explicit receiver confirmation
+      before starting playback from the shared link. If the ID is missing or
+      does not resolve, Maple Pod must tell the receiver that the music is
+      unavailable, must not open playback confirmation, and must not begin
+      playback.
 
 
-      A shared playlist link must use `/import-playlist` and carry its payload
-      in the URL hash. The wire encoding must use the current protocol: JSON
-      serialization, DEFLATE compression, Base64 encoding, URL-safe `-` / `_`
+      A shared playlist link must use /import-playlist and carry its payload in
+      the URL hash. The wire encoding must use the current protocol: JSON
+      serialization, DEFLATE compression, Base64 encoding, URL-safe - / _
       substitution, and omitted trailing padding. The decoded payload must
-      identify the `import-saveable-playlist` action and semantically provide
-      playlist kind, title, and an ordered list of music IDs. The sender's
-      custom playlist identity is not required to be preserved as the receiver's
-      playlist identity.
+      identify the import-saveable-playlist action and semantically provide
+      playlist kind, title, and an ordered list of music IDs. The sender custom
+      playlist identity is not required to be preserved as the receiver playlist
+      identity.
 
 
       Before playlist import can proceed, Maple Pod must resolve every
-      referenced music ID against the receiver's current catalog. If all IDs
-      resolve, the full ordered list may proceed to normal receiver
+      referenced music ID against the receiver current catalog, including
+      declared historical aliases. It must rewrite resolved aliases to their
+      current runtime IDs and collapse members that resolve to the same runtime
+      ID, preserving the first occurrence and relative order. If all IDs
+      resolve, the normalized ordered list may proceed to normal receiver
       confirmation. If one or more IDs are unresolved, Maple Pod must disclose
       the unresolved items and must not silently discard them. Maple Pod may
       continue with only the resolvable subset only after the receiver

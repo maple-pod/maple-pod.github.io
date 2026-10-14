@@ -96,6 +96,69 @@ test('filename remains the identity when id is absent and promotion retains its 
 	assert.equal(normalized.bgms[0].catalog.status, 'curated')
 })
 
+test('promoted tracks resolve exact historical aliases without changing their stable ID or audio path', () => {
+	const promoted = bgm({
+		id: 'supplemental:dimension-tower:old-login',
+		filename: 'dimension-tower-old-login',
+		audio: { file: 'published-safe-name.mp3', codec: 'mp3', container: 'mp3' },
+		catalog: { membership: 'supplemental', status: 'curated' },
+		aliases: ['OldUpstreamFilename'],
+	})
+	const [normalized] = normalizeResourceCatalog({ bgms: [promoted], marks: {} }).bgms
+
+	assert.deepEqual(normalized.aliases, ['OldUpstreamFilename'])
+	assert.equal(getResourceBgmId(normalized), 'supplemental:dimension-tower:old-login')
+	assert.equal(getResourceBgmSrc(normalized), '/resources/bgm/published-safe-name.mp3')
+})
+
+test('aliases cannot point to multiple tracks or another track stable ID', () => {
+	const promoted = bgm({
+		id: 'supplemental:dimension-tower:old-login',
+		catalog: { membership: 'supplemental', status: 'curated' },
+		aliases: ['OldUpstreamFilename'],
+	})
+	const otherPromoted = bgm({
+		filename: 'another-track',
+		id: 'supplemental:another-track',
+		catalog: { membership: 'supplemental', status: 'curated' },
+		aliases: ['OldUpstreamFilename'],
+	})
+	assert.throws(() => normalizeResourceCatalog({ bgms: [promoted, otherPromoted], marks: {} }), /duplicate alias/)
+
+	const realTrack = bgm({ filename: 'OldUpstreamFilename', id: undefined })
+	assert.throws(() => normalizeResourceCatalog({ bgms: [promoted, realTrack], marks: {} }), /conflicts with another stable ID/)
+
+	const ownIdAlias = bgm({
+		id: 'supplemental:dimension-tower:own-id',
+		catalog: { membership: 'supplemental', status: 'curated' },
+		aliases: ['supplemental:dimension-tower:own-id'],
+	})
+	assert.equal(normalizeResourceCatalog({ bgms: [ownIdAlias], marks: {} }).bgms.length, 1)
+})
+
+test('aliases reject URLs, duplicate entries, and tracks that are not promoted supplemental entries', () => {
+	const promoted = {
+		id: 'supplemental:dimension-tower:old-login',
+		catalog: { membership: 'supplemental', status: 'curated' },
+	}
+	assert.throws(() => normalizeResourceCatalog({
+		bgms: [bgm({ ...promoted, aliases: ['https://example.test/track'] })],
+		marks: {},
+	}), /invalid alias/)
+	assert.throws(() => normalizeResourceCatalog({
+		bgms: [bgm({ ...promoted, aliases: ['https:track'] })],
+		marks: {},
+	}), /invalid alias/)
+	assert.throws(() => normalizeResourceCatalog({
+		bgms: [bgm({ ...promoted, aliases: ['OldUpstreamFilename', 'OldUpstreamFilename'] })],
+		marks: {},
+	}), /duplicate alias/)
+	assert.throws(() => normalizeResourceCatalog({
+		bgms: [bgm({ id: 'supplemental:pending', catalog: { membership: 'supplemental', status: 'pending-upstream', tracking: 'issue' }, aliases: ['OldUpstreamFilename'] })],
+		marks: {},
+	}), /only as a promoted supplemental track/)
+})
+
 test('new-format entries never guess MP3 when declared audio is missing or unsafe', () => {
 	const supplemental = bgm({ id: 'supplemental:dimension-tower:old-login', catalog: { membership: 'supplemental', status: 'pending-upstream', tracking: 'issue' } })
 	delete supplemental.audio

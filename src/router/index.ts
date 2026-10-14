@@ -81,7 +81,7 @@ const middlewares = {
 
 		if (agreed) {
 			const musicStore = useMusicStore()
-			musicStore.play('all', musicId)
+			musicStore.play('all', musicData.id)
 		}
 
 		return { name: Routes.Root }
@@ -95,8 +95,12 @@ const middlewares = {
 		if (result.success) {
 			const playlist = (result.output as HashActionImportSaveablePlaylist).data
 			const musicStore = useMusicStore()
-			const resolvableMusicIds = playlist.list.filter(musicId => musicStore.getMusicData(musicId) != null)
-			const unresolvedMusicIds = playlist.list.filter(musicId => musicStore.getMusicData(musicId) == null)
+			const normalizedPlaylist = {
+				...playlist,
+				list: musicStore.normalizeMusicIds(playlist.list, true),
+			}
+			const resolvableMusicIds = normalizedPlaylist.list.filter(musicId => musicStore.getMusicData(musicId) != null)
+			const unresolvedMusicIds = normalizedPlaylist.list.filter(musicId => musicStore.getMusicData(musicId) == null)
 
 			const { confirm } = useUiConfirmDialog()
 			if (unresolvedMusicIds.length > 0) {
@@ -113,8 +117,8 @@ const middlewares = {
 			}
 
 			const acceptedPlaylist = unresolvedMusicIds.length === 0
-				? playlist
-				: { ...playlist, list: resolvableMusicIds }
+				? normalizedPlaylist
+				: { ...normalizedPlaylist, list: resolvableMusicIds }
 			const agreed = await confirm({
 				title: 'Import Playlist',
 				description: `Import playlist "${playlist.title}" with ${acceptedPlaylist.list.length} music item(s)?`,
