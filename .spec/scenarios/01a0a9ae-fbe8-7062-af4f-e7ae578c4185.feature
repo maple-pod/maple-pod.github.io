@@ -4,4 +4,4 @@ Feature: Open shared music and playlist links
   Scenario: Reject an unknown shared music target
     Given A shared music link contains an ID absent from the receiver catalog.
     When The receiver opens the link.
-    Then The unresolved target is rejected and no playback begins.
+    Then The receiver is told the track is unavailable, playback confirmation does not open, and no playback begins.

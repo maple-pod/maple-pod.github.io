@@ -10,7 +10,7 @@ const props = defineProps<{
 const musicStore = useMusicStore()
 
 const { currentPlaylist, currentMusic, isPaused, random } = storeToRefs(musicStore)
-const { getPlaylist, getMusicData, play, togglePlay, isMusicLiked, toggleMusicLike, toggleRandom, isMusicDisabled } = musicStore
+const { getPlaylist, getMusicData, play, togglePlay, isMusicLiked, toggleMusicLike, toggleMusicInPlaylist, toggleRandom, isMusicDisabled } = musicStore
 const playlist = computed(() => getPlaylist(props.playlistId)!)
 const title = computed(() => playlist.value.title)
 
@@ -43,6 +43,8 @@ const allTracks = computed<MusicData[]>(() => {
 		.filter((t): t is MusicData => t != null)
 })
 
+const unresolvedMusicIds = computed(() => playlist.value.list.filter(id => getMusicData(id) == null))
+
 const availableMarks = computed<MarkItem[]>(() => {
 	const tracks = allTracks.value
 	const marks: MarkItem[] = []
@@ -52,7 +54,7 @@ const availableMarks = computed<MarkItem[]>(() => {
 	for (const track of tracks) {
 		const mark = track.data.mark
 		// Skip empty/null marks
-		if (!mark || seenMarks.has(mark))
+		if (mark == null || mark.length === 0 || seenMarks.has(mark))
 			continue
 
 		seenMarks.add(mark)
@@ -81,7 +83,7 @@ const filteredTracks = computed(() => {
 
 	// OR logic: show track if its mark is in the selected set
 	// Set.has() provides O(1) lookup performance
-	return allTracks.value.filter(track => selectedMarks.value.has(track.data.mark))
+	return allTracks.value.filter(track => track.data.mark != null && selectedMarks.value.has(track.data.mark))
 })
 
 // Filters are active but hide every track: the list would otherwise render as blank
@@ -98,7 +100,7 @@ async function revealMusicInPlaylist(musicId: string) {
 	if (target == null)
 		return
 
-	if (hasActiveFilters.value && selectedMarks.value.has(target.data.mark) === false)
+	if (hasActiveFilters.value && (target.data.mark == null || selectedMarks.value.has(target.data.mark) === false))
 		selectedMarks.value = new Set()
 
 	await nextTick()
@@ -122,7 +124,7 @@ watch(
 )
 
 function handlePlayPlaylist() {
-	if (playlist.value.list.length === 0)
+	if (playlist.value.list.length === 0 || playlist.value.list.every(isMusicDisabled))
 		return
 
 	if (playlist.value.id !== currentPlaylist.value?.id) {
@@ -292,7 +294,7 @@ useRafFn(() => {
 				<template #trigger>
 					<button
 						:class="pika('icon-btn')"
-						:disabled="playlist.list.length === 0"
+						:disabled="playlist.list.length === 0 || playlist.list.every(isMusicDisabled)"
 						@click="handlePlayPlaylist()"
 					>
 						<div
@@ -311,6 +313,40 @@ useRafFn(() => {
 			<PlaylistDropdownMenu
 				:playlistId="playlist.id"
 			/>
+		</div>
+
+		<div
+			v-if="unresolvedMusicIds.length > 0"
+			role="status"
+			:class="pika({
+				display: 'flex',
+				flexDirection: 'column',
+				gap: '6px',
+				padding: '8px 16px',
+				borderRadius: '8px',
+				backgroundColor: 'var(--color-secondary-1)',
+				fontSize: '12px',
+				color: 'var(--color-secondary-text)',
+			})"
+		>
+			<span>Unavailable saved tracks are preserved until they return or you remove them.</span>
+			<div
+				v-for="(musicId, index) in unresolvedMusicIds"
+				:key="`${musicId}:${index}`"
+				:class="pika({ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '0' })"
+			>
+				<span :class="pika({ flex: '1 1 0', minWidth: '0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })">
+					{{ musicId }}
+				</span>
+				<button
+					:class="pika('icon-btn')"
+					:aria-label="`Remove unavailable track ${musicId}`"
+					:title="`Remove unavailable track ${musicId}`"
+					@click="toggleMusicInPlaylist(playlist.id, musicId, 'remove')"
+				>
+					<div :class="pika('i-f7:trash')" />
+				</button>
+			</div>
 		</div>
 
 		<div

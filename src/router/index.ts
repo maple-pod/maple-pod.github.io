@@ -56,15 +56,24 @@ const middlewares = {
 		return true
 	},
 	directlyPlay: async (to) => {
-		const { musicId } = to.query as { musicId: string | undefined }
-		const { confirm } = useUiConfirmDialog()
+		const query = to.query as { musicId?: string }
+		const musicId = typeof query.musicId === 'string' ? query.musicId : undefined
 		const musicStore = useMusicStore()
-		const musicData = musicStore.getMusicData(musicId!)
+		const musicData = musicId == null ? undefined : musicStore.getMusicData(musicId)
 
 		if (musicData == null) {
+			const { toast } = useUiToast()
+			void toast({
+				title: 'Music Unavailable',
+				description: musicId == null
+					? 'This link does not include a music ID.'
+					: `The music "${musicId}" is not available in the current catalog.`,
+				duration: 5000,
+			})
 			return { name: Routes.Root }
 		}
 
+		const { confirm } = useUiConfirmDialog()
 		const agreed = await confirm({
 			title: 'Play Music From Link',
 			description: `Are you sure you want to play "${musicData.title}" from link?`,
@@ -72,7 +81,7 @@ const middlewares = {
 
 		if (agreed) {
 			const musicStore = useMusicStore()
-			musicStore.play('all', musicId)
+			musicStore.play('all', musicData.id)
 		}
 
 		return { name: Routes.Root }
@@ -86,8 +95,12 @@ const middlewares = {
 		if (result.success) {
 			const playlist = (result.output as HashActionImportSaveablePlaylist).data
 			const musicStore = useMusicStore()
-			const resolvableMusicIds = playlist.list.filter(musicId => musicStore.getMusicData(musicId) != null)
-			const unresolvedMusicIds = playlist.list.filter(musicId => musicStore.getMusicData(musicId) == null)
+			const normalizedPlaylist = {
+				...playlist,
+				list: musicStore.normalizeMusicIds(playlist.list, true),
+			}
+			const resolvableMusicIds = normalizedPlaylist.list.filter(musicId => musicStore.getMusicData(musicId) != null)
+			const unresolvedMusicIds = normalizedPlaylist.list.filter(musicId => musicStore.getMusicData(musicId) == null)
 
 			const { confirm } = useUiConfirmDialog()
 			if (unresolvedMusicIds.length > 0) {
@@ -104,8 +117,8 @@ const middlewares = {
 			}
 
 			const acceptedPlaylist = unresolvedMusicIds.length === 0
-				? playlist
-				: { ...playlist, list: resolvableMusicIds }
+				? normalizedPlaylist
+				: { ...normalizedPlaylist, list: resolvableMusicIds }
 			const agreed = await confirm({
 				title: 'Import Playlist',
 				description: `Import playlist "${playlist.title}" with ${acceptedPlaylist.list.length} music item(s)?`,

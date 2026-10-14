@@ -4,9 +4,10 @@ const { history } = storeToRefs(musicStore)
 const { getMusicData, play, isMusicDisabled } = musicStore
 
 const displayList = computed(() => {
-	return history.value
-		.map(id => getMusicData(id))
-		.filter((music): music is NonNullable<typeof music> => music != null)
+	return history.value.map(id => ({
+		id,
+		music: getMusicData(id) ?? null,
+	}))
 })
 </script>
 
@@ -35,11 +36,12 @@ const displayList = computed(() => {
 					<TempVar
 						v-slot="{ isDisabled }"
 						:define="{
-							isDisabled: isMusicDisabled(item.id),
+							isDisabled: item.music == null || isMusicDisabled(item.id),
 						}"
 					>
 						<div
 							:data-disabled="isDisabled || void 0"
+							:aria-disabled="isDisabled"
 							:class="pika('hover-mask', {
 								'width': '100%',
 								'height': '48px',
@@ -59,17 +61,24 @@ const displayList = computed(() => {
 							@click="isDisabled || play('all', item.id)"
 						>
 							<MusicPlayerThumbnail
-								:music="item"
+								:music="item.music"
 								:class="pika({
 									width: '24px',
 								})"
 							/>
 							<UiMarquee
-								:key="item.title"
-								:title="item.title"
+								v-if="item.music != null"
+								:key="item.music.title"
+								:title="item.music.title"
 							>
-								{{ item.title }}
+								{{ item.music.title }}
 							</UiMarquee>
+							<span
+								v-else
+								:title="item.id"
+							>
+								Unavailable track: {{ item.id }}
+							</span>
 						</div>
 					</TempVar>
 				</template>

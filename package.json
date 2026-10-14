@@ -11,6 +11,7 @@
 		"dev": "vite",
 		"preview": "vite preview",
 		"build": "vite build && pnpm verify:theme",
+		"test": "node --experimental-strip-types --test tests/*.test.mjs",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",
 		"type-check": "pikacss prepare && vue-tsc --build --noEmit",

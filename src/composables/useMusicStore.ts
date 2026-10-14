@@ -1,8 +1,18 @@
-import type { CustomPlaylistId, LoudnessAnalysisReport, MusicData, Playlist, PlaylistId, ResourceBgm, Resources } from '@/types'
+import type { CustomPlaylistId, LoudnessAnalysisReport, MusicData, Playlist, PlaylistId } from '@/types'
+import type { ResourcesInput } from '@/utils/resourceCatalog'
 import localforage from 'localforage'
 import { ofetch } from 'ofetch'
 import { convertImageDataUrlToDataUrl512, decodeImageFromBinary } from '@/utils/common'
 import { isFactoryResetting, registerFactoryResetQuiesceHandler } from '@/utils/factoryReset'
+import { normalizeSavedMusicIds } from '@/utils/musicIds'
+import { migrateOfflineMusicAliasStorageKey, reconcileOfflineMusicStorageValue } from '@/utils/offlineMusicCache'
+import {
+	getCompatibleLoudnessMeasurements,
+	getResourceBgmId,
+	getResourceBgmMarkBinary,
+	getResourceBgmSrc,
+	normalizeResourceCatalog,
+} from '@/utils/resourceCatalog'
 
 function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playlist {
 	return {
@@ -16,61 +26,14 @@ function createAllPlaylist(dataGroupedByCover: Map<string, MusicData[]>): Playli
 	}
 }
 
-type ResourceBgmInput = Omit<ResourceBgm, 'audio'> & { audio?: ResourceBgm['audio'] | null }
-type ResourcesInput = Omit<Resources, 'bgms'> & { bgms: ResourceBgmInput[] }
-
-function hasValidAudioRepresentation(audio: ResourceBgmInput['audio']): audio is ResourceBgm['audio'] {
-	return audio != null
-		&& typeof audio.file === 'string'
-		&& audio.file.length > 0
-		&& typeof audio.codec === 'string'
-		&& audio.codec.length > 0
-		&& typeof audio.container === 'string'
-		&& audio.container.length > 0
-}
-
-function normalizeResourceCatalog(input: ResourcesInput): Resources {
-	const missingAudioCount = input.bgms.filter(bgm => bgm.audio == null).length
-	const legacyCatalog = input.bgms.length > 0 && missingAudioCount === input.bgms.length
-
-	return {
-		...input,
-		bgms: input.bgms.map((bgm) => {
-			if (legacyCatalog) {
-				// Catalogs cached by older installed PWAs predate explicit audio metadata.
-				// Normalize that whole legacy shape once at ingestion; current source
-				// resolution remains strict and never synthesizes a fallback path.
-				return {
-					...bgm,
-					audio: {
-						file: `${bgm.filename}.mp3`,
-						codec: 'mp3',
-						container: 'mp3',
-					},
-				}
-			}
-
-			if (!hasValidAudioRepresentation(bgm.audio))
-				throw new Error(`Music resource "${bgm.filename}" has no valid declared audio representation.`)
-
-			return { ...bgm, audio: bgm.audio }
-		}),
-	}
-}
-
-function getResourceBgmSrc(bgm: ResourceBgm): string {
-	if (!hasValidAudioRepresentation(bgm.audio))
-		throw new Error(`Music resource "${bgm.filename}" has no valid declared audio representation.`)
-	return `/resources/bgm/${bgm.audio.file}`
-}
-
 function groupByMark(data: MusicData[]): Map<string, MusicData[]> {
 	const map = new Map<string, MusicData[]>()
 	for (const item of data) {
-		if (!map.has(item.data.mark)) {
-			map.set(item.data.mark, [])
+		const mark = item.data.mark ?? '/logo.png'
+		if (!map.has(mark)) {
+			map.set(mark, [])
 		}
-		map.get(item.data.mark)!.push(item)
+		map.get(mark)!.push(item)
 	}
 	const temp = map.get('/logo.png')
 	map.delete('/logo.png')
@@ -92,22 +55,42 @@ export const useMusicStore = defineStore('music', () => {
 			const res = normalizeResourceCatalog(await ofetch<ResourcesInput>('/resources/data.json'))
 			resourceBuiltAt.value = res.builtAt
 			const marks = res.marks
-			return Promise.all<MusicData>(res.bgms.map(async bgm => ({
-				id: bgm.filename,
-				title: bgm.metadata.title,
-				cover: await decodeImageFromBinary(marks[bgm.mark]!),
-				src: getResourceBgmSrc(bgm),
-				duration: bgm.duration,
-				data: bgm,
-			})))
+			return Promise.all<MusicData>(res.bgms.map(async (bgm) => {
+				const markBinary = getResourceBgmMarkBinary(bgm, marks)
+				return {
+					id: getResourceBgmId(bgm),
+					title: bgm.metadata.title,
+					cover: await decodeImageFromBinary(markBinary),
+					src: getResourceBgmSrc(bgm),
+					duration: bgm.duration,
+					data: bgm,
+				}
+			}))
 		},
 		[],
 	)
 	const musicMap = computed(() => new Map<string, MusicData>(musicDataList.value.map(item => [item.id, item])))
+	const musicAliasMap = computed(() => new Map<string, string>(musicDataList.value.flatMap((music) => {
+		return (music.data.aliases ?? []).map(alias => [alias, music.id] as const)
+	})))
+	const musicAliasesById = computed(() => new Map<string, string[]>(musicDataList.value.flatMap((music) => {
+		return music.data.aliases?.length ? [[music.id, music.data.aliases] as const] : []
+	})))
 	const musicsGroupedByCover = computed(() => groupByMark(musicDataList.value))
 
+	function getCanonicalMusicId(id: string): string | undefined {
+		if (musicMap.value.has(id))
+			return id
+		return musicAliasMap.value.get(id)
+	}
+
+	function getMusicAliasIds(id: string): string[] {
+		return musicAliasesById.value.get(id) ?? []
+	}
+
 	function getMusicData(id: string): MusicData | undefined {
-		return musicMap.value.get(id)
+		const canonicalId = getCanonicalMusicId(id)
+		return canonicalId == null ? undefined : musicMap.value.get(canonicalId)
 	}
 
 	async function loadLoudnessMeasurements(): Promise<boolean> {
@@ -119,18 +102,13 @@ export const useMusicStore = defineStore('music', () => {
 		loudnessLoadPromise = (async () => {
 			try {
 				const report = await ofetch<LoudnessAnalysisReport>('/resources/loudness-analysis.json')
-				const reportMatchesResources = report.failureCount === 0
-					&& report.successCount === musicDataList.value.length
-					&& report.trackCount === musicDataList.value.length
-					&& report.resourceBuiltAt === resourceBuiltAt.value
-				if (!reportMatchesResources) {
-					console.warn('[audio] Loudness report does not match the current resource build; normalization is unavailable.')
-					return false
-				}
-
-				const measurements = new Map(report.tracks.map(track => [track.filename, track]))
-				if (measurements.size !== musicDataList.value.length) {
-					console.warn('[audio] Loudness report is incomplete; normalization is unavailable.')
+				const measurements = getCompatibleLoudnessMeasurements(
+					report,
+					musicDataList.value.map(music => music.data),
+					resourceBuiltAt.value,
+				)
+				if (measurements == null) {
+					console.warn('[audio] Loudness report is incompatible with the current resource catalog; normalization is unavailable.')
 					return false
 				}
 
@@ -168,7 +146,7 @@ export const useMusicStore = defineStore('music', () => {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null)
 			return false
-		return playlist.list.includes(musicId)
+		return playlist.list.includes(getCanonicalMusicId(musicId) ?? musicId)
 	}
 
 	function validatePlaylistTitle(title: string): string | undefined {
@@ -211,21 +189,22 @@ export const useMusicStore = defineStore('music', () => {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null)
 			return -1
-		return playlist.list.indexOf(musicId)
+		return playlist.list.indexOf(getCanonicalMusicId(musicId) ?? musicId)
 	}
 	function toggleMusicInPlaylist(playlistId: PlaylistId, musicId: string, action?: 'add' | 'remove') {
 		const playlist = getPlaylist(playlistId)
 		if (playlist == null || playlist.id === 'all')
 			return
 
-		const index = playlist.list.indexOf(musicId)
+		const canonicalId = getCanonicalMusicId(musicId) ?? musicId
+		const index = playlist.list.indexOf(canonicalId)
 		if (index !== -1 && (action === 'remove' || action == null)) {
 			playlist.list.splice(index, 1)
 			return
 		}
 
 		if (index === -1 && (action === 'add' || action == null)) {
-			playlist.list.push(musicId)
+			playlist.list.push(canonicalId)
 		}
 	}
 
@@ -243,8 +222,8 @@ export const useMusicStore = defineStore('music', () => {
 		offlineMusicDownloadingProgress,
 		offlineMusicDownloadErrors,
 		saveMusicForOffline: _saveMusicForOffline,
-		cancelOfflineMusicDownload,
-		removeSavedOfflineMusic,
+		cancelOfflineMusicDownload: _cancelOfflineMusicDownload,
+		removeSavedOfflineMusic: _removeSavedOfflineMusic,
 		clearSavedOfflineMusics,
 		getSavedOfflineMusicBlob,
 	} = useOfflineMusics()
@@ -254,7 +233,14 @@ export const useMusicStore = defineStore('music', () => {
 		if (musicData == null)
 			return
 
-		await _saveMusicForOffline(musicId, musicData.src)
+		await _saveMusicForOffline(musicData.id, musicData.src)
+	}
+	function cancelOfflineMusicDownload(musicId: string) {
+		_cancelOfflineMusicDownload(getCanonicalMusicId(musicId) ?? musicId)
+	}
+	async function removeSavedOfflineMusic(musicId: string) {
+		const canonicalId = getCanonicalMusicId(musicId) ?? musicId
+		await _removeSavedOfflineMusic(canonicalId, getMusicAliasIds(canonicalId))
 	}
 
 	const audioPlayerLogic = useAudioPlayer({
@@ -329,10 +315,11 @@ export const useMusicStore = defineStore('music', () => {
 		if (playlist == null)
 			return
 
-		if (musicId != null && (playlist.list.includes(musicId) === false))
+		const canonicalMusicId = musicId == null ? undefined : getCanonicalMusicId(musicId) ?? musicId
+		if (canonicalMusicId != null && (playlist.list.includes(canonicalMusicId) === false))
 			return
 
-		audioPlayerLogic.play(playlist.list, musicId, () => {
+		audioPlayerLogic.play(playlist.list, canonicalMusicId, () => {
 			currentPlaylist.value = playlist
 		})
 	}
@@ -348,7 +335,7 @@ export const useMusicStore = defineStore('music', () => {
 				window.clearTimeout(historyTimer)
 			}
 			historyTimer = window.setTimeout(() => {
-				if (newMusic != null) {
+				if (newMusic != null && history.value[0] !== newMusic.id) {
 					history.value.unshift(newMusic.id)
 					history.value = history.value.slice(0, MAX_HISTORY_LENGTH)
 				}
@@ -360,15 +347,19 @@ export const useMusicStore = defineStore('music', () => {
 	})
 
 	function getPlayMusicLink(musicId: string) {
-		return `${window.location.origin}${import.meta.env.BASE_URL}play/?musicId=${musicId}`
+		const canonicalMusicId = getCanonicalMusicId(musicId) ?? musicId
+		return `${window.location.origin}${import.meta.env.BASE_URL}play/?musicId=${encodeURIComponent(canonicalMusicId)}`
 	}
 
 	const isOnline = useOnline()
 	function isMusicDisabled(musicId: string) {
+		const canonicalMusicId = getCanonicalMusicId(musicId)
+		if (canonicalMusicId == null)
+			return true
 		if (isOnline.value)
 			return false
 
-		return offlineReadyMusics.value.has(musicId) === false
+		return offlineReadyMusics.value.has(canonicalMusicId) === false
 	}
 
 	if (navigator.mediaSession != null) {
@@ -433,23 +424,16 @@ export const useMusicStore = defineStore('music', () => {
 		})
 	}
 
-	function normalizePlaylistMusicIds(list: string[]): string[] {
-		return list
-			.map((value) => {
-				if (getMusicData(value) != null)
-					return value
+	function normalizeMusicIds(list: string[], dedupe = false): string[] {
+		return normalizeSavedMusicIds(list, getCanonicalMusicId, dedupe)
+	}
 
-				// Persisted data before stable music IDs used the exact resource path.
-				// This is an input migration only; source resolution below never
-				// synthesizes an mp3 filename when resource metadata is missing.
-				const legacy = value.match(/^\/resources\/bgm\/([^/]+)\.mp3$/)
-				return legacy != null && getMusicData(legacy[1]!) != null ? legacy[1]! : null
-			})
-			.filter((id): id is string => id != null)
+	function normalizePlaylistMusicIds(list: string[]): string[] {
+		return normalizeMusicIds(list, true)
 	}
 
 	function normalizeRecentHistory(): void {
-		history.value = normalizePlaylistMusicIds(history.value)
+		history.value = normalizeMusicIds(history.value)
 	}
 
 	function normalizeSavedPlaylists(): void {
@@ -481,13 +465,15 @@ export const useMusicStore = defineStore('music', () => {
 	const ready = until(isDataReady)
 		.toBe(true)
 		.then(async () => {
-			await loadOfflineMusics(id => getMusicData(id)?.src)
+			await loadOfflineMusics(getMusicData)
 			normalizeSavedPlaylists()
 			normalizeRecentHistory()
 		})
 
 	return {
 		getMusicData,
+		getCanonicalMusicId,
+		normalizeMusicIds,
 		playlistList,
 		likedPlaylist,
 		savedPlaylists: computed(() => savedPlaylists.value.filter(playlist => isCustomPlaylist(playlist.id))
@@ -524,21 +510,6 @@ export const useMusicStore = defineStore('music', () => {
 })
 
 function useOfflineMusics() {
-	interface OfflineMusicEntry {
-		source: string
-		blob: Blob
-	}
-
-	function isOfflineMusicEntry(value: unknown): value is OfflineMusicEntry {
-		return value != null
-			&& typeof value === 'object'
-			&& 'source' in value
-			&& typeof value.source === 'string'
-			&& 'blob' in value
-			&& value.blob instanceof Blob
-			&& value.blob.size > 0
-	}
-
 	const storage = localforage.createInstance({ name: 'maple-pod' })
 	let storageGeneration = 0
 	let clearingStorage = false
@@ -555,41 +526,78 @@ function useOfflineMusics() {
 	}
 
 	const offlineReadyMusics = ref(new Set<string>())
-	async function loadOfflineMusics(getExpectedSource: (musicId: string) => string | undefined) {
+	async function loadOfflineMusics(getMusicData: (musicId: string) => MusicData | undefined) {
 		if (!isOfflineStorageWritable())
 			return
 		const generation = storageGeneration
 		const keys = await storage.keys()
+		const storedValues = new Map(await Promise.all(keys.map(async (musicId) => {
+			return [musicId, await storage.getItem<unknown>(musicId)] as const
+		})))
+		const aliasKeys = new Set(keys.filter((musicId) => {
+			const musicData = getMusicData(musicId)
+			return musicData != null && musicData.id !== musicId
+		}))
 		const ready = new Set<string>()
-		await Promise.all(keys.map(async (musicId) => {
-			const value = await storage.getItem<unknown>(musicId)
+		const migratedCanonicalIds = new Set<string>()
+		for (const aliasId of aliasKeys) {
+			const musicData = getMusicData(aliasId)
+			const value = storedValues.get(aliasId)
+			if (musicData == null || value == null)
+				continue
+
+			try {
+				const migrated = await runStorageMutation(async () => {
+					if (!isOfflineStorageWritable() || generation !== storageGeneration)
+						return null
+					return migrateOfflineMusicAliasStorageKey(
+						aliasId,
+						musicData.id,
+						value,
+						musicData.src,
+						storage,
+					)
+				})
+				if (migrated != null && isOfflineStorageWritable() && generation === storageGeneration) {
+					ready.add(musicData.id)
+					migratedCanonicalIds.add(musicData.id)
+				}
+			}
+			catch (error) {
+				console.warn(`Could not migrate offline music key "${aliasId}" to "${musicData.id}"; the old key was retained.`, error)
+			}
+		}
+
+		const keysToReconcile = keys.filter(musicId => !aliasKeys.has(musicId) && !migratedCanonicalIds.has(musicId))
+		await Promise.all(keysToReconcile.map(async (musicId) => {
+			const value = storedValues.get(musicId)
 			if (!isOfflineStorageWritable() || generation !== storageGeneration)
 				return
-			const expectedSource = getExpectedSource(musicId)
-			if (expectedSource != null && isOfflineMusicEntry(value) && value.source === expectedSource) {
-				ready.add(musicId)
-				return
-			}
-
-			const legacySource = `/resources/bgm/${musicId}.mp3`
-			if (value instanceof Blob && value.size > 0 && expectedSource === legacySource) {
-				// Raw Blob is a self-identifying legacy storage representation. Only
-				// migrate it when today's explicit resource metadata selects the same
-				// source; this does not participate in source fallback.
-				await runStorageMutation(async () => {
-					if (!isOfflineStorageWritable() || generation !== storageGeneration)
-						return
-					await storage.setItem<OfflineMusicEntry>(musicId, { source: legacySource, blob: value })
-				})
+			const expectedSource = getMusicData(musicId)?.src
+			const reconciliation = reconcileOfflineMusicStorageValue(musicId, value, expectedSource)
+			if (reconciliation.kind === 'ready') {
+				if (reconciliation.needsPersist) {
+					// Stable IDs survive resource renames and upstream promotion. Retain
+					// the full cached media and update only its catalog-source association.
+					await runStorageMutation(async () => {
+						if (!isOfflineStorageWritable() || generation !== storageGeneration)
+							return
+						await storage.setItem(musicId, reconciliation.entry)
+					})
+				}
 				if (isOfflineStorageWritable() && generation === storageGeneration)
 					ready.add(musicId)
 				return
 			}
 
-			if (value != null) {
+			if (reconciliation.kind === 'retained-unresolved' || reconciliation.kind === 'empty')
+				return
+
+			if (reconciliation.kind === 'remove') {
 				await runStorageMutation(async () => {
-					if (isOfflineStorageWritable() && generation === storageGeneration)
-						await storage.removeItem(musicId)
+					if (!isOfflineStorageWritable() || generation !== storageGeneration)
+						return
+					await storage.removeItem(musicId)
 				})
 			}
 		}))
@@ -646,7 +654,7 @@ function useOfflineMusics() {
 			if (!isCurrentAttempt(musicId, attemptId, generation, signal))
 				return
 
-			await storage.setItem<OfflineMusicEntry>(musicId, { source: src, blob })
+			await storage.setItem(musicId, { source: src, blob })
 			if (!isCurrentAttempt(musicId, attemptId, generation, signal)) {
 				await removeAttemptStorage(musicId)
 				return
@@ -721,20 +729,19 @@ function useOfflineMusics() {
 		const value = await storage.getItem<unknown>(musicId)
 		if (!isOfflineStorageWritable() || generation !== storageGeneration)
 			return null
-		if (isOfflineMusicEntry(value) && value.source === expectedSource)
-			return value.blob
-
-		const legacySource = `/resources/bgm/${musicId}.mp3`
-		if (value instanceof Blob && value.size > 0 && expectedSource === legacySource) {
-			await runStorageMutation(async () => {
-				if (!isOfflineStorageWritable() || generation !== storageGeneration)
-					return
-				await storage.setItem<OfflineMusicEntry>(musicId, { source: legacySource, blob: value })
-			})
-			return isOfflineStorageWritable() && generation === storageGeneration ? value : null
+		const reconciliation = reconcileOfflineMusicStorageValue(musicId, value, expectedSource)
+		if (reconciliation.kind === 'ready') {
+			if (reconciliation.needsPersist) {
+				await runStorageMutation(async () => {
+					if (!isOfflineStorageWritable() || generation !== storageGeneration)
+						return
+					await storage.setItem(musicId, reconciliation.entry)
+				})
+			}
+			return isOfflineStorageWritable() && generation === storageGeneration ? reconciliation.entry.blob : null
 		}
 
-		if (value != null) {
+		if (reconciliation.kind === 'remove') {
 			await runStorageMutation(async () => {
 				if (isOfflineStorageWritable() && generation === storageGeneration)
 					await storage.removeItem(musicId)
@@ -746,11 +753,14 @@ function useOfflineMusics() {
 	function cancelOfflineMusicDownload(musicId: string) {
 		cancelFns.get(musicId)?.()
 	}
-	async function removeSavedOfflineMusic(musicId: string) {
+	async function removeSavedOfflineMusic(musicId: string, aliasIds: string[] = []) {
 		cancelOfflineMusicDownload(musicId)
 		await activeAttemptRequests.get(musicId)
 			?.catch(() => null)
-		await runStorageMutation(() => storage.removeItem(musicId))
+		await runStorageMutation(async () => {
+			await storage.removeItem(musicId)
+			await Promise.all(aliasIds.map(aliasId => storage.removeItem(aliasId)))
+		})
 		offlineReadyMusics.value.delete(musicId)
 		offlineMusicDownloadErrors.value.delete(musicId)
 	}
