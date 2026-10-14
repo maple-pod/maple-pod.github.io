@@ -87,12 +87,13 @@ test('filename remains the identity when id is absent and promotion retains its 
 	const promoted = bgm({
 		id: 'supplemental:dimension-tower:old-login',
 		filename: 'upstream-old-login',
-		catalog: undefined,
+		catalog: { membership: 'supplemental', status: 'curated' },
 		audio: { file: 'old-login.mp3', codec: 'mp3', container: 'mp3' },
 	})
 	const normalized = normalizeResourceCatalog({ bgms: [promoted], marks: {} })
 	assert.equal(normalized.bgms.length, 1)
 	assert.equal(getResourceBgmId(normalized.bgms[0]), 'supplemental:dimension-tower:old-login')
+	assert.equal(normalized.bgms[0].catalog.status, 'curated')
 })
 
 test('new-format entries never guess MP3 when declared audio is missing or unsafe', () => {

@@ -25,6 +25,9 @@ export interface ResourceBgm {
 		membership: 'supplemental'
 		status: 'pending-upstream'
 		tracking: string
+	} | {
+		membership: 'supplemental'
+		status: 'curated'
 	}
 	mark?: string
 	duration: number

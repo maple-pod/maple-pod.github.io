@@ -32,8 +32,11 @@ function hasValidCatalogMetadata(bgm: ResourceBgmInput): boolean {
 	if (bgm.catalog == null)
 		return true
 
-	return bgm.catalog.membership === 'supplemental'
-		&& bgm.catalog.status === 'pending-upstream'
+	if (bgm.catalog.membership !== 'supplemental')
+		return false
+	if (bgm.catalog.status === 'curated')
+		return !('tracking' in bgm.catalog)
+	return bgm.catalog.status === 'pending-upstream'
 		&& typeof bgm.catalog.tracking === 'string'
 		&& bgm.catalog.tracking.trim().length > 0
 }
