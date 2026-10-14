@@ -8,7 +8,7 @@ const props = defineProps<{
 }>()
 
 const musicStore = useMusicStore()
-const { getPlaylist, deletePlaylist, isCustomPlaylist, play, isMusicDisabled, saveMusicForOffline } = musicStore
+const { getPlaylist, getMusicData, deletePlaylist, isCustomPlaylist, play, isMusicDisabled, saveMusicForOffline } = musicStore
 const { offlineReadyMusics, offlineMusicDownloadingProgress } = storeToRefs(musicStore)
 
 const playlist = computed(() => getPlaylist(props.playlistId)!)
@@ -52,16 +52,20 @@ async function handleCopyPlaylistLink(playlistId: PlaylistId) {
 	})
 }
 
-const isReadyForOffline = computed(() => playlist.value.list.every(musicId => offlineReadyMusics.value.has(musicId)))
-const isDownloading = computed(() => playlist.value.list.some(musicId => offlineMusicDownloadingProgress.value.has(musicId)))
-const numOfDownloading = computed(() => playlist.value.list.filter(musicId => offlineMusicDownloadingProgress.value.has(musicId)).length)
-const numOfDownloadable = computed(() => playlist.value.list.filter(musicId => !offlineReadyMusics.value.has(musicId) && !offlineMusicDownloadingProgress.value.has(musicId)).length)
+const resolvedMusicIds = computed(() => playlist.value.list.filter(musicId => getMusicData(musicId) != null))
+const unresolvedMusicCount = computed(() => playlist.value.list.length - resolvedMusicIds.value.length)
+const isReadyForOffline = computed(() => unresolvedMusicCount.value === 0 && playlist.value.list.every(musicId => offlineReadyMusics.value.has(musicId)))
+const isDownloading = computed(() => resolvedMusicIds.value.some(musicId => offlineMusicDownloadingProgress.value.has(musicId)))
+const numOfDownloading = computed(() => resolvedMusicIds.value.filter(musicId => offlineMusicDownloadingProgress.value.has(musicId)).length)
+const numOfDownloadable = computed(() => resolvedMusicIds.value.filter(musicId => !offlineReadyMusics.value.has(musicId) && !offlineMusicDownloadingProgress.value.has(musicId)).length)
 const downloadStatusLabel = computed(() => {
 	if (isReadyForOffline.value)
 		return 'Ready for Offline'
 	if (isDownloading.value) {
 		return `Downloading ${numOfDownloading.value} Music${numOfDownloading.value > 1 ? 's' : ''}`
 	}
+	if (numOfDownloadable.value === 0 && unresolvedMusicCount.value > 0)
+		return `${unresolvedMusicCount.value} Unavailable Music`
 	return `Download for Offline (${numOfDownloadable.value} Music${numOfDownloadable.value > 1 ? 's' : ''})`
 })
 const isOnline = useOnline()
@@ -102,9 +106,9 @@ const menuItems = computed<UiDropdownMenuItem[]>(() => [
 						if (isReadyForOffline.value || isDownloading.value)
 							return
 						event.preventDefault()
-						playlist.value.list.forEach(saveMusicForOffline)
+						resolvedMusicIds.value.forEach(saveMusicForOffline)
 					},
-					disabled: isReadyForOffline.value || isDownloading.value || (isOnline.value === false),
+					disabled: isReadyForOffline.value || isDownloading.value || numOfDownloadable.value === 0 || (isOnline.value === false),
 				},
 			]
 		: []),

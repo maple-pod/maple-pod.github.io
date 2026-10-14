@@ -13,6 +13,7 @@ export interface SavedUserData {
 }
 
 export interface ResourceBgm {
+	id?: string
 	description: string
 	filename: string
 	audio: {
@@ -20,7 +21,12 @@ export interface ResourceBgm {
 		codec: string
 		container: string
 	}
-	mark: string
+	catalog?: {
+		membership: 'supplemental'
+		status: 'pending-upstream'
+		tracking: string
+	}
+	mark?: string
 	duration: number
 	metadata: {
 		albumArtist: string
@@ -28,13 +34,13 @@ export interface ResourceBgm {
 		title: string
 		year: string
 	}
-	source: {
-		client: string
-		date: string
-		structure: string
-		version: string
+	source?: {
+		client?: string
+		date?: string
+		structure?: string
+		version?: string
 	}
-	youtube: string
+	youtube?: string
 }
 
 export interface Resources {

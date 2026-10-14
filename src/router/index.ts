@@ -56,15 +56,24 @@ const middlewares = {
 		return true
 	},
 	directlyPlay: async (to) => {
-		const { musicId } = to.query as { musicId: string | undefined }
-		const { confirm } = useUiConfirmDialog()
+		const query = to.query as { musicId?: string }
+		const musicId = typeof query.musicId === 'string' ? query.musicId : undefined
 		const musicStore = useMusicStore()
-		const musicData = musicStore.getMusicData(musicId!)
+		const musicData = musicId == null ? undefined : musicStore.getMusicData(musicId)
 
 		if (musicData == null) {
+			const { toast } = useUiToast()
+			void toast({
+				title: 'Music Unavailable',
+				description: musicId == null
+					? 'This link does not include a music ID.'
+					: `The music "${musicId}" is not available in the current catalog.`,
+				duration: 5000,
+			})
 			return { name: Routes.Root }
 		}
 
+		const { confirm } = useUiConfirmDialog()
 		const agreed = await confirm({
 			title: 'Play Music From Link',
 			description: `Are you sure you want to play "${musicData.title}" from link?`,
