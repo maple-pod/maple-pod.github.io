@@ -275,7 +275,8 @@ export function useAudioOutput({ audio, getVolume, getMuted }: UseAudioOutputOpt
 
 	async function fadeOutputTo(value: number, durationMs: number) {
 		if (!enhancedOutputAllowed) {
-			setOutputGain(value)
+			// Android's native element must stay audible throughout track handoffs,
+			// including candidate preparation; do not zero its volume for fades.
 			return
 		}
 
